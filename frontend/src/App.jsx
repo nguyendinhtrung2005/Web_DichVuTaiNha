@@ -1,1 +1,5 @@
-// TODO: Implement the root application component.
+import AppRoutes from "./routes/AppRoutes";
+
+export default function App() {
+  return <AppRoutes />;
+}

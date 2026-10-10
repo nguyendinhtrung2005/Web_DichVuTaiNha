@@ -1,1 +1,5 @@
-// TODO: Implement the staff schedule page.
+import { SchedulePage } from "../shared/WorkspacePages";
+
+export default function Schedule() {
+  return <SchedulePage />;
+}

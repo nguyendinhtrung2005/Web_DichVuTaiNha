@@ -1,1 +1,5 @@
-// TODO: Implement the staff jobs page.
+import { StaffJobsPage } from "../shared/WorkspacePages";
+
+export default function Jobs() {
+  return <StaffJobsPage />;
+}
