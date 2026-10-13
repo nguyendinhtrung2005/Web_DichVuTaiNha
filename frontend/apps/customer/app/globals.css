@@ -1,0 +1,183 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif;
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --font-be-vietnam: "Be Vietnam Pro";
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #16263e;
+  --card: #ffffff;
+  --card-foreground: #16263e;
+  --popover: #ffffff;
+  --popover-foreground: #16263e;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #eff6ff;
+  --secondary-foreground: #1d4ed8;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #eff6ff;
+  --accent-foreground: #1d4ed8;
+  --destructive: #b91c1c;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #2563eb;
+  --success: oklch(0.94 0.06 155);
+  --success-foreground: oklch(0.42 0.11 155);
+  --warning: oklch(0.95 0.07 85);
+  --warning-foreground: oklch(0.47 0.11 60);
+  --info: oklch(0.94 0.04 250);
+  --info-foreground: oklch(0.45 0.16 256);
+  --chart-1: #2563eb;
+  --chart-2: oklch(0.7 0.13 220);
+  --chart-3: oklch(0.72 0.15 160);
+  --chart-4: oklch(0.8 0.14 85);
+  --chart-5: oklch(0.63 0.2 27);
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #16263e;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eff6ff;
+  --sidebar-accent-foreground: #1d4ed8;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #2563eb;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@source "../../../packages/ui/src";
+
+/* Existing staff area styles, scoped for the shared application. */
+.staff-app {
+  --primary: var(--ch-blue);
+  --primary-foreground: #fff;
+  --ring: var(--ch-blue);
+  --background: #fff;
+}
+
+.staff-app [data-slot="button"] {
+  min-height: 44px;
+}
+
+.staff-app [data-slot="input"],
+.staff-app .ch-field input:not([type="file"]),
+.staff-app .ch-field select {
+  min-height: 44px;
+}
+
+.staff-app .ch-field,
+.staff-app .ch-field input,
+.staff-app .ch-field select,
+.staff-app .ch-field textarea {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .staff-app .staff-sidebar { width: 256px; }
+  .staff-app .staff-workspace { margin-left: 256px; }
+  .staff-app.staff-collapsed .staff-sidebar { width: 88px; }
+  .staff-app.staff-collapsed .staff-workspace { margin-left: 88px; }
+  .staff-app.staff-auth-layout .staff-workspace { margin-left: 0; }
+}
+
+/* Existing admin area styles, scoped for the shared application. */
+.admin-app {
+  --primary: var(--ch-blue, #2563eb);
+  --primary-foreground: #fff;
+  --ring: var(--ch-blue, #2563eb);
+  --foreground: var(--ch-ink, #16263e);
+  --muted-foreground: var(--ch-muted, #64748b);
+  --border: var(--ch-border, #e2e8f0);
+  overflow-wrap: anywhere;
+}
+.admin-app [data-slot="button"] { min-height: 44px; }
+.admin-app [data-slot="input"],
+.admin-app [data-slot="textarea"],
+.admin-app select {
+  min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
+}
+.admin-app input[type="date"],
+.admin-app input[type="datetime-local"] { display: block; width: 100%; }
+.admin-app select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.admin-app select:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.admin-app select:disabled { cursor: not-allowed; opacity: .55; }
+.admin-app [data-slot="badge"] { height: auto; min-height: 24px; max-width: 100%; white-space: normal; text-align: center; line-height: 1.5; }
+.admin-app .admin-legacy { min-width: 0; }
+.admin-app .admin-legacy .ch-table-wrap { max-width: 100%; }
+.admin-app .admin-legacy .ch-auth { margin: 0; }
+@media (min-width: 1024px) {
+  .admin-app .admin-sidebar { width: 256px; }
+  .admin-app:not(.admin-auth-layout) .admin-workspace { margin-left: 256px; }
+  .admin-app.admin-collapsed .admin-sidebar { width: 88px; }
+  .admin-app.admin-collapsed:not(.admin-auth-layout) .admin-workspace { margin-left: 88px; }
+}
