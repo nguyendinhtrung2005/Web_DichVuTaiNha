@@ -1,0 +1,3 @@
+.auth-data/
+.env*
+!.env.example
