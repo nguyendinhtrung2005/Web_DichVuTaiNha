@@ -21,7 +21,7 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
   const [category, setCategory] = useState("")
   const [sort, setSort] = useState("")
   const activeServices = useMemo(() => services.filter((service) => service.status === "active"), [services])
-  const categories = useMemo(() => Array.from(new Set(activeServices.map((service) => service.category))), [activeServices])
+  const categories = useMemo(() => Object.keys(CATEGORY_LABEL) as ServiceCategory[], [])
   const result = useMemo(() => {
     const terms = searchText(query).split(" ").filter(Boolean)
     return activeServices.filter((service) => {
@@ -40,7 +40,7 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
           Dịch vụ CleanHome
         </p>
         <h1 id={`${id}-heading`} className="m-0 text-3xl leading-tight font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl">Chọn dịch vụ cho ngôi nhà của bạn</h1>
-        <p className="m-0 mt-5 max-w-2xl text-base leading-7 text-muted-foreground">Từ dọn dẹp thường ngày đến vệ sinh chuyên sâu, tìm dịch vụ phù hợp với nhu cầu và không gian sống. Xem phạm vi công việc và giá tham khảo trước khi đặt lịch.</p>
+        <p className="m-0 mt-5 max-w-2xl text-base leading-7 text-muted-foreground">Chọn dịch vụ phù hợp với nhà ở, phòng trọ hoặc nhu cầu chăm sóc và bảo dưỡng. Xem phạm vi công việc và giá tham khảo trước khi đặt lịch.</p>
       </div>
 
       <Card className="mb-8 rounded-2xl bg-slate-50/80 shadow-none ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">

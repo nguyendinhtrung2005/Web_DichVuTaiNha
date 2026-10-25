@@ -27,7 +27,7 @@ const IMAGE_OPTIONS = [
   { value: "/images/ve-sinh-nem.png", label: "Vệ sinh nệm" },
   { value: "/images/sau-xay-dung.png", label: "Vệ sinh sau xây dựng" },
 ]
-const EMPTY_DRAFT: Draft = { name: "", category: "dinh-ky", shortDesc: "", description: "", unit: "giờ", quantityLabel: "Số giờ", price: "", minQuantity: "1", defaultQuantity: "1", minutesPerUnit: "60", baseMinutes: "0", image: IMAGE_OPTIONS[0].value, scope: "", included: "", excluded: "" }
+const EMPTY_DRAFT: Draft = { name: "", category: "ve-sinh-nha-o", shortDesc: "", description: "", unit: "giờ", quantityLabel: "Số giờ", price: "", minQuantity: "1", defaultQuantity: "1", minutesPerUnit: "60", baseMinutes: "0", image: IMAGE_OPTIONS[0].value, scope: "", included: "", excluded: "" }
 
 function valuesOf(service: Service): Draft {
   return { name: service.name, category: service.category, shortDesc: service.shortDesc, description: service.description, unit: service.unit, quantityLabel: service.quantityLabel, price: String(service.price), minQuantity: String(service.minQuantity), defaultQuantity: String(service.defaultQuantity), minutesPerUnit: String(service.minutesPerUnit), baseMinutes: String(service.baseMinutes), image: service.image, scope: service.scope.join("\n"), included: service.included.join("\n"), excluded: service.excluded.join("\n") }

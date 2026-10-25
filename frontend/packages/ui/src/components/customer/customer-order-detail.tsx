@@ -38,7 +38,7 @@ function DetailItem({ label, children, wide = false }: { label: string; children
 }
 
 function customerHistoryLabel(label: string) {
-  if (label === "Khách báo đã chuyển khoản – chờ xác nhận") return "Đã lưu lựa chọn chuyển khoản trên trình duyệt"
+  if (label === "Khách báo đã chuyển khoản – chờ xác nhận" || label === "Khách chọn chuyển khoản – chờ xác nhận") return "Đã lưu lựa chọn chuyển khoản trên trình duyệt"
   if (label === "Khách hàng gửi yêu cầu hủy") return "Đã lưu yêu cầu hủy trên trình duyệt"
   return label
 }
@@ -94,7 +94,7 @@ export function CustomerOrderDetail({ id }: { id: string }) {
   const payment = paymentOf(s, order.id)
   const review = reviewOf(s, order.id)
   const cancelAllowed = canRequestCancel(order)
-  const paymentLabel = payment?.status === "paid" ? "Đã thanh toán" : payment?.status === "pending" ? "Chưa xác nhận thanh toán" : "Chưa thanh toán"
+  const paymentLabel = payment?.status === "paid" ? "Đã xác nhận đã nhận tiền" : payment?.status === "pending" ? "Chờ CleanHome xác nhận đã nhận tiền" : "Chưa ghi nhận đã nhận tiền"
 
   const restoreDialogFocus = () => {
     if (focusFrame.current !== null) cancelAnimationFrame(focusFrame.current)
@@ -137,7 +137,7 @@ export function CustomerOrderDetail({ id }: { id: string }) {
       setReasonError(dialog === "cancel" ? "Vui lòng nhập lý do hủy." : "Vui lòng nhập nhận xét của bạn.")
       return
     }
-    if (dialog === "review" && (![serviceStars, staffStars].every((value) => Number.isInteger(value) && value >= 1 && value <= 5))) {
+    if (dialog === "review" && (![serviceStars, ...(order.staffId ? [staffStars] : [])].every((value) => Number.isInteger(value) && value >= 1 && value <= 5))) {
       setSubmitError("Vui lòng chọn đánh giá từ 1 đến 5 sao.")
       return
     }
@@ -158,12 +158,12 @@ export function CustomerOrderDetail({ id }: { id: string }) {
       } else {
         const result = dialog === "pay"
           ? await saveCustomerPayment(order.id, method)
-          : await saveCustomerReview(order.id, { serviceRating: serviceStars, staffRating: staffStars, comment: reason.trim() })
+          : await saveCustomerReview(order.id, { serviceRating: serviceStars, ...(order.staffId ? { staffRating: staffStars } : {}), comment: reason.trim() })
         if (currentOrderId.current !== order.id) return
         if (!result.ok) { setSubmitError(result.error); return }
         setFeedback(result.persistence === "session"
           ? { message: dialog === "pay" ? "Lựa chọn thanh toán chỉ được giữ trong phiên hiện tại; trình duyệt chưa lưu được trên thiết bị. Chưa xác nhận thanh toán." : "Đánh giá chỉ được giữ trong phiên hiện tại; trình duyệt chưa lưu được trên thiết bị.", warning: true }
-          : { message: dialog === "pay" ? "Lựa chọn thanh toán được lưu trên trình duyệt này; chưa xác nhận thanh toán." : "Đã lưu đánh giá của bạn trên trình duyệt này." })
+          : { message: dialog === "pay" ? "Lựa chọn thanh toán được lưu trên trình duyệt này; chưa xác nhận đã nhận tiền." : "Đã lưu đánh giá của bạn trên trình duyệt này." })
       }
       setDialog(null)
       setReasonError("")
@@ -186,7 +186,7 @@ export function CustomerOrderDetail({ id }: { id: string }) {
       </header>
 
       {feedback && <div ref={feedbackElement} role="status" tabIndex={-1} className={`mb-6 flex min-w-0 items-start gap-3 rounded-xl border px-5 py-4 text-sm leading-7 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring ${feedback.warning ? "border-amber-200 bg-amber-50 text-amber-900" : "border-blue-100 bg-blue-50 text-blue-900"}`}><InfoIcon aria-hidden="true" className="mt-1 size-5 shrink-0" /><p className="m-0 min-w-0 break-words">{feedback.message}</p></div>}
-      {order.status === "pending" && <div className="mb-8 flex min-w-0 items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-5 py-4 text-sm leading-7 text-blue-900"><InfoIcon aria-hidden="true" className="mt-1 size-5 shrink-0" /><p className="m-0 min-w-0">Thông tin đang được lưu trên trình duyệt này. Lịch hẹn chưa được xác nhận.</p></div>}
+      {order.status === "pending" && <div className="mb-8 flex min-w-0 items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/60 px-5 py-4 text-sm leading-7 text-blue-900"><InfoIcon aria-hidden="true" className="mt-1 size-5 shrink-0" /><p className="m-0 min-w-0">Yêu cầu đang chờ CleanHome xác nhận thời gian bạn đề xuất. Thông tin được lưu trên trình duyệt này.</p></div>}
 
       <div className="grid min-w-0 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
         <div className="min-w-0 space-y-7">
@@ -198,7 +198,7 @@ export function CustomerOrderDetail({ id }: { id: string }) {
                 <div className="min-w-0"><h3 className="m-0 break-words text-lg leading-7 font-semibold">{service?.name || "Dịch vụ không còn trong danh sách"}</h3><p className="m-0 mt-2 text-sm text-muted-foreground">{order.quantity} {service?.unit || "đơn vị"}</p>{service && <Link href={`/dich-vu/${service.slug}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">Chi tiết dịch vụ<ArrowRightIcon aria-hidden="true" className="size-3.5" /></Link>}</div>
               </div>
               <dl className="m-0 grid gap-5 border-t border-border pt-6 sm:grid-cols-2">
-                <DetailItem label="Lịch thực hiện"><span className="flex min-w-0 items-start gap-2"><CalendarDaysIcon aria-hidden="true" className="mt-1.5 size-4 shrink-0 text-primary" /><span className="min-w-0">{date(order.scheduledAt)}</span></span></DetailItem>
+                <DetailItem label={order.status === "pending" ? "Thời gian đề xuất" : "Lịch thực hiện"}><span className="flex min-w-0 items-start gap-2"><CalendarDaysIcon aria-hidden="true" className="mt-1.5 size-4 shrink-0 text-primary" /><span className="min-w-0">{date(order.scheduledAt)}</span></span></DetailItem>
                 <DetailItem label="Thời lượng dự kiến"><span className="flex items-center gap-2"><Clock3Icon aria-hidden="true" className="size-4 shrink-0 text-primary" />{order.durationMinutes} phút</span></DetailItem>
                 <DetailItem label="Nhân viên thực hiện" wide>{employee ? <span className="flex flex-wrap items-center gap-3"><span className="flex items-center gap-2 font-medium"><UserRoundIcon aria-hidden="true" className="size-4 shrink-0 text-primary" />{employee.name}</span>{order.jobStatus && <Badge variant="secondary" className="px-2.5 py-1.5">{JOB_STATUS_LABEL[order.jobStatus]}</Badge>}</span> : "Chưa có nhân viên được phân công."}</DetailItem>
               </dl>
@@ -217,9 +217,9 @@ export function CustomerOrderDetail({ id }: { id: string }) {
               <DetailItem label="Số điện thoại"><a href={`tel:${order.contact.phone}`} className="inline-flex min-h-11 items-center gap-2 rounded-md text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"><PhoneIcon aria-hidden="true" className="size-4 shrink-0" />{order.contact.phone}</a></DetailItem>
               <DetailItem label="Địa chỉ thực hiện" wide><span className="flex min-w-0 items-start gap-2"><MapPinIcon aria-hidden="true" className="mt-1.5 size-4 shrink-0 text-primary" /><span className="min-w-0 break-words">{order.contact.address}</span></span></DetailItem>
               <DetailItem label="Loại nhà">{HOUSE_TYPE_LABEL[order.contact.houseType]}</DetailItem>
-              <DetailItem label="Diện tích">{order.contact.area !== undefined ? `${order.contact.area} m²` : "Chưa cung cấp"}</DetailItem>
-              <DetailItem label="Số phòng / số tầng">{order.contact.rooms ?? "—"} phòng · {order.contact.floors ?? "—"} tầng</DetailItem>
-              <DetailItem label="Thú cưng">{typeof order.contact.hasPets === "boolean" ? order.contact.hasPets ? "Có thú cưng" : "Không có thú cưng" : "Chưa cung cấp"}</DetailItem>
+              {order.contact.area !== undefined && <DetailItem label="Diện tích">{order.contact.area} m²</DetailItem>}
+              {(order.contact.rooms !== undefined || order.contact.floors !== undefined) && <DetailItem label="Số phòng / số tầng">{order.contact.rooms ?? "—"} phòng · {order.contact.floors ?? "—"} tầng</DetailItem>}
+              {order.contact.hasPets && <DetailItem label="Thú cưng">Có thú cưng</DetailItem>}
               <DetailItem label="Yêu cầu đặc biệt" wide><span className="whitespace-pre-wrap">{order.specialRequest || "Không có yêu cầu đặc biệt."}</span></DetailItem>
             </dl></CardContent>
           </Card>
@@ -241,15 +241,15 @@ export function CustomerOrderDetail({ id }: { id: string }) {
             <CardContent className="space-y-5"><div><p className="m-0 text-sm text-muted-foreground">Tổng dự kiến</p><p className="m-0 mt-2 break-words text-3xl font-bold tracking-tight text-primary tabular-nums">{money(order.price)}</p><p className="m-0 mt-2 text-xs leading-6 text-muted-foreground">Theo thông tin đã lưu khi đặt dịch vụ.</p></div><div className="space-y-3 border-t border-border pt-5"><Badge variant="outline" className={`px-2.5 py-1.5 whitespace-normal ${payment?.status === "paid" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>{paymentLabel}</Badge><p className="m-0 text-sm text-muted-foreground">{payment ? PAYMENT_METHOD_LABEL[payment.method] : "Chưa chọn phương thức thanh toán"}</p>{payment?.confirmedAt && <p className="m-0 text-xs leading-6 text-muted-foreground">Ghi nhận ngày {date(payment.confirmedAt)}</p>}{payment?.refundRequired && <p className="m-0 rounded-xl bg-amber-50 p-3 text-sm leading-6 text-amber-900">Khoản thanh toán cần được xem xét hoàn lại.</p>}</div>{order.status !== "cancelled" && payment?.status !== "paid" && <Button className="w-full" variant="outline" disabled={busy} onClick={(event) => openDialog("pay", event.currentTarget)}>Chọn / cập nhật thanh toán</Button>}<p className="m-0 text-xs leading-6 text-muted-foreground">Thông tin thanh toán hiển thị theo dữ liệu đang lưu trên trình duyệt này.</p></CardContent>
           </Card>
 
-          {order.status === "completed" && <Card className="min-w-0 overflow-visible rounded-2xl shadow-none ring-border [--card-spacing:--spacing(6)]"><CardHeader><h2 className="m-0 text-lg font-semibold">Đánh giá dịch vụ</h2></CardHeader><CardContent>{review ? <div className="space-y-4"><div className="flex flex-wrap items-center gap-2"><div className="flex gap-1 text-amber-500" aria-label={`Chất lượng dịch vụ: ${review.serviceRating} trên 5 sao`}>{[1, 2, 3, 4, 5].map((star) => <StarIcon key={star} aria-hidden="true" className={`size-4 ${star <= review.serviceRating ? "fill-current" : "text-slate-200"}`} />)}</div><span className="text-sm font-medium">{review.serviceRating}/5</span></div><p className="m-0 break-words text-sm leading-7 whitespace-pre-wrap">{review.comment}</p><p className="m-0 text-xs leading-6 text-muted-foreground">Nhân viên: {review.staffRating}/5 sao</p><p className="m-0 text-xs leading-6 text-muted-foreground">{date(review.createdAt)}</p></div> : <div className="space-y-4"><p className="m-0 text-sm leading-7 text-muted-foreground">Chia sẻ trải nghiệm về dịch vụ đã hoàn thành.</p><Button className="w-full" variant="outline" disabled={busy} onClick={(event) => openDialog("review", event.currentTarget)}>Viết đánh giá</Button></div>}</CardContent></Card>}
+          {order.status === "completed" && <Card className="min-w-0 overflow-visible rounded-2xl shadow-none ring-border [--card-spacing:--spacing(6)]"><CardHeader><h2 className="m-0 text-lg font-semibold">Đánh giá dịch vụ</h2></CardHeader><CardContent>          {review ? <div className="space-y-4"><div className="flex flex-wrap items-center gap-2"><div className="flex gap-1 text-amber-500" aria-label={`Chất lượng dịch vụ: ${review.serviceRating} trên 5 sao`}>{[1, 2, 3, 4, 5].map((star) => <StarIcon key={star} aria-hidden="true" className={`size-4 ${star <= review.serviceRating ? "fill-current" : "text-slate-200"}`} />)}</div><span className="text-sm font-medium">{review.serviceRating}/5</span></div><p className="m-0 break-words text-sm leading-7 whitespace-pre-wrap">{review.comment}</p>{review.staffId && review.staffRating !== undefined && <p className="m-0 text-xs leading-6 text-muted-foreground">Nhân viên: {review.staffRating}/5 sao</p>}<p className="m-0 text-xs leading-6 text-muted-foreground">{date(review.createdAt)}</p></div> : <div className="space-y-4"><p className="m-0 text-sm leading-7 text-muted-foreground">{order.staffId ? "Chia sẻ trải nghiệm về dịch vụ và nhân viên đã hoàn thành." : "Đơn chưa có nhân viên được phân công; bạn vẫn có thể đánh giá chất lượng dịch vụ."}</p><Button className="w-full" variant="outline" disabled={busy} onClick={(event) => openDialog("review", event.currentTarget)}>Viết đánh giá</Button></div>}</CardContent></Card>}
         </aside>
       </div>
 
       {dialog && <Modal title={dialog === "cancel" ? "Yêu cầu hủy dịch vụ" : dialog === "pay" ? "Chọn phương thức thanh toán" : "Đánh giá dịch vụ"} close={closeDialog}>
         <form noValidate className="ch-form" onSubmit={submit} aria-busy={busy}>
           {dialog === "cancel" && <><p className="m-0 text-sm leading-7 text-muted-foreground">Yêu cầu hủy cần được xem xét. Đơn vẫn giữ trạng thái hiện tại trong khi chờ duyệt.</p><Field label="Lý do hủy" error={reasonError}><Textarea required rows={4} value={reason} disabled={busy} onChange={(event) => { setReason(event.target.value); setReasonError("") }} placeholder="Cho CleanHome biết lý do bạn muốn hủy lịch hẹn." /></Field></>}
-          {dialog === "pay" && <><Field label="Phương thức thanh toán"><select value={method} disabled={busy} onChange={(event) => setMethod(event.target.value === "transfer" ? "transfer" : "cash")}><option value="cash">Tiền mặt</option><option value="transfer">Chuyển khoản</option></select></Field><p className="m-0 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-7 text-blue-900">Lựa chọn thanh toán được lưu trên thiết bị này; chưa xác nhận thanh toán.</p></>}
-          {dialog === "review" && <><Field label="Chất lượng dịch vụ"><select value={serviceStars} disabled={busy} onChange={(event) => setServiceStars(Number(event.target.value))}>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} sao</option>)}</select></Field><Field label="Nhân viên thực hiện"><select value={staffStars} disabled={busy} onChange={(event) => setStaffStars(Number(event.target.value))}>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} sao</option>)}</select></Field><Field label="Nhận xét" error={reasonError}><Textarea required rows={4} value={reason} disabled={busy} onChange={(event) => { setReason(event.target.value); setReasonError("") }} placeholder="Trải nghiệm của bạn về dịch vụ vừa sử dụng." /></Field></>}
+          {dialog === "pay" && <><Field label="Phương thức thanh toán"><select value={method} disabled={busy} onChange={(event) => setMethod(event.target.value === "transfer" ? "transfer" : "cash")}><option value="cash">Tiền mặt</option><option value="transfer">Chuyển khoản</option></select></Field><p className="m-0 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-7 text-blue-900">{method === "transfer" ? "Lựa chọn chuyển khoản sẽ được lưu ở trạng thái chờ CleanHome ghi nhận đã nhận tiền. Đây không phải xác nhận giao dịch ngân hàng." : "Lựa chọn tiền mặt sẽ được lưu trên thiết bị này; chỉ CleanHome ghi nhận sau khi nhận tiền. Chưa có khoản thanh toán nào được xác nhận."}</p></>}
+          {dialog === "review" && <><Field label="Chất lượng dịch vụ"><select value={serviceStars} disabled={busy} onChange={(event) => setServiceStars(Number(event.target.value))}>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} sao</option>)}</select></Field>{order.staffId && <Field label="Nhân viên thực hiện"><select value={staffStars} disabled={busy} onChange={(event) => setStaffStars(Number(event.target.value))}>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} sao</option>)}</select></Field>}<Field label="Nhận xét" error={reasonError}><Textarea required rows={4} maxLength={2000} value={reason} disabled={busy} onChange={(event) => { setReason(event.target.value); setReasonError("") }} placeholder="Trải nghiệm của bạn về dịch vụ vừa sử dụng." /></Field></>}
           {submitError && <p role="alert" className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-7 text-red-800">{submitError}</p>}
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" disabled={busy} onClick={closeDialog}>Quay lại</Button><Button type="submit" disabled={busy}>{busy ? <><LoaderCircleIcon aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Đang lưu...</> : dialog === "cancel" ? "Lưu yêu cầu hủy" : dialog === "pay" ? "Lưu lựa chọn thanh toán" : "Lưu đánh giá"}</Button></div>
         </form>

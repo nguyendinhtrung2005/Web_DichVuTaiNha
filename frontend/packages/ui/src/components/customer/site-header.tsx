@@ -12,6 +12,7 @@ import type { User } from "@/lib/types"
 const NAVIGATION = [
   { href: "/", route: "", label: "Trang chủ" },
   { href: "/dich-vu", route: "dich-vu", label: "Dịch vụ" },
+  { href: "/san-pham", route: "san-pham", label: "Sản phẩm" },
   { href: "/don-cua-toi", route: "don-cua-toi", label: "Đơn của tôi" },
   { href: "/lich-su", route: "lich-su", label: "Lịch sử" },
   { href: "/ho-so", route: "ho-so", label: "Hồ sơ" },

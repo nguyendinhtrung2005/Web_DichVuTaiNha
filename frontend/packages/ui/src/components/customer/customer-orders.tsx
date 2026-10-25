@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ORDER_STATUS_LABEL } from "@/lib/config"
-import type { OrderStatus } from "@/lib/types"
+import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL } from "@/lib/config"
+import type { OrderStatus, PaymentStatus } from "@/lib/types"
 import { date, day, Field, money, useData } from "../../common"
 
 const PAGE_SIZE = 8
@@ -20,6 +20,11 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   in_progress: "border-indigo-200 bg-indigo-50 text-indigo-700",
   completed: "border-emerald-200 bg-emerald-50 text-emerald-800",
   cancelled: "border-slate-200 bg-slate-100 text-slate-600",
+}
+const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  unpaid: "Chưa ghi nhận đã nhận tiền",
+  pending: "Chờ CleanHome xác nhận đã nhận tiền",
+  paid: "Đã xác nhận đã nhận tiền",
 }
 
 export function CustomerOrderStatus({ status }: { status: OrderStatus }) {
@@ -46,12 +51,13 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
 
   if (!s) return <div className="mx-auto max-w-6xl space-y-6 px-4 py-12 sm:px-6" aria-busy="true" aria-label="Đang tải đơn dịch vụ"><Skeleton className="h-12 w-56" /><Skeleton className="h-36 w-full rounded-2xl" /><Skeleton className="h-80 w-full rounded-2xl" /></div>
   if (!user || role !== "customer") return <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6"><p>Vui lòng đăng nhập để xem đơn dịch vụ của bạn.</p><Button render={<Link href="/dang-nhap" />} nativeButton={false}>Đăng nhập</Button></div>
-  if (!Array.isArray(s.orders) || !Array.isArray(s.services)) return <CustomerOrderError />
+  if (!Array.isArray(s.orders) || !Array.isArray(s.services) || !Array.isArray(s.payments)) return <CustomerOrderError />
 
   const ownOrders = s.orders.filter((order) => order?.customerId === user.id && (!history || order.status === "completed"))
   if (s.services.some((service) => !service || typeof service.id !== "string" || typeof service.name !== "string")
     || ownOrders.some((order) => !order.contact || typeof order.contact.name !== "string" || typeof order.scheduledAt !== "string" || typeof order.createdAt !== "string")) return <CustomerOrderError />
   const services = new Map(s.services.map((service) => [service.id, service]))
+  const payments = new Map(s.payments.map((payment) => [payment.orderId, payment]))
   const normalizedQuery = normalizeSearch(query)
   const rangeError = Boolean(from && to && from > to)
   const filteredOrders = ownOrders
@@ -143,6 +149,7 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
               <div className="grid min-w-0 gap-4 lg:hidden">
                 {displayedOrders.map((order) => {
                   const service = services.get(order.serviceId)
+                  const payment = payments.get(order.id)
                   return (
                     <Card key={order.id} className="min-w-0 overflow-visible rounded-2xl shadow-none ring-border [--card-spacing:--spacing(5)]">
                       <CardContent className="space-y-5">
@@ -158,10 +165,11 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
                           </div>
                         </div>
                         <dl className="m-0 grid gap-4 border-t border-border pt-5 text-sm">
-                          <div className="flex min-w-0 items-start gap-3"><CalendarDaysIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><dt className="text-xs text-muted-foreground">Lịch thực hiện</dt><dd className="m-0 mt-1 break-words leading-6 font-medium">{date(order.scheduledAt)}</dd></div></div>
+                          <div className="flex min-w-0 items-start gap-3"><CalendarDaysIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><dt className="text-xs text-muted-foreground">{order.status === "pending" ? "Thời gian đề xuất" : "Lịch thực hiện"}</dt><dd className="m-0 mt-1 break-words leading-6 font-medium">{date(order.scheduledAt)}</dd></div></div>
                           <div className="flex min-w-0 items-start gap-3"><MapPinIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><div className="min-w-0"><dt className="text-xs text-muted-foreground">Địa chỉ</dt><dd className="m-0 mt-1 break-words leading-6">{order.contact.address}</dd></div></div>
                         </dl>
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4"><span className="text-sm text-muted-foreground">{history ? "Chi phí đã lưu" : "Tổng dự kiến"}</span><span className="text-lg font-semibold text-primary tabular-nums">{money(order.price)}</span></div>
+                        <div className="flex flex-wrap items-start justify-between gap-2 text-sm"><span className="text-muted-foreground">Thanh toán</span><span className="text-right font-medium">{PAYMENT_STATUS_LABEL[payment?.status || "unpaid"]}{payment ? ` · ${PAYMENT_METHOD_LABEL[payment.method]}` : ""}</span></div>
                         <Button variant="outline" className="w-full justify-between" aria-label={`Xem chi tiết đơn ${order.code}`} render={<Link href={`/don/${order.id}`} />} nativeButton={false}>Xem chi tiết<ArrowRightIcon data-icon="inline-end" aria-hidden="true" /></Button>
                         {history && (service?.status === "active" ? <Button className="w-full justify-between" aria-label={`Đặt lại dịch vụ đơn ${order.code}`} render={<Link href={`/dat-dich-vu/${order.id}`} />} nativeButton={false}>Đặt lại dịch vụ<ArrowRightIcon data-icon="inline-end" aria-hidden="true" /></Button> : <Button className="w-full" disabled>Dịch vụ tạm ngừng</Button>)}
                       </CardContent>
@@ -176,13 +184,16 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
                   <colgroup><col className="w-[30%]" /><col className="w-[25%]" /><col className="w-[17%]" /><col className="w-[16%]" /><col className="w-[12%]" /></colgroup>
                   <thead className="bg-slate-50 text-xs text-muted-foreground"><tr>{["Đơn / dịch vụ", "Lịch / địa chỉ", "Trạng thái", history ? "Chi phí đã lưu" : "Tổng dự kiến", "Chi tiết"].map((label) => <th key={label} scope="col" className="px-4 py-4 font-semibold first:rounded-tl-2xl last:rounded-tr-2xl">{label}</th>)}</tr></thead>
                   <tbody>
-                    {displayedOrders.map((order) => <tr key={order.id} className="border-t border-border transition-colors hover:bg-slate-50/60">
+                    {displayedOrders.map((order) => {
+                      const payment = payments.get(order.id)
+                      return <tr key={order.id} className="border-t border-border transition-colors hover:bg-slate-50/60">
                       <td className="px-4 py-5 align-top"><p className="m-0 font-semibold">{order.code}</p><p className="m-0 mt-2 break-words leading-6 text-muted-foreground">{services.get(order.serviceId)?.name || "Dịch vụ không còn trong danh sách"}</p></td>
                       <td className="px-4 py-5 align-top"><p className="m-0 leading-6">{date(order.scheduledAt)}</p><p className="m-0 mt-2 break-words text-xs leading-6 text-muted-foreground">{order.contact.address}</p></td>
                       <td className="px-4 py-5 align-top"><CustomerOrderStatus status={order.status} /></td>
-                      <td className="px-4 py-5 align-top"><p className="m-0 break-words leading-6 font-semibold text-primary tabular-nums">{money(order.price)}</p></td>
+                      <td className="px-4 py-5 align-top"><p className="m-0 break-words leading-6 font-semibold text-primary tabular-nums">{money(order.price)}</p><p className="m-0 mt-2 text-xs leading-5 text-muted-foreground">{PAYMENT_STATUS_LABEL[payment?.status || "unpaid"]}</p>{payment && <p className="m-0 mt-1 text-xs leading-5 text-muted-foreground">{PAYMENT_METHOD_LABEL[payment.method]}</p>}</td>
                       <td className="px-4 py-3 align-top"><div className="flex flex-col items-start gap-2"><Link href={`/don/${order.id}`} aria-label={`Xem chi tiết đơn ${order.code}`} className="inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">Chi tiết</Link>{history && (services.get(order.serviceId)?.status === "active" ? <Link href={`/dat-dich-vu/${order.id}`} aria-label={`Đặt lại dịch vụ đơn ${order.code}`} className="inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">Đặt lại</Link> : <span className="text-xs leading-5 text-muted-foreground">Tạm ngừng</span>)}</div></td>
-                    </tr>)}
+                      </tr>
+                    })}
                   </tbody>
                 </table>
               </div>

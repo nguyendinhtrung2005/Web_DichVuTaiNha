@@ -1,0 +1,28 @@
+{
+  "name": "cleanhome-backend",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start:gateway": "node api-gateway/src/app.js",
+    "start:auth": "node auth-service/src/app.js",
+    "start:orders": "node order-service/src/app.js",
+    "start:payments": "node payment-service/src/app.js",
+    "start:reviews": "node review-service/src/app.js",
+    "start:services": "node service-service/src/app.js",
+    "start:staff": "node staff-service/src/app.js",
+    "start:all": "node scripts/start-all.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "http-proxy-middleware": "^3.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.12.0",
+    "zod": "^4.6.7"
+  }
+}

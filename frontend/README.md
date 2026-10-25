@@ -54,7 +54,8 @@ Khách mới có thể đăng ký tại website khách hàng, luôn được gá
 
 - Khách hàng: trang dịch vụ, chi tiết, biểu mẫu đặt nhiều bước, đơn/chi tiết, yêu cầu hủy, thanh toán mô phỏng, đánh giá, lịch sử/đặt lại, hồ sơ/ảnh đại diện.
 - Nhân viên: tổng quan, công việc, chi tiết, lịch tuần/tháng/danh sách, tiếp nhận/bắt đầu/hoàn thành, ghi chú và hồ sơ.
-- Quản trị: tổng quan, quản lý tài khoản/dịch vụ, xác nhận đơn, phân công có kiểm tra trùng lịch, duyệt hủy, lịch, thanh toán, đánh giá, báo cáo và xuất CSV.
+- Quản trị: tổng quan, quản lý tài khoản/dịch vụ, sản phẩm và tồn kho, xác nhận đơn, phân công có kiểm tra trùng lịch, duyệt hủy, lịch, thanh toán, đánh giá, báo cáo và xuất CSV.
+- Danh mục dịch vụ gồm Vệ sinh nhà ở, Vệ sinh phòng trọ, Chăm sóc và Bảo dưỡng. Sản phẩm có trang mua riêng tại `/san-pham`, giỏ hàng và đơn mua demo; không dùng luồng đặt lịch.
 - Giữ lại hình ảnh, thành phần trang chủ và dữ liệu mẫu từ bản ban đầu. Font Be Vietnam Pro được đóng gói qua npm, không tải font từ Google khi build.
 - Tách ba ứng dụng, mỗi ứng dụng có package.json, cổng và lệnh build riêng, dùng chung mã nguồn component và logic.
 
@@ -62,13 +63,15 @@ Khách mới có thể đăng ký tại website khách hàng, luôn được gá
 
 Mỗi website dùng bộ dữ liệu riêng trong localStorage theo vai trò. Thay đổi ở customer **không tự chuyển** sang admin hoặc staff. Nhân viên mới tạo ở admin cũng không tự xuất hiện ở staff. Để minh họa các phía, dùng các đơn/tài khoản mẫu có sẵn ở từng website. Đây là giới hạn có chủ ý khi chưa có backend chung; không phải lỗi đồng bộ.
 
+Danh mục sản phẩm demo cũng lưu riêng theo nguồn gốc trình duyệt. Đơn mua và cập nhật tồn kho ở Customer không đồng bộ với trang quản lý sản phẩm ở Admin; để đồng bộ giao dịch và tồn kho giữa các website cần backend/API chung. Không dùng đơn mua demo cho giao dịch thực tế.
+
 Tải lại trang giữ dữ liệu đã lưu. Không xóa hoặc reset các khóa `cleanhome-demo-state-customer`, `cleanhome-demo-state-staff`, `cleanhome-demo-state-admin` để chuyển chế độ. Dữ liệu hợp nhất `cleanhome-unified-state-v1` vẫn được giữ riêng, không tự nhập hoặc ghi đè vào dữ liệu của ba website. Có thể xuất bản sao tại `/du-lieu` trước khi thao tác với dữ liệu.
 
-Chuyển khoản chỉ là mô phỏng. Nút “Tôi đã chuyển khoản” tạo trạng thái chờ xác nhận. Admin xác nhận riêng tại chi tiết đơn. Đơn đã trả tiền được duyệt hủy chỉ đánh dấu cần hoàn tiền.
+Thanh toán chỉ là mô phỏng: khách chọn tiền mặt hoặc chuyển khoản; chọn chuyển khoản tạo trạng thái chờ CleanHome ghi nhận đã nhận tiền, không xác nhận giao dịch ngân hàng. Admin chỉ ghi nhận đã nhận tiền theo luồng quản trị hiện có. Đánh giá chỉ dành cho đơn đã hoàn thành; nếu chưa có nhân viên được phân công, khách chỉ đánh giá dịch vụ. Lịch sử khách hàng chỉ gồm đơn đã hoàn thành. Nhân viên chỉ tự sửa thông tin liên hệ và ảnh đại diện, không tự sửa chức danh, mã nhân viên hoặc trạng thái tài khoản. Đơn đã ghi nhận thanh toán được duyệt hủy chỉ đánh dấu cần xem xét hoàn tiền, không thực hiện hoàn tiền.
 
 Doanh thu báo cáo là tổng đã xác nhận, chưa trừ tiền chưa thực hiện hoàn. Bộ lọc báo cáo áp dụng ngày tạo đơn và ngày xác nhận thanh toán; số tài khoản là tổng hiện có.
 
-Chưa tích hợp chatbot AI, khuyến mãi, backend, cơ sở dữ liệu, SSO hoặc cổng thanh toán thật. Các phần này không được tuyên bố là đã hoạt động.
+Backend API Node.js/MySQL đang được xây dựng riêng trong `backend/`; giao diện Customer, Staff và Admin hiện chưa gọi các API đó và vẫn sử dụng localStorage. Chưa tích hợp chatbot AI, khuyến mãi, đồng bộ database giữa các website, SSO hoặc cổng thanh toán thật. Các phần này không được tuyên bố là đã hoạt động.
 
 ## Cấu trúc
 

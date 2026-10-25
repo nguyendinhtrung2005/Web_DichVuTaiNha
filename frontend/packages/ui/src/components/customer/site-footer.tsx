@@ -11,6 +11,7 @@ const LINK_GROUPS = [
     title: "Dịch vụ",
     links: [
       { href: "/dich-vu", label: "Khám phá dịch vụ" },
+      { href: "/san-pham", label: "Sản phẩm tự làm sạch" },
       { href: "/dat-dich-vu", label: "Đặt lịch dọn dẹp" },
       { href: "/#cach-dat-lich", label: "Cách đặt dịch vụ" },
     ],
@@ -50,7 +51,7 @@ export function SiteFooter() {
         <div className="flex flex-col items-start gap-5 sm:col-span-2">
           <Logo />
           <p className="m-0 max-w-sm text-sm leading-7 text-muted-foreground">
-            Dọn dẹp nhà ở, vệ sinh nội thất và chăm sóc thiết bị. Chọn dịch vụ phù hợp với không gian của bạn.
+            Vệ sinh nhà ở, phòng trọ, chăm sóc, bảo dưỡng và sản phẩm tự làm sạch.
           </p>
           <span className="inline-flex items-center gap-2 text-sm font-medium text-primary"><SparklesIcon aria-hidden="true" className="size-4" />Chăm chút cho không gian sống</span>
         </div>

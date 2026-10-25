@@ -592,15 +592,18 @@ function submitPayment(orderId: string, method: PaymentMethod): Result<undefined
       ? st.payments.map((p) => (p.id === existing.id ? { ...p, method, status, createdAt: nowIso() } : p))
       : [...st.payments, { id: uid("pm"), code: nextPaymentCode(st), orderId, amount: o.price, method, status, createdAt: nowIso() } as const]
     return patchOrder({ ...st, payments: [...payments] }, orderId, () => ({}), {
-      label: method === "transfer" ? "Khách báo đã chuyển khoản – chờ xác nhận" : "Khách chọn thanh toán tiền mặt",
+      label: method === "transfer" ? "Khách chọn chuyển khoản – chờ xác nhận" : "Khách chọn thanh toán tiền mặt",
     })
   })
   return ok(undefined)
 }
 
 function confirmPayment(paymentId: string): Result<undefined> {
-  const p = load().payments.find((x) => x.id === paymentId)
-  if (!p || load().orders.find(o=>o.id===p.orderId)?.status==="cancelled" || p.status === "paid") return fail("Thanh toán không hợp lệ hoặc đã xác nhận.")
+  const state = load()
+  const p = state.payments.find((x) => x.id === paymentId)
+  const order = p && state.orders.find((item) => item.id === p.orderId)
+  if (!p || !order || order.status === "cancelled" || (p.status !== "pending" && p.status !== "unpaid")
+    || !Number.isFinite(p.amount) || p.amount < 0 || (p.method !== "cash" && p.method !== "transfer")) return fail("Bản ghi thanh toán không hợp lệ hoặc không còn đủ điều kiện xác nhận.")
   setState((s) => {
     const next = { ...s, payments: s.payments.map((x) => (x.id === paymentId ? { ...x, status: "paid" as const, confirmedAt: nowIso() } : x)) }
     return patchOrder(next, p.orderId, () => ({}), { label: `Xác nhận đã nhận thanh toán (${p.method === "cash" ? "tiền mặt" : "chuyển khoản"})` })
@@ -610,19 +613,23 @@ function confirmPayment(paymentId: string): Result<undefined> {
 
 /* ---------- Đánh giá ---------- */
 
-function submitReview(orderId: string, input: { serviceRating: number; staffRating: number; comment: string }): Result<undefined> {
-  if (IS_UNIFIED_APP && (actor()?.role !== "customer" || !Number.isInteger(input.serviceRating) || input.serviceRating < 1 || input.serviceRating > 5 || !Number.isInteger(input.staffRating) || input.staffRating < 1 || input.staffRating > 5 || typeof input.comment !== "string")) return fail("Tài khoản hoặc nội dung đánh giá chưa hợp lệ.")
-  if (IS_UNIFIED_APP) input = { serviceRating: input.serviceRating, staffRating: input.staffRating, comment: input.comment }
+function submitReview(orderId: string, input: { serviceRating: number; staffRating?: number; comment: string }): Result<undefined> {
+  if (IS_UNIFIED_APP && actor()?.role !== "customer") return fail("Vui lòng đăng nhập bằng tài khoản khách hàng để đánh giá.")
+  if (!Number.isInteger(input.serviceRating) || input.serviceRating < 1 || input.serviceRating > 5
+    || (input.staffRating !== undefined && (!Number.isInteger(input.staffRating) || input.staffRating < 1 || input.staffRating > 5))
+    || typeof input.comment !== "string" || !input.comment.trim() || input.comment.trim().length > 2000) return fail("Nội dung đánh giá chưa hợp lệ.")
   const s = load()
   const o = s.orders.find((x) => x.id === orderId)
   if (!o || o.customerId !== s.session?.userId) return fail("Không tìm thấy đơn.")
   if (o.status !== "completed") return fail("Chỉ đánh giá được đơn đã hoàn thành.")
+  if (o.staffId && input.staffRating === undefined) return fail("Vui lòng đánh giá nhân viên được phân công.")
+  if (!o.staffId && input.staffRating !== undefined) return fail("Đơn chưa có nhân viên được phân công nên chỉ có thể đánh giá dịch vụ.")
   if (s.reviews.some((r) => r.orderId === orderId)) return fail("Đơn này đã được đánh giá.")
   setState((st) => ({
     ...st,
     reviews: [
       ...st.reviews,
-      { id: uid("rv"), orderId, customerId: o.customerId, staffId: o.staffId, serviceId: o.serviceId, createdAt: nowIso(), hidden: false, ...input },
+      { id: uid("rv"), orderId, customerId: o.customerId, ...(o.staffId ? { staffId: o.staffId, staffRating: input.staffRating } : {}), serviceId: o.serviceId, createdAt: nowIso(), hidden: false, serviceRating: input.serviceRating, comment: input.comment.trim() },
     ],
   }))
   return ok(undefined)
@@ -644,7 +651,18 @@ function adminOnly<T extends unknown[], R>(fn:(...args:T)=>R){return (...args:T)
 function ownOrder(orderId:string){const u=actor();return u?.role==="customer" && getOrder(orderId)?.customerId===u.id}
 export const actions={
  login,logout,register,resetDemo,
- updateUser:(id:string,patch:Parameters<typeof updateUser>[1])=>actor() && (actor()!.role==="admin" || actor()!.id===id)?updateUser(id,patch):fail("Không có quyền sửa hồ sơ."),
+ updateUser:(id:string,patch:Parameters<typeof updateUser>[1])=>{
+   const current=actor()
+   if(!current || (current.role!=="admin" && current.id!==id)) return fail("Không có quyền sửa hồ sơ.")
+   const allowedPatch=current.role==="admin"?patch:{
+     ...(patch.name===undefined?{}:{name:patch.name}),
+     ...(patch.email===undefined?{}:{email:patch.email}),
+     ...(patch.phone===undefined?{}:{phone:patch.phone}),
+     ...(patch.address===undefined?{}:{address:patch.address}),
+     ...(patch.avatar===undefined?{}:{avatar:patch.avatar}),
+   }
+   return updateUser(id,allowedPatch)
+ },
  addUser:adminOnly(addUser),setUserLocked:adminOnly(setUserLocked),saveService:adminOnly(saveService),deleteService:adminOnly(deleteService),setServiceStatus:adminOnly(setServiceStatus),
  createOrder,confirmOrder:adminOnly(confirmOrder),updateOrderSchedule:adminOnly(updateOrderSchedule),assignStaff:adminOnly(assignStaff),
  requestCancel:(id:string,reason:string)=>ownOrder(id)&&reason.trim()?requestCancel(id,reason):fail("Không có quyền hoặc chưa nhập lý do."),

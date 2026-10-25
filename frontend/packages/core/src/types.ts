@@ -1,6 +1,6 @@
 export type Role = "customer" | "staff" | "admin"
 
-export type ServiceCategory = "dinh-ky" | "chuyen-sau" | "noi-that" | "thiet-bi"
+export type ServiceCategory = "ve-sinh-nha-o" | "ve-sinh-phong-tro" | "cham-soc" | "bao-duong"
 
 export interface Service {
   id: string
@@ -114,7 +114,7 @@ export interface Review {
   staffId?: string
   serviceId: string
   serviceRating: number
-  staffRating: number
+  staffRating?: number
   comment: string
   createdAt: string
   hidden: boolean

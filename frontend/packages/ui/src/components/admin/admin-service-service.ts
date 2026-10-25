@@ -7,7 +7,7 @@ import type { AppState, Service } from "@/lib/types"
 export type AdminServiceInput = Omit<Service, "id" | "slug" | "status">
 export type AdminServiceErrors = Partial<Record<keyof AdminServiceInput, string>>
 export type AdminServiceResult = { ok: true; serviceId: string; persistence: "local" | "session" } | { ok: false; error: string; field?: keyof AdminServiceInput }
-const CATEGORIES = new Set(["dinh-ky", "chuyen-sau", "noi-that", "thiet-bi"])
+const CATEGORIES = new Set(["ve-sinh-nha-o", "ve-sinh-phong-tro", "cham-soc", "bao-duong"])
 const BLOCKED_CONTROLS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/
 
 export function isSafeServiceImage(value: string) {

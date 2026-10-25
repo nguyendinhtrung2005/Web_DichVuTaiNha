@@ -40,7 +40,10 @@ export function getAdminDataError(state: AppState): string | null {
     || !Array.isArray(order.staffNotes) || order.staffNotes.some((note) => !note || !validDate(note.at) || ![note.text, note.staffId].every((value) => typeof value === "string"))
     || (order.cancelRequest !== undefined && (!order.cancelRequest || typeof order.cancelRequest.reason !== "string" || !validDate(order.cancelRequest.requestedAt) || !["pending", "approved", "rejected"].includes(order.cancelRequest.status) || !optionalText(order.cancelRequest.adminNote))))) return "Chưa thể đọc dữ liệu đơn dịch vụ"
   if (state.payments.some((payment) => !payment || ![payment.id, payment.code, payment.orderId].every((value) => typeof value === "string") || !nonnegative(payment.amount) || !["paid", "pending", "unpaid"].includes(payment.status) || !["cash", "transfer"].includes(payment.method) || !validDate(payment.createdAt) || (payment.confirmedAt !== undefined && !validDate(payment.confirmedAt)))) return "Chưa thể đọc dữ liệu thanh toán"
-  if (state.reviews.some((review) => !review || ![review.id, review.orderId, review.comment].every((value) => typeof value === "string") || ![review.serviceRating, review.staffRating].every((rating) => Number.isInteger(rating) && rating >= 1 && rating <= 5))) return "Chưa thể đọc dữ liệu đánh giá"
+  if (state.reviews.some((review) => !review || ![review.id, review.orderId, review.comment].every((value) => typeof value === "string")
+    || !Number.isInteger(review.serviceRating) || review.serviceRating < 1 || review.serviceRating > 5
+    || (review.staffRating !== undefined && (!Number.isInteger(review.staffRating) || review.staffRating < 1 || review.staffRating > 5))
+    || (review.staffId !== undefined && review.staffRating === undefined))) return "Chưa thể đọc dữ liệu đánh giá"
   return null
 }
 

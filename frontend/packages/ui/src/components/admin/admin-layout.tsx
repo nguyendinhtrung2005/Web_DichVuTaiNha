@@ -5,7 +5,7 @@ import NextLink from "next/link"
 import { useEffect, useState, type ReactNode } from "react"
 import { AreaLink as Link, useAreaRoutes } from "@/components/shared/area-routes"
 import { usePathname } from "next/navigation"
-import { CalendarDaysIcon, ChartNoAxesCombinedIcon, ChevronDownIcon, ClipboardListIcon, CreditCardIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, SparklesIcon, StarIcon, UserRoundIcon, UsersIcon, BriefcaseBusinessIcon, XIcon } from "lucide-react"
+import { CalendarDaysIcon, ChartNoAxesCombinedIcon, ChevronDownIcon, ClipboardListIcon, CreditCardIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, SparklesIcon, StarIcon, UserRoundIcon, UsersIcon, BriefcaseBusinessIcon, ShoppingBagIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Logo } from "@/components/shared/logo"
@@ -21,6 +21,7 @@ const navigation = [
   { href: "/lich-lam-viec", label: "Lịch làm việc", icon: CalendarDaysIcon, group: "Điều hành" },
   { href: "/tai-khoan", label: "Tài khoản", icon: UsersIcon, group: "Quản lý" },
   { href: "/dich-vu", label: "Dịch vụ", icon: SparklesIcon, group: "Quản lý" },
+  { href: "/san-pham", label: "Sản phẩm & tồn kho", icon: ShoppingBagIcon, group: "Quản lý" },
   { href: "/thanh-toan", label: "Thanh toán", icon: CreditCardIcon, group: "Quản lý" },
   { href: "/danh-gia", label: "Đánh giá", icon: StarIcon, group: "Quản lý" },
   { href: "/bao-cao", label: "Báo cáo", icon: ChartNoAxesCombinedIcon, group: "Quản lý" },

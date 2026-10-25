@@ -37,6 +37,8 @@ import {AdminAssignment} from '@/components/admin/admin-assignment'
 import {AdminCalendar} from '@/components/admin/admin-calendar'
 import {AdminAccounts} from '@/components/admin/admin-accounts'
 import {AdminServices} from '@/components/admin/admin-services'
+import {AdminProducts} from '@/components/admin/admin-products'
+import {ProductStore} from '@/components/customer/product-store'
 import {AdminPayments} from '@/components/admin/admin-payments'
 import {AdminReviews} from '@/components/admin/admin-reviews'
 import {AdminReports} from '@/components/admin/admin-reports'
@@ -50,7 +52,7 @@ function PortalScreen({role,path}:{role:Role;path:string[]}){const s=useAppState
 const logout=async()=>{if(loggingOut.current)return;loggingOut.current=true;try{const result=await executeStoreCommand(()=>actions.logout());if(result&&result.ok===false){toast.error(result.error);return}router.replace('/dang-nhap')}finally{loggingOut.current=false}};
 if(IS_UNIFIED_APP&&dataStatus.status!=='loading'&&dataStatus.status!=='ready')return <DataSetupGate/>;
 if(!s)return role==='customer'?<CustomerLayout route={route} user={null} onLogout={logout}><div className="ch-container" role="status" aria-label="Đang tải CleanHome"><PageSkeleton/></div></CustomerLayout>:role==='staff'?<StaffLayout route={route} user={null} onLogout={logout}><StaffLoading/></StaffLayout>:<AdminLayout route={route} user={null} onLogout={logout}><AdminLoading/></AdminLayout>;
-const auth=route==='dang-nhap'||route==='dang-ky';const allowed=user?.role===role;const publicPage=role==='customer'&&['','dich-vu'].includes(route);const needsLogin=!auth&&!publicPage&&!allowed;
+const auth=route==='dang-nhap'||route==='dang-ky';const allowed=user?.role===role;const publicPage=role==='customer'&&['','dich-vu','san-pham'].includes(route);const needsLogin=!auth&&!publicPage&&!allowed;
 let content:React.ReactNode;
 if(!validAreaPath(role,path))content=<><Empty text="Trang không tồn tại."/><Go href="/">Về trang chính</Go></>;
 else if(IS_UNIFIED_APP&&auth&&role!=='customer')content=<AccessRedirect href={(route==='dang-ky'?'/dang-ky':'/dang-nhap')}/>;
@@ -59,6 +61,7 @@ else if(needsLogin)content=IS_UNIFIED_APP?user?<section className="mx-auto w-ful
 else if(!route)content=role==='customer'?<Home/>:role==='staff'?<StaffDashboard/>:<AdminDashboard/>;
 else if(route==='ho-so')content=role==='customer'?<CustomerProfile/>:role==='staff'?<StaffProfile/>:<Profile/>;
 else if(route==='dich-vu')content=role==='customer'?<Services slug={path[1]}/>:role==='admin'?<AdminServices/>:<Empty text="Trang không tồn tại."/>;
+else if(route==='san-pham')content=role==='customer'?<ProductStore/>:role==='admin'?<AdminProducts/>:<Empty text="Trang không tồn tại."/>;
 else if(route==='dat-dich-vu'&&role==='customer')content=<Booking id={path[1]}/>;
 else if(route==='don'&&path[1])content=role==='customer'?<CustomerOrderDetail id={path[1]}/>:role==='staff'?<StaffJobDetail id={path[1]}/>:<AdminOrderDetail id={path[1]}/>;
 else if(role==='staff'&&route==='cong-viec')content=<StaffJobs/>;
@@ -77,12 +80,12 @@ return (
     {role!=='customer'&&(dataStatus.error||dataStatus.sessionError)&&<div role="alert" className="relative z-50 flex flex-wrap items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"><span>{dataStatus.error||dataStatus.sessionError}</span>{dataStatus.dirty&&<Link href="/du-lieu" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">{IS_UNIFIED_APP?'Sao lưu dữ liệu':'Sao lưu dữ liệu gốc'}</Link>}</div>}
     {role==='customer'?(
       <CustomerLayout route={route} user={IS_UNIFIED_APP?user:allowed?user:null} onLogout={logout}>
-        <div className={route&&route!=='dich-vu'&&!auth&&!(allowed&&['dat-dich-vu','don-cua-toi','don','lich-su','ho-so'].includes(route))?'ch-container':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div>
+        <div className={route&&route!=='dich-vu'&&route!=='san-pham'&&!auth&&!(allowed&&['dat-dich-vu','don-cua-toi','don','lich-su','ho-so'].includes(route))?'ch-container':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div>
       </CustomerLayout>
     ):role==='staff'?(
       <StaffLayout route={route} user={allowed?user:null} onLogout={logout}><div key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></StaffLayout>
     ):(
-      <AdminLayout route={route} user={allowed?user:null} onLogout={logout}><div className={auth||(allowed&&!['','don-dich-vu','don','phan-cong','lich-lam-viec','tai-khoan','dich-vu','thanh-toan','danh-gia','bao-cao'].includes(route))?'admin-legacy ch-app':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></AdminLayout>
+      <AdminLayout route={route} user={allowed?user:null} onLogout={logout}><div className={auth||(allowed&&!['','don-dich-vu','don','phan-cong','lich-lam-viec','tai-khoan','dich-vu','san-pham','thanh-toan','danh-gia','bao-cao'].includes(route))?'admin-legacy ch-app':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></AdminLayout>
     )}
   </Context.Provider>
 )}

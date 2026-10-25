@@ -30,10 +30,10 @@ export const COMPANY = {
 }
 
 export const CATEGORY_LABEL: Record<ServiceCategory, string> = {
-  "dinh-ky": "Dọn dẹp định kỳ",
-  "chuyen-sau": "Vệ sinh chuyên sâu",
-  "noi-that": "Vệ sinh nội thất",
-  "thiet-bi": "Vệ sinh thiết bị",
+  "ve-sinh-nha-o": "Vệ sinh nhà ở",
+  "ve-sinh-phong-tro": "Vệ sinh phòng trọ",
+  "cham-soc": "Chăm sóc",
+  "bao-duong": "Bảo dưỡng",
 }
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
@@ -52,9 +52,9 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
 }
 
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
-  unpaid: "Chưa thanh toán",
-  pending: "Chờ xác nhận",
-  paid: "Đã thanh toán",
+  unpaid: "Chưa ghi nhận đã nhận tiền",
+  pending: "Chờ xác nhận đã nhận tiền",
+  paid: "Đã xác nhận đã nhận tiền",
 }
 
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {

@@ -26,10 +26,13 @@ export function getAdminCommerceDataError(state: AppState): string | null {
   if (existing) return existing
   if ([state.services, state.users, state.orders, state.payments, state.reviews].some((items) => new Set(items.map((item) => item.id)).size !== items.length)) return "Dữ liệu quản trị có mã định danh bị trùng"
   if (state.services.some((service) => ![service.slug, service.shortDesc, service.description, service.unit, service.quantityLabel].every((value) => typeof value === "string")
-    || !["dinh-ky", "chuyen-sau", "noi-that", "thiet-bi"].includes(service.category) || !["active", "inactive"].includes(service.status)
+    || !["ve-sinh-nha-o", "ve-sinh-phong-tro", "cham-soc", "bao-duong"].includes(service.category) || !["active", "inactive"].includes(service.status)
     || ![service.price, service.minQuantity, service.defaultQuantity, service.minutesPerUnit, service.baseMinutes].every(nonnegative))) return "Chưa thể đọc đầy đủ dữ liệu dịch vụ"
   if (state.payments.some((payment) => payment.refundRequired !== undefined && typeof payment.refundRequired !== "boolean")) return "Chưa thể đọc trạng thái cần hoàn tiền"
   if (state.reviews.some((review) => ![review.customerId, review.serviceId].every((value) => typeof value === "string") || !optionalText(review.staffId)
+    || !Number.isInteger(review.serviceRating) || review.serviceRating < 1 || review.serviceRating > 5
+    || (review.staffRating !== undefined && (!Number.isInteger(review.staffRating) || review.staffRating < 1 || review.staffRating > 5))
+    || (review.staffId !== undefined && review.staffRating === undefined)
     || !validDate(review.createdAt) || typeof review.hidden !== "boolean" || !optionalText(review.hiddenReason))) return "Chưa thể đọc đầy đủ dữ liệu đánh giá"
   return null
 }

@@ -38,3 +38,5 @@
 - Avoid repeating project analysis in every task.
 - Do not run all services unless required.
 - Do not refactor unrelated code.
+
+For backend tasks, also read `BACKEND_TEAM_RULES.md` at the repository root.

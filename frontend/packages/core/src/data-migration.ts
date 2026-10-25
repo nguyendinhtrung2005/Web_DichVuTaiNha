@@ -1,4 +1,4 @@
-import type { AppState } from './types'
+import type { AppState, ServiceCategory } from './types'
 
 export type MigrationCollection = 'users' | 'services' | 'orders' | 'payments' | 'reviews'
 export interface MigrationIssue { collection: string; id?: string; fields?: string[]; message: string }
@@ -38,7 +38,7 @@ export function validateMigrationState(value: unknown, options: { references?: b
         && member(record.role, ['customer', 'staff', 'admin']) && member(record.status, ['active', 'locked']) && date(record.createdAt)
         && optionalText(record.avatar) && optionalText(record.position)
       if (key === 'services') valid = ['slug', 'name', 'shortDesc', 'description', 'unit', 'quantityLabel', 'image'].every(field => text(record[field])) && required(record.slug)
-        && member(record.category, ['dinh-ky', 'chuyen-sau', 'noi-that', 'thiet-bi']) && member(record.status, ['active', 'inactive'])
+        && member(record.category, ['ve-sinh-nha-o', 've-sinh-phong-tro', 'cham-soc', 'bao-duong', 'dinh-ky', 'chuyen-sau', 'noi-that', 'thiet-bi']) && member(record.status, ['active', 'inactive'])
         && ['scope', 'included', 'excluded'].every(field => strings(record[field]))
         && ['price', 'minQuantity', 'defaultQuantity', 'minutesPerUnit', 'baseMinutes'].every(field => number(record[field]))
       if (key === 'orders') {
@@ -58,7 +58,9 @@ export function validateMigrationState(value: unknown, options: { references?: b
         && member(record.status, ['unpaid', 'pending', 'paid']) && date(record.createdAt) && (record.confirmedAt === undefined || date(record.confirmedAt))
         && (record.refundRequired === undefined || typeof record.refundRequired === 'boolean')
       if (key === 'reviews') valid = ['orderId', 'customerId', 'serviceId'].every(field => required(record[field])) && optionalText(record.staffId)
-        && ['serviceRating', 'staffRating'].every(field => Number.isInteger(record[field]) && (record[field] as number) >= 1 && (record[field] as number) <= 5)
+        && Number.isInteger(record.serviceRating) && (record.serviceRating as number) >= 1 && (record.serviceRating as number) <= 5
+        && (record.staffRating === undefined || (Number.isInteger(record.staffRating) && (record.staffRating as number) >= 1 && (record.staffRating as number) <= 5))
+        && (!record.staffId || record.staffRating !== undefined)
         && text(record.comment) && date(record.createdAt) && typeof record.hidden === 'boolean' && optionalText(record.hiddenReason)
       if (!valid) fail(key, 'Cấu trúc, ngày, trạng thái hoặc giá trị số của bản ghi không hợp lệ.', id)
     }
@@ -107,7 +109,18 @@ export function validateMigrationState(value: unknown, options: { references?: b
       reviewOrders.add(review.orderId)
     }
   }
-  return issues.length ? { ok: false, issues } : { ok: true, state }
+  if (issues.length) return { ok: false, issues }
+  const categoryMap = {
+    'dinh-ky': 've-sinh-nha-o',
+    'chuyen-sau': 've-sinh-nha-o',
+    'noi-that': 'cham-soc',
+    'thiet-bi': 'bao-duong',
+  } as const
+  const services: AppState['services'] = state.services.map(service => ({
+    ...service,
+    category: (categoryMap[service.category as keyof typeof categoryMap] ?? service.category) as ServiceCategory,
+  }))
+  return { ok: true, state: { ...state, services } }
 }
 
 export function canonicalSnapshot(value: unknown): string {

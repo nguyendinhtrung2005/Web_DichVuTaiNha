@@ -19,7 +19,7 @@ const METHOD_LABEL = { cash: "Tiền mặt", transfer: "Chuyển khoản" }
 type Feedback = { message: string; warning?: boolean }
 
 function PaymentBadge({ payment }: { payment: Payment }) {
-  return <ToneBadge tone={payment.status === "paid" ? "success" : payment.status === "pending" ? "warning" : "neutral"}>{payment.status === "paid" ? "Đã ghi nhận tiền" : payment.status === "pending" ? "Chờ xác nhận" : "Chưa ghi nhận tiền"}</ToneBadge>
+  return <ToneBadge tone={payment.status === "paid" ? "success" : payment.status === "pending" ? "warning" : "neutral"}>{payment.status === "paid" ? "Đã xác nhận đã nhận tiền" : payment.status === "pending" ? "Chờ xác nhận đã nhận tiền" : "Chưa ghi nhận đã nhận tiền"}</ToneBadge>
 }
 
 function PaymentItem({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
@@ -28,7 +28,7 @@ function PaymentItem({ label, children, wide = false }: { label: string; childre
 
 function paymentCanConfirm(state: AppState, payment: Payment | undefined) {
   const order = state.orders.find((item) => item.id === payment?.orderId)
-  return Boolean(payment && payment.status !== "paid" && order && order.status !== "cancelled")
+  return Boolean(payment && (payment.status === "pending" || payment.status === "unpaid") && Number.isFinite(payment.amount) && payment.amount >= 0 && order && order.status !== "cancelled")
 }
 
 function PaymentDetail({ payment, state }: { payment: Payment; state: AppState }) {
