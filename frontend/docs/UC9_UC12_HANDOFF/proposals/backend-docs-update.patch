@@ -1,0 +1,151 @@
+diff --git a/backend/auth-service/README.md b/backend/auth-service/README.md
+index 5d441834d7fb17c34bd3cfa171132d582c209c46..87c4d9dd41aa4872d9a7f27891ee44e600006f40 100644
+--- a/backend/auth-service/README.md
++++ b/backend/auth-service/README.md
+@@ -3 +3,9 @@
+-Đã triển khai đăng nhập **bằng `users.phone`**, cấp JWT **RS256**, public JWKS và introspection kiểm trạng thái MySQL hiện tại. Auth và Staff đã được kiểm chứng qua HTTP thật trên `cleanhome_staff_test`; **UC12 ghi vẫn bỏ qua vì Order Service chưa sẵn sàng**.
++Đã triển khai đăng nhập **bằng `users.phone`**, cấp JWT **RS256**, public JWKS và introspection kiểm trạng thái MySQL hiện tại. Auth/Staff đã được kiểm chứng HTTP thật; Frontend Staff và UC12 đã có bằng chứng local Q01–Q06 riêng ở phần cập nhật dưới đây.
++
++## Cập nhật bằng chứng local ngày 24/10/2026
++
++Theo [báo cáo nghiệm thu UC12](../../frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md), luồng Browser → BFF → Auth/Staff → Order → MySQL thật trên `cleanhome_staff_test` đạt **43 nhóm E2E PASS, 0 FAIL, 0 SKIP, 0 NOT_RUN** cho Q01–Q06. Hồi quy HTTP riêng đạt **90 PASS, 0 FAIL, 1 SKIP** do thiếu fixture UC11 qua ranh ngày UTC/Việt Nam; không cộng hai lớp kiểm thử hoặc coi SKIP là PASS.
++
++Sáu booking `9109151–9109156` đã COMPLETED, mười hai assignment `9109173–9109184` đã DONE, 36 journal mới đã ACK; giữ nguyên dữ liệu và không chạy lại workflow. Booking cũ `9109131` và `9109141` cũng đã COMPLETED. Muốn kiểm thử ghi thêm cần fixture và phạm vi được duyệt riêng.
++
++Đây là bằng chứng local HTTP trên một máy; chưa kiểm chứng production, HTTPS/Secure cookie thực, tải lớn/stress/soak, nhiều host/replica hoặc crash/kill/mất điện/restore trong lượt Frontend này. Fault Q03–Q06 là mất kết nối/phản hồi thật, không phải crash tiến trình. Worker toàn database tắt. Kết quả không thay phê duyệt contract/PR của owner; các kết quả giai đoạn cũ phía dưới được giữ làm lịch sử.
+@@ -117 +125 @@
+-## Kiểm thử và giới hạn kết quả
++## Kiểm thử và giới hạn kết quả giai đoạn Auth (lịch sử)
+@@ -126 +134 @@
+-Dòng Auth HTTP gồm một test cha gọi suite Staff; dòng Staff phân rã kết quả con, không cộng để khẳng định số endpoint độc lập. Staff kiểm 401 không token, 403 Customer, 404 A/B truy cập chéo (kể cả chung booking), UC9 lọc/sort/phân trang, UC10 chi tiết và UC11 lịch Việt Nam. Nhánh ghi UC12 vẫn SKIP. Lần đầu runner lồng nhau không đọc được thống kê Node; đã sửa IPC/reporter ở Auth test harness, chạy lại đạt bảng trên, không sửa Staff.
++Dòng Auth HTTP gồm một test cha gọi suite Staff; dòng Staff phân rã kết quả con, không cộng để khẳng định số endpoint độc lập. Staff kiểm 401 không token, 403 Customer, 404 A/B truy cập chéo (kể cả chung booking), UC9 lọc/sort/phân trang, UC10 chi tiết và UC11 lịch Việt Nam. Nhánh ghi UC12 SKIP trong suite Auth lịch sử này; kết quả đó không thay trạng thái Q01–Q06 đã nghiệm thu riêng. Lần đầu runner lồng nhau không đọc được thống kê Node; đã sửa IPC/reporter ở Auth test harness, chạy lại đạt bảng trên, không sửa Staff.
+@@ -148 +156 @@
+-MySQL/live mặc định bỏ qua khi chưa opt-in; bật mà thiếu input thì FAIL, không đổi thành API giả. Test live chỉ đọc dữ liệu và chạy Staff suite có sẵn với `RUN_STAFF_HTTP_WRITE_TESTS=false`. Không cần Order để đọc UC9–UC11. UC12/worker còn chờ Order triển khai bốn API lookup/apply/ack/pending; chưa kiểm chứng bằng dịch vụ thật. Frontend localStorage chưa tự đổi sang Backend JWT vì không nằm trong lượt này.
++MySQL/live mặc định bỏ qua khi chưa opt-in; bật mà thiếu input thì FAIL, không đổi thành API giả. Test live của Auth chỉ đọc dữ liệu và chạy Staff suite có sẵn với `RUN_STAFF_HTTP_WRITE_TESTS=false`. Không cần Order để đọc UC9–UC11. Ở giai đoạn Auth lịch sử này, UC12/worker còn chờ Order và Frontend chưa được nối JWT; Order và Frontend Staff đã được tích hợp trong các giai đoạn sau theo báo cáo Q01–Q06 ở đầu tài liệu. Không chạy lại test ghi trên fixture đã hoàn tất.
+diff --git a/backend/auth-service/docs/staff-integration.md b/backend/auth-service/docs/staff-integration.md
+index 4efa9ea05d6fb7234a201fbbfb819a9c50ef8fcb..7dea2f2d8229d7e17cebceac73da8bed23f180f8 100644
+--- a/backend/auth-service/docs/staff-integration.md
++++ b/backend/auth-service/docs/staff-integration.md
+@@ -6,0 +7,8 @@
++## Cập nhật bằng chứng local ngày 24/10/2026
++
++Theo [báo cáo nghiệm thu UC12](../../../frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md), luồng Browser → BFF → Auth/Staff → Order → MySQL thật trên `cleanhome_staff_test` đạt **43 nhóm E2E PASS, 0 FAIL, 0 SKIP, 0 NOT_RUN** cho Q01–Q06. Hồi quy HTTP riêng đạt **90 PASS, 0 FAIL, 1 SKIP** do thiếu fixture UC11 qua ranh ngày UTC/Việt Nam; không cộng hai lớp kiểm thử hoặc coi SKIP là PASS.
++
++Sáu booking `9109151–9109156` đã COMPLETED, mười hai assignment `9109173–9109184` đã DONE, 36 journal mới đã ACK; giữ nguyên dữ liệu và không chạy lại workflow. Booking cũ `9109131` và `9109141` cũng đã COMPLETED. Muốn kiểm thử ghi thêm cần fixture và phạm vi được duyệt riêng.
++
++Đây là bằng chứng local HTTP trên một máy; chưa kiểm chứng production, HTTPS/Secure cookie thực, tải lớn/stress/soak, nhiều host/replica hoặc crash/kill/mất điện/restore trong lượt Frontend này. Fault Q03–Q06 là mất kết nối/phản hồi thật, không phải crash tiến trình. Worker toàn database tắt. Kết quả không thay phê duyệt contract/PR của owner; các kết quả giai đoạn cũ phía dưới được giữ làm lịch sử.
++
+@@ -140 +148 @@
+-## Kết quả đã chạy
++## Kết quả giai đoạn triển khai Auth (lịch sử)
+@@ -155 +163 @@
+-**Chưa kiểm thử live với MySQL thật**: tài khoản bị khóa/ngừng hoạt động, token chờ hết hạn và đăng nhập Admin hợp lệ. Các tình huống này đã có unit test nhưng không đổi trạng thái seed hoặc thêm Admin để chạy HTTP. Rotation JWKS, thu hồi từng phiên và UC12 cùng Order thật cũng chưa được kiểm chứng.
++**Giới hạn của lượt Auth lịch sử**: chưa kiểm thử live với MySQL thật các tài khoản bị khóa/ngừng hoạt động, token chờ hết hạn và đăng nhập Admin hợp lệ; không đổi trạng thái seed hoặc thêm Admin để chạy HTTP. Rotation JWKS và thu hồi từng phiên chưa được chứng minh trong lượt này. UC12 với Order thật về sau đã được nghiệm thu local theo cập nhật ở đầu tài liệu; không gộp bằng chứng các giai đoạn.
+@@ -184,2 +192,2 @@
+-- Auth không triển khai thay Order Service bốn API transition/ack/pending. Không bật UC12 ghi hoặc worker khi Order chưa sẵn sàng. Không dùng API giả để có kết quả 200.
+-- Auth không sửa Frontend: giao diện/login localStorage cũ chưa tự sử dụng JWT Backend. CORS không thay xác thực và phân quyền.
++- Auth không triển khai thay Order Service bốn API transition/ack/pending. Bốn API hiện đã có implementation Order và bằng chứng Backend local trong README Order. Q01–Q06 kiểm Frontend qua lookup/apply/ack; worker toàn database tắt, không chứng minh riêng pending/global worker. Không bật worker hoặc chạy ghi thêm trên dữ liệu dùng chung chỉ vì đã có kết quả trước đó. Không dùng API giả để có kết quả 200.
++- Giai đoạn Auth này không sửa Frontend. Ở giai đoạn tích hợp sau, Staff Frontend đăng nhập phone qua BFF, JWT giữ ở server và UC9–UC12 gọi REST thật; dữ liệu localStorage cũ được giữ nguyên. Không suy rộng kết quả Staff sang Customer/Admin; CORS không thay xác thực và phân quyền.
+diff --git a/backend/staff-service/README.md b/backend/staff-service/README.md
+index 68b3f40b913e2392bcc00d9bb7237f9cf9bf3a7f..c6af95e1c1435616a475bbd313a4447afd843438 100644
+--- a/backend/staff-service/README.md
++++ b/backend/staff-service/README.md
+@@ -4 +4 @@
+-Chỉ phục vụ nhân viên: xem công việc, chi tiết, lịch và cập nhật tiến độ. Không tích hợp lại Frontend và không thay đổi luồng localStorage hiện có.
++Chỉ phục vụ nhân viên: xem công việc, chi tiết, lịch và cập nhật tiến độ. Frontend Staff đã tích hợp qua BFF trong các giai đoạn sau; service này không xóa hoặc reset dữ liệu localStorage cũ.
+@@ -6 +6,9 @@
+-**Cập nhật kiểm thử nhiều nhân viên 23/10/2026:** người dùng đã chạy seed bổ sung; MySQL có 2 nhân viên, 5 booking, 6 assignment. **99 kiểm thử độc lập và 28 kiểm thử MySQL đạt**, HTTP thật có 1 suite SKIP. Xem [kết quả hiện tại](docs/multi-employee-testing.md#kết-quả-kiểm-thử-sau-khi-người-dùng-chạy-seed) và [hướng dẫn HTTP](docs/http-integration-testing.md). Không chạy UC12 làm thay đổi dữ liệu hoặc báo tích hợp HTTP/JWT thật đã đạt.
++**Mốc lịch sử kiểm thử nhiều nhân viên 23/10/2026:** khi mới chạy seed bổ sung có 2 nhân viên, 5 booking, 6 assignment; 99 kiểm thử độc lập và 28 kiểm thử MySQL đạt, HTTP thật khi đó có 1 suite SKIP và không chạy UC12 ghi. Xem [báo cáo giai đoạn đó](docs/multi-employee-testing.md#kết-quả-kiểm-thử-sau-khi-người-dùng-chạy-seed) và [hướng dẫn HTTP](docs/http-integration-testing.md). Đây không phải tổng dữ liệu hoặc trạng thái tích hợp hiện tại.
++
++## Cập nhật bằng chứng local ngày 24/10/2026
++
++Theo [báo cáo nghiệm thu UC12](../../frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md), luồng Browser → BFF → Auth/Staff → Order → MySQL thật trên `cleanhome_staff_test` đạt **43 nhóm E2E PASS, 0 FAIL, 0 SKIP, 0 NOT_RUN** cho Q01–Q06. Hồi quy HTTP riêng đạt **90 PASS, 0 FAIL, 1 SKIP** do thiếu fixture UC11 qua ranh ngày UTC/Việt Nam; không cộng hai lớp kiểm thử hoặc coi SKIP là PASS.
++
++Sáu booking `9109151–9109156` đã COMPLETED, mười hai assignment `9109173–9109184` đã DONE, 36 journal mới đã ACK; giữ nguyên dữ liệu và không chạy lại workflow. Booking cũ `9109131` và `9109141` cũng đã COMPLETED. Muốn kiểm thử ghi thêm cần fixture và phạm vi được duyệt riêng.
++
++Đây là bằng chứng local HTTP trên một máy; chưa kiểm chứng production, HTTPS/Secure cookie thực, tải lớn/stress/soak, nhiều host/replica hoặc crash/kill/mất điện/restore trong lượt Frontend này. Fault Q03–Q06 là mất kết nối/phản hồi thật, không phải crash tiến trình. Worker toàn database tắt. Kết quả không thay phê duyệt contract/PR của owner; các kết quả giai đoạn cũ phía dưới được giữ làm lịch sử.
+diff --git a/backend/staff-service/docs/order-handoff-checklist.md b/backend/staff-service/docs/order-handoff-checklist.md
+index 42e55506f317d30dbf0d239e30b81442ac9557c5..e477936162d8792cab138cf2c7c073dc1b796581 100644
+--- a/backend/staff-service/docs/order-handoff-checklist.md
++++ b/backend/staff-service/docs/order-handoff-checklist.md
+@@ -3 +3 @@
+-**Đây là checklist tích hợp, chưa phải kết quả PASS end-to-end.** `backend/order-service/src/app.js` và `backend/auth-service/src/app.js` hiện vẫn là scaffold TODO. Staff có client HTTP thật và transaction assignment; không có implementation Order, bộ phát JWT, journal Order giả hoặc middleware bỏ qua JWT trong runtime.
++**Đây là checklist owner review, không tự đánh dấu các ô là đã được phê duyệt.** Auth RS256 và bốn API Order đã có implementation; Staff có HTTP client và transaction assignment thật. README Order ghi bằng chứng Backend local của bốn API. Q01–Q06 bên dưới kiểm luồng Frontend với lookup/apply/ack; worker toàn database tắt nên không dùng lượt này để khẳng định endpoint pending hoặc global worker đã được nghiệm thu. Không có Order/JWT giả hoặc middleware bỏ qua xác thực trong runtime.
+@@ -6,0 +7,8 @@
++## Cập nhật bằng chứng local ngày 24/10/2026
++
++Theo [báo cáo nghiệm thu UC12](../../../frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md), luồng Browser → BFF → Auth/Staff → Order → MySQL thật trên `cleanhome_staff_test` đạt **43 nhóm E2E PASS, 0 FAIL, 0 SKIP, 0 NOT_RUN** cho Q01–Q06. Hồi quy HTTP riêng đạt **90 PASS, 0 FAIL, 1 SKIP** do thiếu fixture UC11 qua ranh ngày UTC/Việt Nam; không cộng hai lớp kiểm thử hoặc coi SKIP là PASS.
++
++Sáu booking `9109151–9109156` đã COMPLETED, mười hai assignment `9109173–9109184` đã DONE, 36 journal mới đã ACK; giữ nguyên dữ liệu và không chạy lại workflow. Booking cũ `9109131` và `9109141` cũng đã COMPLETED. Muốn kiểm thử ghi thêm cần fixture và phạm vi được duyệt riêng.
++
++Đây là bằng chứng local HTTP trên một máy; chưa kiểm chứng production, HTTPS/Secure cookie thực, tải lớn/stress/soak, nhiều host/replica hoặc crash/kill/mất điện/restore trong lượt Frontend này. Fault Q03–Q06 là mất kết nối/phản hồi thật, không phải crash tiến trình. Worker toàn database tắt. Kết quả không thay phê duyệt contract/PR của owner; các kết quả giai đoạn cũ phía dưới được giữ làm lịch sử.
++
+@@ -13 +21 @@
+-- [ ] Chốt nơi lưu journal bền vững. Đề xuất `booking_status_history.note` ở mục 4 chưa được Order triển khai; nếu nhóm chọn schema khác, phải thống nhất contract và migration riêng trước, không dùng cache RAM thay thế.
++- [ ] Owner xác nhận implementation journal bền vững trong `booking_status_history.note` ở mục 4, đã có bằng chứng local. Nếu đổi cách lưu/schema, cần thống nhất contract và migration riêng trước; không dùng cache RAM thay thế.
+@@ -84 +92 @@
+-## 4. Journal và lịch sử: phần Order phải triển khai
++## 4. Journal và lịch sử: implementation Order cần owner review
+@@ -86 +94 @@
+-Đề xuất hiện có tận dụng `booking_status_history.note TEXT` với marker `kind:"cleanhome.staff-transition"`, `version:1`, gồm `operation`, `ack` bất biến và cờ `staffAcknowledged`. `booking_status_history` vẫn do Order sở hữu; Staff không INSERT/UPDATE bảng này. Đây **không phải journal đang hoạt động trong code scaffold Order**.
++Implementation Order dùng `booking_status_history.note TEXT` với marker `kind:"cleanhome.staff-transition"`, `version:1`, gồm `operation`, `ack` bất biến và cờ `staffAcknowledged`. `booking_status_history` vẫn do Order sở hữu; Staff không INSERT/UPDATE bảng này. Bằng chứng transaction/journal local nằm tại [README Order](../../order-service/README.md) và báo cáo Q01–Q06; phê duyệt thiết kế/contract vẫn cần đúng owner.
+@@ -118 +126 @@
+-Phần này chuẩn bị điều kiện/assertion; **chưa chạy ghi UC12 trên dữ liệu hiện tại**. Không tự tạo JWT/mock Auth/Order để đánh dấu đạt.
++Phần này giữ điều kiện/assertion của runner Backend lịch sử. UC12 ghi đã được kiểm chứng local riêng trên Q01–Q06 theo cập nhật ở đầu tài liệu; không tự tạo JWT/mock Auth/Order hoặc chạy lại fixture đã tiêu thụ để đánh dấu đạt.
+@@ -120 +128 @@
+-Runner được chuẩn bị tại [test/http.integration.test.js](../test/http.integration.test.js), lệnh `npm.cmd run test:http` từ thư mục `backend/staff-service`. Mặc định bỏ qua khi chưa bật `RUN_STAFF_HTTP_TESTS=true`; bật nhóm ghi UC12 cần thêm `RUN_STAFF_HTTP_WRITE_TESTS=true` và `STAFF_HTTP_WRITE_BOOKING_ID=9109131`. Không đặt các cờ này chỉ để bỏ qua điều kiện dependency còn thiếu. Xem [hướng dẫn HTTP và giới hạn guard](http-integration-testing.md); server Staff/Order phải cùng trỏ database test, không chỉ tiến trình runner.
++Runner Backend lịch sử nằm tại [test/http.integration.test.js](../test/http.integration.test.js), lệnh `npm.cmd run test:http` từ `backend/staff-service`. Mặc định bỏ qua khi chưa bật `RUN_STAFF_HTTP_TESTS=true`. Nhóm ghi cũ yêu cầu `RUN_STAFF_HTTP_WRITE_TESTS=true` và từng dùng `STAFF_HTTP_WRITE_BOOKING_ID=9109131`; **booking này đã COMPLETED, không bật lại nhóm ghi hoặc reset để chạy lại**. Kiểm thử ghi mới cần fixture/runner và phạm vi được owner duyệt riêng. Xem [hướng dẫn HTTP và giới hạn guard](http-integration-testing.md); service/test phải cùng trỏ database test.
+@@ -124 +132 @@
+-Manifest dành riêng cho test hai nhân viên, **không phải xác nhận các bản ghi này đã được seed hoặc Auth đã cấp token**:
++Manifest Backend lịch sử dưới đây đã được sử dụng: booking `9109131` hiện COMPLETED, hai assignment DONE. Giữ để truy vết, không coi là fixture ASSIGNED mới và không dùng bảng này như phê duyệt ghi lại:
+diff --git a/backend/staff-service/docs/order-service-contract.md b/backend/staff-service/docs/order-service-contract.md
+index cdae9ba901cdc10fd40c41f4cc476dae50f711bf..a64e9e9e90d49ae60124861c96b1dc87e1051ccf 100644
+--- a/backend/staff-service/docs/order-service-contract.md
++++ b/backend/staff-service/docs/order-service-contract.md
+@@ -3 +3 @@
+-**Trạng thái: đề xuất cần thành viên Order triển khai và kiểm thử.** File này không chứng minh các endpoint dưới đây đã tồn tại. `src/order-client.js` là REST client thật; không có Order giả trong runtime. Test HTTP dùng server stub riêng trên cổng ngẫu nhiên và được ghi rõ là mock dependency.
++**Trạng thái thực thi: đã triển khai và có bằng chứng tích hợp local; phê duyệt contract chính thức vẫn chờ owner Staff/Order.** `src/order-client.js` là REST client thật; không có Order giả trong runtime. Test client dùng stub riêng có nhãn mock; HTTP/MySQL/E2E thật là lớp bằng chứng riêng, không suy ra từ stub.
+@@ -6,0 +7,8 @@
++## Cập nhật bằng chứng local ngày 24/10/2026
++
++Theo [báo cáo nghiệm thu UC12](../../../frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md), luồng Browser → BFF → Auth/Staff → Order → MySQL thật trên `cleanhome_staff_test` đạt **43 nhóm E2E PASS, 0 FAIL, 0 SKIP, 0 NOT_RUN** cho Q01–Q06. Hồi quy HTTP riêng đạt **90 PASS, 0 FAIL, 1 SKIP** do thiếu fixture UC11 qua ranh ngày UTC/Việt Nam; không cộng hai lớp kiểm thử hoặc coi SKIP là PASS.
++
++Sáu booking `9109151–9109156` đã COMPLETED, mười hai assignment `9109173–9109184` đã DONE, 36 journal mới đã ACK; giữ nguyên dữ liệu và không chạy lại workflow. Booking cũ `9109131` và `9109141` cũng đã COMPLETED. Muốn kiểm thử ghi thêm cần fixture và phạm vi được duyệt riêng.
++
++Đây là bằng chứng local HTTP trên một máy; chưa kiểm chứng production, HTTPS/Secure cookie thực, tải lớn/stress/soak, nhiều host/replica hoặc crash/kill/mất điện/restore trong lượt Frontend này. Fault Q03–Q06 là mất kết nối/phản hồi thật, không phải crash tiến trình. Worker toàn database tắt. Kết quả không thay phê duyệt contract/PR của owner; các kết quả giai đoạn cũ phía dưới được giữ làm lịch sử.
++
+@@ -25 +33 @@
+-Có **bốn endpoint bắt buộc cho UC12 và cơ chế khôi phục**, cùng **hai endpoint đọc context tùy chọn**. Đây là các đường dẫn được client Staff thực sự sử dụng hoặc đã chuẩn bị; không phải danh sách API Order đã triển khai.
++Có **bốn endpoint bắt buộc cho UC12 và cơ chế khôi phục**, đã được Order triển khai theo contract; bằng chứng Backend local của bốn API nằm ở [README Order](../../order-service/README.md). Q01–Q06 kiểm Frontend qua ba API lookup/apply/ack; worker toàn database tắt, không suy từ lượt Frontend này sang pending/global worker. **Hai endpoint đọc context tùy chọn chưa triển khai**. Đường dẫn/DTO dưới đây được giữ nguyên.
+@@ -134 +142 @@
+-Đề xuất để thành viên Order review: dùng **một dòng booking_status_history cho mỗi operation**, metadata JSON có marker/version riêng trong `note`, ví dụ:
++Implementation Order cần owner review: dùng **một dòng booking_status_history cho mỗi operation**, metadata JSON có marker/version riêng trong `note`, ví dụ:
+@@ -148 +156 @@
+-Khóa booking bảo đảm dedup có transaction theo booking. Cùng assignment/actor/key phải luôn sinh cùng operation ID. Vì schema chưa có unique index operation ID hoặc index pending, Order cần kiểm tra payload đầy đủ dưới khóa booking; không thể chỉ dùng cache RAM. Pending worker có thể đọc/parse note theo lô giới hạn; quy mô lớn cần migration journal/index riêng sau khi nhóm review. **Đây là yêu cầu tích hợp, không phải code Order đã được triển khai.**
++Khóa booking bảo đảm dedup có transaction theo booking. Cùng assignment/actor/key luôn sinh cùng operation ID. Schema chưa có unique index operation ID hoặc index pending; implementation Order kết hợp advisory lock theo operation ID, khóa booking và kiểm payload đầy đủ, không chỉ cache RAM. Journal/pending đã có code đọc/ghi và bằng chứng local. Quy mô lớn cần đánh giá index/migration riêng với owner; không coi kết quả local là kiểm chứng hiệu năng production.
+@@ -187 +195 @@
+-Chống chồng lượt trong một tiến trình không thay thế idempotency phân tán. Journal note vẫn là **đề xuất thuộc Order**, chưa có implementation đọc/ghi journal trong Staff hoặc scaffold Order hiện tại.
++Chống chồng lượt trong một tiến trình không thay thế idempotency phân tán. Journal note hiện do Order triển khai và sở hữu; Staff chỉ đọc/đối chiếu qua REST, không ghi journal SQL. Trong lượt Frontend Q01–Q06, worker toàn database cố ý tắt; bằng chứng phục hồi là retry cùng key và receipt, không phải nghiệm thu global queue/fairness.
+@@ -191 +199 @@
+-Test client hiện kiểm native fetch/HTTP loopback với **Order stub**, timeout, malformed JSON, whitelist, multiworker ACK, idempotency payload và journal recovery contract. Test vòng worker dùng service stub **chỉ trong test** để kiểm lượt ngay khi bật, interval, không chồng lượt, dừng chờ công việc và tiếp tục sau lỗi dependency. Chưa chứng minh Order có endpoint thật, transaction/journal thật, credential thật hoặc cạnh tranh nhiều worker trên MySQL. Cần thành viên Order triển khai contract và chạy tích hợp trước khi bật UC12/worker trong môi trường sử dụng chung.
++Test client độc lập kiểm native fetch/HTTP loopback với **Order stub** có nhãn, timeout, malformed JSON, whitelist, multiworker ACK, idempotency payload và journal recovery contract. Test vòng worker dùng service stub **chỉ trong test**. Bằng chứng Backend MySQL/HTTP/recovery thật ở [README Order](../../order-service/README.md); bằng chứng Frontend/BFF thật Q01–Q06 ở báo cáo liên kết đầu tài liệu. Chưa kiểm chứng cạnh tranh nhiều worker production, global queue/fairness hoặc crash thực tế trong lượt Frontend này. Không bật worker toàn database dùng chung chỉ để tái diễn kết quả.
+diff --git a/backend/order-service/README.md b/backend/order-service/README.md
+index 9ed0cea38743fd73b49c42e0cbf29150300346ed..3a5011510831d906803c3e16d0da937eccfce431 100644
+--- a/backend/order-service/README.md
++++ b/backend/order-service/README.md
+@@ -6,0 +7,8 @@
++## Cập nhật bằng chứng local ngày 24/10/2026
++
++Theo [báo cáo nghiệm thu UC12](../../frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md), luồng Browser → BFF → Auth/Staff → Order → MySQL thật trên `cleanhome_staff_test` đạt **43 nhóm E2E PASS, 0 FAIL, 0 SKIP, 0 NOT_RUN** cho Q01–Q06. Hồi quy HTTP riêng đạt **90 PASS, 0 FAIL, 1 SKIP** do thiếu fixture UC11 qua ranh ngày UTC/Việt Nam; không cộng hai lớp kiểm thử hoặc coi SKIP là PASS.
++
++Sáu booking `9109151–9109156` đã COMPLETED, mười hai assignment `9109173–9109184` đã DONE, 36 journal mới đã ACK; giữ nguyên dữ liệu và không chạy lại workflow. Booking cũ `9109131` và `9109141` cũng đã COMPLETED. Muốn kiểm thử ghi thêm cần fixture và phạm vi được duyệt riêng.
++
++Đây là bằng chứng local HTTP trên một máy; chưa kiểm chứng production, HTTPS/Secure cookie thực, tải lớn/stress/soak, nhiều host/replica hoặc crash/kill/mất điện/restore trong lượt Frontend này. Fault Q03–Q06 là mất kết nối/phản hồi thật, không phải crash tiến trình. Worker toàn database tắt. Kết quả không thay phê duyệt contract/PR của owner; các kết quả giai đoạn cũ phía dưới được giữ làm lịch sử.
++
+@@ -185 +193,2 @@
+-| Production/Frontend connected | NOT_VERIFIED | Chưa triển khai mạng production, tách database hoặc chuyển Frontend sang API |
++| Frontend Staff connected (local) | PASS trong Q01–Q06 | Giai đoạn Frontend/BFF sau lượt Backend này đã có 43 nhóm E2E thật; xem cập nhật đầu tài liệu |
++| Production/HTTPS/tải lớn/crash thực tế | NOT_VERIFIED | Không suy từ local QA, hai nhân viên đồng thời hoặc fault mất response sang môi trường triển khai/tải lớn/crash |
+@@ -228 +237 @@
+-- Frontend chưa đổi từ localStorage sang Backend JWT/API trong lượt này. Auth/User/Staff source, Frontend, schema và các service khác được giữ nguyên; không tự đổi kiến trúc microservices.
++- Ở giai đoạn Backend lịch sử này chưa sửa Frontend; giai đoạn sau đã tích hợp Frontend Staff qua BFF với Auth/JWT/REST thật và nghiệm thu Q01–Q06. Chỉ các luồng Staff đã nối mới dùng Backend; localStorage cũ được giữ nguyên, không suy rộng sang Customer/Admin. Không tự đổi kiến trúc microservices.
