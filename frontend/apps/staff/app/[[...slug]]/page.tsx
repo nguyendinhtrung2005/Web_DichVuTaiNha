@@ -1,1 +1,8 @@
-import {Portal} from "@/portal"; export default async function Page({params}:{params:Promise<{slug?:string[]}>}){const p=await params;return <Portal role="staff" path={p.slug||[]}/>}
+import { StaffAuthPortal } from "@/components/staff/staff-auth-portal"
+
+export const dynamic = "force-dynamic"
+
+export default async function Page({ params }: { params: Promise<{ slug?: string[] }> }) {
+  const { slug } = await params
+  return <StaffAuthPortal path={slug || []} />
+}
