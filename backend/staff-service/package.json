@@ -1,4 +1,25 @@
 {
   "name": "home-service-staff-service",
-  "private": true
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "worker": "node --env-file-if-exists=.env src/worker.js",
+    "check:schema": "node --env-file-if-exists=.env scripts/check-schema.js",
+    "test": "node --test --test-concurrency=1",
+    "test:unit": "node --test --test-concurrency=1 test/auth.test.js test/jobs.test.js test/order-client.test.js test/repository.test.js test/validation-mapping.test.js test/reconciliation.test.js test/seed-contract.test.js test/multi-seed-contract.test.js test/http-test-config.test.js",
+    "test:mysql": "node --env-file-if-exists=.env --test test/mysql.integration.test.js",
+    "test:mysql:seeded": "node --env-file-if-exists=.env --test test/mysql.seeded.integration.test.js",
+    "test:mysql:multi": "node --env-file-if-exists=.env --test test/mysql.multi.integration.test.js",
+    "test:http": "node --env-file-if-exists=.env --test test/http.integration.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jose": "^6.0.0",
+    "mysql2": "^3.14.0"
+  }
 }
