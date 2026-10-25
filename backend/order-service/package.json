@@ -1,4 +1,20 @@
 {
   "name": "home-service-order-service",
-  "private": true
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "generate:service-token": "node scripts/generate-service-token.js",
+    "staff:integration": "node --env-file-if-exists=.env scripts/start-staff.js",
+    "test": "npm run test:unit",
+    "test:unit": "node --test --test-concurrency=1 test/domain.test.js test/repository.test.js test/http.test.js",
+    "test:mysql": "node --env-file-if-exists=.env --test test/mysql.integration.test.js",
+    "test:live": "node --env-file-if-exists=.env --test test/live.integration.test.js",
+    "test:recovery": "node --env-file-if-exists=.env --test test/recovery.integration.test.js",
+    "test:concurrent": "node --env-file-if-exists=.env --test test/concurrent.integration.test.js"
+  },
+  "dependencies": { "express": "^5.1.0", "mysql2": "^3.14.0" }
 }
