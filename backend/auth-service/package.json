@@ -1,4 +1,24 @@
 {
   "name": "home-service-auth-service",
-  "private": true
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "npm run test:unit",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "generate:keys": "node --env-file-if-exists=.env scripts/generate-keys.js",
+    "provision:test": "node --env-file-if-exists=.env scripts/provision-test-accounts.js",
+    "tokens:staff-test": "node --env-file-if-exists=.env scripts/staff-tokens.js",
+    "test:unit": "node --test --test-concurrency=1 test/crypto.test.js test/credential-vault.test.js test/repository.test.js test/auth.test.js",
+    "test:mysql": "node --env-file-if-exists=.env --test test/mysql.integration.test.js",
+    "test:live": "node --env-file-if-exists=.env --test test/live.integration.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jose": "^6.0.0",
+    "mysql2": "^3.14.0"
+  }
 }
