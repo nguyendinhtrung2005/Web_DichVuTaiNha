@@ -48,7 +48,10 @@ export function AdminOrders() {
   const clearFilters = () => { setQuery(""); setStatus(""); setFrom(""); setTo(""); setSort("created-desc"); setPage(0) }
 
   return <div className="min-w-0 space-y-6">
-    <AdminPageHeader title="Quản lý đơn dịch vụ" description="Tra cứu lịch hẹn, trạng thái và mở chi tiết để xử lý từng đơn." />
+    <AdminPageHeader title="Điều hành đơn dịch vụ" description="Tra cứu lịch hẹn, trạng thái và mở chi tiết để xử lý từng đơn dịch vụ." />
+    <p className="m-0 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm leading-6 text-blue-950">
+      Danh sách này chỉ gồm đơn đặt dịch vụ. Đơn mua sản phẩm được xử lý riêng tại <Link href="/don-mua" className="font-semibold underline underline-offset-2">Đơn mua sản phẩm</Link>.
+    </p>
 
     <section aria-label="Tìm và lọc đơn dịch vụ" className="min-w-0 rounded-2xl border border-border bg-white p-5 sm:p-6">
       <div className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">

@@ -13,7 +13,8 @@ export function validAreaPath(role: Role, path: string[]): boolean {
     return ["don-cua-toi", "lich-su"].includes(route) && path.length === 1
   }
   if (role === "staff") return ["cong-viec", "lich-lam-viec"].includes(route) && path.length === 1
-  return ["don-dich-vu", "phan-cong", "lich-lam-viec", "tai-khoan", "dich-vu", "thanh-toan", "danh-gia", "bao-cao"].includes(route) && path.length === 1
+  if (route === "don-mua") return path.length <= 2
+  return ["don-dich-vu", "phan-cong", "lich-lam-viec", "tai-khoan", "dich-vu", "san-pham", "thanh-toan", "danh-gia", "bao-cao"].includes(route) && path.length === 1
 }
 
 /** Return URLs never determine account role or allow navigation outside CleanHome. */

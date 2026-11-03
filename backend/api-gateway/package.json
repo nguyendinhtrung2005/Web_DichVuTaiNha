@@ -1,4 +1,14 @@
 {
   "name": "home-service-api-gateway",
-  "private": true
+  "private": true,
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "helmet": "^8.3.0"
+  }
 }

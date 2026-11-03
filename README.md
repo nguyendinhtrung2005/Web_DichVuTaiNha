@@ -27,9 +27,9 @@ Có thể đăng ký tài khoản khách hàng demo mới. Phiên đăng nhập 
 
 - Một ứng dụng responsive, điều hướng theo vai trò qua `/user`, `/staff` và `/admin`; các route vai trò được chặn nếu chưa đăng nhập hoặc sai vai trò.
 - Khách hàng có thể duyệt dịch vụ theo 4 nhóm: vệ sinh phòng trọ, vệ sinh nhà ở, chăm sóc, bảo dưỡng; gửi yêu cầu đặt lịch và theo dõi đơn demo.
-- Có gian hàng sản phẩm theo các nhóm dịch vụ; khách hàng demo có thể chọn số lượng, gửi đơn mua và xem trạng thái. Admin có thể quản lý danh mục/tồn kho và xử lý đơn sản phẩm.
+- Admin quản lý danh mục, sản phẩm, ảnh URL và tồn kho qua API; màn điều hành đơn mua sản phẩm tách riêng khỏi đơn dịch vụ. Đơn mua có migration additive riêng trong `backend/order-service/migrations`.
 - Nhân viên có thể xem công việc mẫu, nhận đơn đang chờ, cập nhật trạng thái thực hiện và xem lịch.
 - Quản trị viên có các màn hình tổng quan, đơn hàng, danh mục dịch vụ, tài khoản mẫu, thanh toán, đánh giá và báo cáo.
 - Dịch vụ mẫu gồm dọn dẹp, sửa chữa điện nước/điện gia dụng, lắp đặt và chăm sóc thiết bị điện lạnh.
 
-**Lưu ý:** các luồng nghiệp vụ và số liệu hiện chỉ là bản demo phía trình duyệt. Đơn sản phẩm không kết nối thanh toán/vận chuyển thật; thay đổi tồn kho và đơn được lưu cục bộ. `docker-compose.yml`, backend và các module `frontend/src/services` chưa được kết nối/triển khai; đăng nhập, phân quyền và thanh toán hiện không phải cơ chế bảo mật hay giao dịch thật. Cần tích hợp API và kiểm tra quyền ở backend trước khi đưa vào sử dụng thực tế.
+**Lưu ý:** luồng khách hàng, đơn dịch vụ và đăng nhập giao diện hiện vẫn dùng dữ liệu demo phía trình duyệt. API danh mục/sản phẩm và API đơn mua có service MySQL, JWT và kiểm tra role hiện hành ở backend; auth service trong repo chưa phát hành JWT nên cần hoàn tất tích hợp xác thực trước khi sử dụng thực tế. Đơn mua hỗ trợ trạng thái chờ xử lý/đã giao/đã hủy và lưu địa chỉ giao hàng; thanh toán, hãng vận chuyển và giao diện đặt hàng khách hàng chưa triển khai. Cần áp dụng migration đơn mua trước khi chạy order-service.

@@ -1,4 +1,4 @@
-import type { HouseType, JobStatus, OrderStatus, PaymentMethod, PaymentStatus, ServiceCategory } from "./types"
+import type { HouseType, JobStatus, OrderStatus, PaymentMethod, PaymentStatus, ServiceCategory, ServiceGroup } from "./types"
 
 /**
  * Quy tắc hủy mẫu, có thể cấu hình khi có chính sách thực tế.
@@ -35,6 +35,20 @@ export const CATEGORY_LABEL: Record<ServiceCategory, string> = {
   "noi-that": "Vệ sinh nội thất",
   "thiet-bi": "Vệ sinh thiết bị",
 }
+
+export const SERVICE_GROUP_LABEL: Record<ServiceGroup, string> = {
+  "ve-sinh-nha-o": "Vệ sinh nhà ở",
+  "ve-sinh-phong-tro": "Vệ sinh phòng trọ",
+  "cham-soc": "Chăm sóc",
+  "bao-duong": "Bảo dưỡng",
+}
+
+export const SERVICE_GROUPS: readonly { id: ServiceGroup; label: string }[] = [
+  { id: "ve-sinh-nha-o", label: SERVICE_GROUP_LABEL["ve-sinh-nha-o"] },
+  { id: "ve-sinh-phong-tro", label: SERVICE_GROUP_LABEL["ve-sinh-phong-tro"] },
+  { id: "cham-soc", label: SERVICE_GROUP_LABEL["cham-soc"] },
+  { id: "bao-duong", label: SERVICE_GROUP_LABEL["bao-duong"] },
+]
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   pending: "Chờ xác nhận",

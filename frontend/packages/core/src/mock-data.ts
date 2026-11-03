@@ -10,6 +10,7 @@ export const SERVICES: Service[] = [
     slug: "don-nha-theo-gio",
     name: "Dọn nhà theo giờ",
     category: "dinh-ky",
+    adminGroup: "ve-sinh-nha-o",
     shortDesc: "Dọn dẹp, lau chùi nhà cửa linh hoạt theo số giờ bạn cần.",
     description:
       "Nhân viên đến tận nhà dọn dẹp các khu vực sinh hoạt hằng ngày. Phù hợp cho gia đình bận rộn cần giữ nhà luôn gọn gàng mỗi tuần.",
@@ -31,6 +32,7 @@ export const SERVICES: Service[] = [
     slug: "tong-ve-sinh",
     name: "Tổng vệ sinh nhà ở",
     category: "chuyen-sau",
+    adminGroup: "ve-sinh-nha-o",
     shortDesc: "Làm sạch toàn diện từng ngóc ngách, phù hợp dịp lễ Tết hoặc chuyển nhà.",
     description:
       "Đội ngũ 2–3 nhân viên cùng máy móc chuyên dụng xử lý vết bẩn lâu ngày trên sàn, kính, bếp và nhà vệ sinh, trả lại không gian sạch sẽ như mới.",
@@ -52,6 +54,7 @@ export const SERVICES: Service[] = [
     slug: "ve-sinh-sofa",
     name: "Vệ sinh sofa",
     category: "noi-that",
+    adminGroup: "cham-soc",
     shortDesc: "Giặt hút sofa vải, da bằng máy chuyên dụng, khử mùi và diệt khuẩn.",
     description:
       "Sử dụng máy phun hút và dung dịch an toàn cho từng chất liệu, loại bỏ bụi mịn, vết ố và mùi hôi, sofa khô nhanh sau 3–4 giờ.",
@@ -73,6 +76,7 @@ export const SERVICES: Service[] = [
     slug: "ve-sinh-may-lanh",
     name: "Vệ sinh máy lạnh",
     category: "thiet-bi",
+    adminGroup: "bao-duong",
     shortDesc: "Bảo dưỡng máy lạnh treo tường giúp làm lạnh nhanh và tiết kiệm điện.",
     description:
       "Kỹ thuật viên tháo lắp, xịt rửa dàn lạnh, dàn nóng và kiểm tra gas cơ bản. Khuyến nghị vệ sinh định kỳ 3–6 tháng một lần.",
@@ -94,6 +98,7 @@ export const SERVICES: Service[] = [
     slug: "ve-sinh-sau-xay-dung",
     name: "Vệ sinh sau xây dựng",
     category: "chuyen-sau",
+    adminGroup: "ve-sinh-nha-o",
     shortDesc: "Xử lý bụi xi măng, vết sơn, keo dán sau thi công để sẵn sàng vào ở.",
     description:
       "Làm sạch công trình mới hoàn thiện hoặc sau sửa chữa: gạt vữa, tẩy sơn, lau kính và làm sạch toàn bộ bề mặt với máy móc chuyên dụng.",
@@ -115,6 +120,7 @@ export const SERVICES: Service[] = [
     slug: "ve-sinh-nem",
     name: "Vệ sinh nệm",
     category: "noi-that",
+    adminGroup: "cham-soc",
     shortDesc: "Hút bụi, diệt mạt bụi và khử khuẩn nệm bằng tia UV.",
     description:
       "Loại bỏ mạt bụi, tế bào da chết và vi khuẩn gây dị ứng trong nệm, giúp giấc ngủ sạch sẽ và an toàn hơn cho cả gia đình.",
