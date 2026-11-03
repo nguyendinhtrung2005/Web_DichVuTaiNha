@@ -37,6 +37,8 @@ import {AdminAssignment} from '@/components/admin/admin-assignment'
 import {AdminCalendar} from '@/components/admin/admin-calendar'
 import {AdminAccounts} from '@/components/admin/admin-accounts'
 import {AdminServices} from '@/components/admin/admin-services'
+import {AdminProducts} from '@/components/admin/admin-products'
+import {AdminProductOrders} from '@/components/admin/admin-product-orders'
 import {AdminPayments} from '@/components/admin/admin-payments'
 import {AdminReviews} from '@/components/admin/admin-reviews'
 import {AdminReports} from '@/components/admin/admin-reports'
@@ -59,6 +61,8 @@ else if(needsLogin)content=IS_UNIFIED_APP?user?<section className="mx-auto w-ful
 else if(!route)content=role==='customer'?<Home/>:role==='staff'?<StaffDashboard/>:<AdminDashboard/>;
 else if(route==='ho-so')content=role==='customer'?<CustomerProfile/>:role==='staff'?<StaffProfile/>:<Profile/>;
 else if(route==='dich-vu')content=role==='customer'?<Services slug={path[1]}/>:role==='admin'?<AdminServices/>:<Empty text="Trang không tồn tại."/>;
+else if(role==='admin'&&route==='san-pham')content=<AdminProducts/>;
+else if(role==='admin'&&route==='don-mua')content=<AdminProductOrders id={path[1]}/>;
 else if(route==='dat-dich-vu'&&role==='customer')content=<Booking id={path[1]}/>;
 else if(route==='don'&&path[1])content=role==='customer'?<CustomerOrderDetail id={path[1]}/>:role==='staff'?<StaffJobDetail id={path[1]}/>:<AdminOrderDetail id={path[1]}/>;
 else if(role==='staff'&&route==='cong-viec')content=<StaffJobs/>;
@@ -82,7 +86,7 @@ return (
     ):role==='staff'?(
       <StaffLayout route={route} user={allowed?user:null} onLogout={logout}><div key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></StaffLayout>
     ):(
-      <AdminLayout route={route} user={allowed?user:null} onLogout={logout}><div className={auth||(allowed&&!['','don-dich-vu','don','phan-cong','lich-lam-viec','tai-khoan','dich-vu','thanh-toan','danh-gia','bao-cao'].includes(route))?'admin-legacy ch-app':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></AdminLayout>
+      <AdminLayout route={route} user={allowed?user:null} onLogout={logout}><div className={auth||(allowed&&!['','don-dich-vu','don','don-mua','phan-cong','lich-lam-viec','tai-khoan','dich-vu','thanh-toan','danh-gia','bao-cao'].includes(route))?'admin-legacy ch-app':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></AdminLayout>
     )}
   </Context.Provider>
 )}

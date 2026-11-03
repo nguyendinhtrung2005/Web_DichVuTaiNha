@@ -1,5 +1,6 @@
 import type { AppState } from "@/lib/types"
 import { formatDate, formatDateTime } from "@/lib/format"
+import { SERVICE_GROUPS } from "@/lib/config"
 import { getAdminDataError } from "./admin-shared"
 
 // Display dates explicitly while preserving the existing local-day filtering.
@@ -27,6 +28,7 @@ export function getAdminCommerceDataError(state: AppState): string | null {
   if ([state.services, state.users, state.orders, state.payments, state.reviews].some((items) => new Set(items.map((item) => item.id)).size !== items.length)) return "Dữ liệu quản trị có mã định danh bị trùng"
   if (state.services.some((service) => ![service.slug, service.shortDesc, service.description, service.unit, service.quantityLabel].every((value) => typeof value === "string")
     || !["dinh-ky", "chuyen-sau", "noi-that", "thiet-bi"].includes(service.category) || !["active", "inactive"].includes(service.status)
+    || (service.adminGroup !== undefined && !SERVICE_GROUPS.some((group) => group.id === service.adminGroup))
     || ![service.price, service.minQuantity, service.defaultQuantity, service.minutesPerUnit, service.baseMinutes].every(nonnegative))) return "Chưa thể đọc đầy đủ dữ liệu dịch vụ"
   if (state.payments.some((payment) => payment.refundRequired !== undefined && typeof payment.refundRequired !== "boolean")) return "Chưa thể đọc trạng thái cần hoàn tiền"
   if (state.reviews.some((review) => ![review.customerId, review.serviceId].every((value) => typeof value === "string") || !optionalText(review.staffId)

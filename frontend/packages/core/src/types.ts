@@ -1,12 +1,14 @@
 export type Role = "customer" | "staff" | "admin"
 
 export type ServiceCategory = "dinh-ky" | "chuyen-sau" | "noi-that" | "thiet-bi"
+export type ServiceGroup = "ve-sinh-nha-o" | "ve-sinh-phong-tro" | "cham-soc" | "bao-duong"
 
 export interface Service {
   id: string
   slug: string
   name: string
   category: ServiceCategory
+  adminGroup?: ServiceGroup
   shortDesc: string
   description: string
   scope: string[]

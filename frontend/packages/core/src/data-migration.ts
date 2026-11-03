@@ -1,4 +1,5 @@
 import type { AppState } from './types'
+import { SERVICE_GROUPS } from './config'
 
 export type MigrationCollection = 'users' | 'services' | 'orders' | 'payments' | 'reviews'
 export interface MigrationIssue { collection: string; id?: string; fields?: string[]; message: string }
@@ -39,6 +40,7 @@ export function validateMigrationState(value: unknown, options: { references?: b
         && optionalText(record.avatar) && optionalText(record.position)
       if (key === 'services') valid = ['slug', 'name', 'shortDesc', 'description', 'unit', 'quantityLabel', 'image'].every(field => text(record[field])) && required(record.slug)
         && member(record.category, ['dinh-ky', 'chuyen-sau', 'noi-that', 'thiet-bi']) && member(record.status, ['active', 'inactive'])
+        && (record.adminGroup === undefined || SERVICE_GROUPS.some(group => group.id === record.adminGroup))
         && ['scope', 'included', 'excluded'].every(field => strings(record[field]))
         && ['price', 'minQuantity', 'defaultQuantity', 'minutesPerUnit', 'baseMinutes'].every(field => number(record[field]))
       if (key === 'orders') {

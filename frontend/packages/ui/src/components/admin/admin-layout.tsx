@@ -5,7 +5,7 @@ import NextLink from "next/link"
 import { useEffect, useState, type ReactNode } from "react"
 import { AreaLink as Link, useAreaRoutes } from "@/components/shared/area-routes"
 import { usePathname } from "next/navigation"
-import { CalendarDaysIcon, ChartNoAxesCombinedIcon, ChevronDownIcon, ClipboardListIcon, CreditCardIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, SparklesIcon, StarIcon, UserRoundIcon, UsersIcon, BriefcaseBusinessIcon, XIcon } from "lucide-react"
+import { CalendarDaysIcon, ChartNoAxesCombinedIcon, ChevronDownIcon, ClipboardListIcon, CreditCardIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PackageIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, ShoppingBagIcon, SparklesIcon, StarIcon, UserRoundIcon, UsersIcon, BriefcaseBusinessIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Logo } from "@/components/shared/logo"
@@ -17,10 +17,12 @@ import type { User } from "@/lib/types"
 const navigation = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboardIcon, group: "Điều hành" },
   { href: "/don-dich-vu", label: "Đơn dịch vụ", icon: ClipboardListIcon, group: "Điều hành" },
+  { href: "/don-mua", label: "Đơn mua sản phẩm", icon: ShoppingBagIcon, group: "Điều hành" },
   { href: "/phan-cong", label: "Phân công", icon: BriefcaseBusinessIcon, group: "Điều hành" },
   { href: "/lich-lam-viec", label: "Lịch làm việc", icon: CalendarDaysIcon, group: "Điều hành" },
   { href: "/tai-khoan", label: "Tài khoản", icon: UsersIcon, group: "Quản lý" },
   { href: "/dich-vu", label: "Dịch vụ", icon: SparklesIcon, group: "Quản lý" },
+  { href: "/san-pham", label: "Sản phẩm", icon: PackageIcon, group: "Quản lý" },
   { href: "/thanh-toan", label: "Thanh toán", icon: CreditCardIcon, group: "Quản lý" },
   { href: "/danh-gia", label: "Đánh giá", icon: StarIcon, group: "Quản lý" },
   { href: "/bao-cao", label: "Báo cáo", icon: ChartNoAxesCombinedIcon, group: "Quản lý" },
