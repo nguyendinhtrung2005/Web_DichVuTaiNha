@@ -97,7 +97,7 @@ export function Hero() {
 
 export function FeaturedServices() {
   const state = useAppState()
-  const services = state?.services.filter((service) => FEATURED_SLUGS.includes(service.slug) && service.status === "active")
+  const services = state?.services.filter((service) => service.status === "active").slice(0, 3)
 
   return (
     <section id="dich-vu-noi-bat" className="mx-auto max-w-6xl scroll-mt-28 px-4 py-16 sm:px-6 md:py-24" aria-labelledby="featured-heading">

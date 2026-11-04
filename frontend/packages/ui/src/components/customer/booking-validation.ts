@@ -1,6 +1,7 @@
 import { HOUSE_TYPE_LABEL, TIME_SLOTS } from "@/lib/config"
 import { estimateDuration, estimatePrice } from "@/lib/mock-data"
 import type { HouseType, Service } from "@/lib/types"
+import { serviceRequiresHouseDetails } from "@/lib/service-taxonomy"
 
 export interface BookingValues {
   serviceId: string
@@ -54,6 +55,7 @@ export function validateBookingStep(step: number, values: BookingValues, service
     else if (address.length < 8 || address.length > 300) errors.address = "Địa chỉ cần từ 8 đến 300 ký tự, gồm số nhà và đường hoặc khu vực."
     if (!Object.prototype.hasOwnProperty.call(HOUSE_TYPE_LABEL, values.houseType)) errors.houseType = "Vui lòng chọn loại nhà hợp lệ."
     for (const [key, label] of [["area", "Diện tích"], ["rooms", "Số phòng"], ["floors", "Số tầng"]] as const) {
+      if (!values[key].trim() && (!service || !serviceRequiresHouseDetails(service))) continue
       const value = Number(values[key])
       if (!values[key].trim() || !Number.isFinite(value) || value <= 0 || (key !== "area" && !Number.isInteger(value))) errors[key] = `${label} cần là ${key === "area" ? "số" : "số nguyên"} lớn hơn 0.`
     }

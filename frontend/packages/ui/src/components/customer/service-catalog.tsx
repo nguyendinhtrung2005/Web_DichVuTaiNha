@@ -6,12 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ServiceCard } from "@/components/customer/service-card"
-import { CATEGORY_LABEL } from "@/lib/config"
-import type { Service, ServiceCategory } from "@/lib/types"
-
-function searchText(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().trim().replace(/\s+/g, " ")
-}
+import { SERVICE_GROUP_LABEL } from "@/lib/config"
+import { CLEANING_TYPE_LABEL, SERVICE_GROUPS, filterCustomerServices } from "@/lib/service-taxonomy"
+import type { Service } from "@/lib/types"
 
 const selectClassName = "min-h-12 w-full min-w-0 rounded-xl border border-input bg-white px-3 py-2 text-base text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60 md:text-sm"
 
@@ -19,18 +16,14 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
   const id = useId()
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState("")
+  const [cleaningType, setCleaningType] = useState("")
   const [sort, setSort] = useState("")
   const activeServices = useMemo(() => services.filter((service) => service.status === "active"), [services])
-  const categories = useMemo(() => Array.from(new Set(activeServices.map((service) => service.category))), [activeServices])
   const result = useMemo(() => {
-    const terms = searchText(query).split(" ").filter(Boolean)
-    return activeServices.filter((service) => {
-      const content = searchText(`${service.name} ${service.shortDesc} ${service.description}`)
-      return (!category || category === service.category) && terms.every((term) => content.includes(term))
-    }).sort((a, b) => sort === "up" ? a.price - b.price : sort === "down" ? b.price - a.price : 0)
-  }, [activeServices, category, query, sort])
-  const hasFilters = Boolean(query || category || sort)
-  const resetFilters = () => { setQuery(""); setCategory(""); setSort("") }
+    return filterCustomerServices(activeServices, { query, group: category, cleaningType }).sort((a, b) => sort === "up" ? a.price - b.price : sort === "down" ? b.price - a.price : 0)
+  }, [activeServices, category, cleaningType, query, sort])
+  const hasFilters = Boolean(query || category || cleaningType || sort)
+  const resetFilters = () => { setQuery(""); setCategory(""); setCleaningType(""); setSort("") }
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 md:py-14" aria-labelledby={`${id}-heading`}>
@@ -45,7 +38,7 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
 
       <Card className="mb-8 rounded-2xl bg-slate-50/80 shadow-none ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
         <CardContent>
-          <form role="search" aria-label="Tìm và lọc dịch vụ" className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]" onSubmit={(event) => event.preventDefault()}>
+          <form role="search" aria-label="Tìm và lọc dịch vụ" className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr]" onSubmit={(event) => event.preventDefault()}>
             <div className="min-w-0">
               <label htmlFor={`${id}-query`} className="mb-2 block text-sm font-semibold">Tìm dịch vụ</label>
               <div className="relative">
@@ -56,9 +49,15 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
             </div>
             <div className="min-w-0">
               <label htmlFor={`${id}-category`} className="mb-2 block text-sm font-semibold">Nhóm dịch vụ</label>
-              <select id={`${id}-category`} name="category" className={selectClassName} value={category} onChange={(event) => setCategory(event.target.value)} disabled={!categories.length} aria-controls={`${id}-results`}>
+              <select id={`${id}-category`} name="category" className={selectClassName} value={category} onChange={(event) => { setCategory(event.target.value); if (event.target.value && event.target.value !== "ve-sinh") setCleaningType("") }} aria-controls={`${id}-results`}>
                 <option value="">Tất cả nhóm dịch vụ</option>
-                {categories.map((value: ServiceCategory) => <option key={value} value={value}>{CATEGORY_LABEL[value]}</option>)}
+                {SERVICE_GROUPS.map((value) => <option key={value} value={value}>{SERVICE_GROUP_LABEL[value]}</option>)}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label htmlFor={`${id}-cleaning-type`} className="mb-2 block text-sm font-semibold">Loại vệ sinh</label>
+              <select id={`${id}-cleaning-type`} className={selectClassName} value={cleaningType} onChange={(event) => setCleaningType(event.target.value)} disabled={Boolean(category && category !== "ve-sinh")} aria-controls={`${id}-results`}>
+                <option value="">Tất cả loại vệ sinh</option>{Object.entries(CLEANING_TYPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </div>
             <div className="min-w-0">

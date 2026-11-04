@@ -9,7 +9,9 @@ export const APP_MODE = process.env.NEXT_PUBLIC_APP_MODE === "unified" ? "unifie
 export const IS_UNIFIED_APP = APP_MODE === "unified"
 export const UNIFIED_APP = IS_UNIFIED_APP
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api"
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"
+// Customer always uses the API; Staff/Admin retain their existing demo storage.
+export const CUSTOMER_API_ENABLED = APP_ROLE === "customer"
 
 export const SITE_URLS: Record<Role, string> = {
   customer: process.env.NEXT_PUBLIC_CUSTOMER_URL ?? "http://localhost:3001",

@@ -7,7 +7,7 @@ import { ArrowRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CATEGORY_LABEL } from "@/lib/config"
+import { CLEANING_TYPE_LABEL, cleaningTypeOf, serviceGroupLabel } from "@/lib/service-taxonomy"
 import { formatCurrency } from "@/lib/format"
 import type { Service } from "@/lib/types"
 
@@ -28,15 +28,17 @@ export function ServiceCard({ service, showBooking = false, headingLevel = "h3" 
           onError={() => setFailedImage(image)}
         />
         <Badge variant="secondary" className="absolute top-3 left-3 border-white/80 bg-white/95 px-3 py-1 text-primary shadow-sm">
-          {CATEGORY_LABEL[service.category]}
+          {serviceGroupLabel(service)}
         </Badge>
       </div>
       <CardHeader className="gap-3">
+        {service.categoryName && service.categoryName !== service.groupName && <p className="m-0 text-xs text-muted-foreground">{service.categoryName}</p>}
+        {cleaningTypeOf(service) && <p className="m-0 text-xs font-medium text-primary">{CLEANING_TYPE_LABEL[cleaningTypeOf(service)!]}</p>}
         <CardTitle><Heading className={`m-0 text-lg leading-6 font-semibold${showBooking ? " min-h-12" : ""}`}>{service.name}</Heading></CardTitle>
         <CardDescription className="line-clamp-2 min-h-12 leading-6">{service.shortDesc}</CardDescription>
       </CardHeader>
       <CardContent className="mt-auto">
-        <p className="m-0 text-xs text-muted-foreground">Giá tham khảo từ</p>
+        <p className="m-0 text-xs text-muted-foreground">{service.pricingModeKnown === false ? "Giá tham khảo, cách tính chưa được cấu hình" : service.pricingMode === "fixed" ? "Giá cố định" : service.pricingMode === "survey" ? "Giá tham khảo, cần khảo sát" : "Giá tham khảo từ"}</p>
         <p className="m-0 mt-1.5 text-xl font-semibold text-primary tabular-nums">
           {formatCurrency(service.price)}
           <span className="text-sm font-normal text-muted-foreground"> / {service.unit}</span>
