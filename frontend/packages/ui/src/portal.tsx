@@ -5,7 +5,9 @@ import Link from 'next/link'
 import {useRouter,useSearchParams} from 'next/navigation'
 import {Sparkles} from 'lucide-react'
 import {actions,executeStoreCommand,useAppState,useCurrentUser,useDataStatus} from '@/lib/store'
-import {IS_UNIFIED_APP} from '@/lib/env'
+import {CUSTOMER_API_ENABLED,IS_UNIFIED_APP} from '@/lib/env'
+import {logoutCustomer,refreshCustomerData} from '@/lib/customer-api-store'
+import {setProductCustomer} from '@/lib/product-commerce'
 import {AreaRoutesProvider,areaHref} from '@/components/shared/area-routes'
 import {AREA_HOME,safeReturnTo,validAreaPath} from '@/components/shared/route-policy'
 import {DataSetupGate} from '@/components/shared/data-setup'
@@ -15,6 +17,7 @@ import {Context,Heading,Panel,Field,Btn,Go,Empty,act} from './common'
 import {Home,Services,Booking} from './customer'
 import {CustomerOrders} from '@/components/customer/customer-orders'
 import {CustomerOrderDetail} from '@/components/customer/customer-order-detail'
+import {Products,ProductCartPage,ProductCheckoutPage,ProductOrdersPage} from '@/components/customer/product-pages'
 import {CustomerProfile} from '@/components/customer/customer-profile'
 import {CustomerAuth} from '@/components/customer/customer-auth'
 import {Profile} from './manage'
@@ -47,18 +50,26 @@ export function Portal({role,path}:{role:Role;path:string[]}) {
   return <AreaRoutesProvider role={role}><PortalScreen role={role} path={path}/></AreaRoutesProvider>
 }
 function PortalScreen({role,path}:{role:Role;path:string[]}){const s=useAppState(),user=useCurrentUser(),dataStatus=useDataStatus();const router=useRouter();const loggingOut=useRef(false);const route=path[0]||'';
-const logout=async()=>{if(loggingOut.current)return;loggingOut.current=true;try{const result=await executeStoreCommand(()=>actions.logout());if(result&&result.ok===false){toast.error(result.error);return}router.replace('/dang-nhap')}finally{loggingOut.current=false}};
+const pathKey=path.join('/');
+useEffect(()=>{if(role==='customer'&&CUSTOMER_API_ENABLED)void refreshCustomerData()},[role,pathKey]);
+useEffect(()=>{if(role==='customer'&&CUSTOMER_API_ENABLED)setProductCustomer(user?.id??null)},[role,user?.id]);
+const logout=async()=>{if(loggingOut.current)return;loggingOut.current=true;try{const result=role==='customer'&&CUSTOMER_API_ENABLED?await logoutCustomer():await executeStoreCommand(()=>actions.logout());if(result&&result.ok===false){toast.error(result.error);return}router.replace('/dang-nhap')}finally{loggingOut.current=false}};
+if(role==='customer'&&CUSTOMER_API_ENABLED&&!s&&dataStatus.status==='unavailable')return <CustomerLayout route={route} user={null} onLogout={logout}><section className="mx-auto max-w-4xl px-4 py-16" role="alert"><h1 className="text-2xl font-semibold">Chưa thể tải dữ liệu Customer</h1><p className="my-5 text-sm leading-7">{dataStatus.error}</p><Button onClick={()=>void refreshCustomerData(true)}>Thử lại</Button></section></CustomerLayout>;
 if(IS_UNIFIED_APP&&dataStatus.status!=='loading'&&dataStatus.status!=='ready')return <DataSetupGate/>;
 if(!s)return role==='customer'?<CustomerLayout route={route} user={null} onLogout={logout}><div className="ch-container" role="status" aria-label="Đang tải CleanHome"><PageSkeleton/></div></CustomerLayout>:role==='staff'?<StaffLayout route={route} user={null} onLogout={logout}><StaffLoading/></StaffLayout>:<AdminLayout route={route} user={null} onLogout={logout}><AdminLoading/></AdminLayout>;
-const auth=route==='dang-nhap'||route==='dang-ky';const allowed=user?.role===role;const publicPage=role==='customer'&&['','dich-vu'].includes(route);const needsLogin=!auth&&!publicPage&&!allowed;
+const auth=route==='dang-nhap'||route==='dang-ky';const allowed=user?.role===role;const publicPage=role==='customer'&&['','dich-vu','san-pham','gio-hang'].includes(route);const needsLogin=!auth&&!publicPage&&!allowed;
 let content:React.ReactNode;
 if(!validAreaPath(role,path))content=<><Empty text="Trang không tồn tại."/><Go href="/">Về trang chính</Go></>;
 else if(IS_UNIFIED_APP&&auth&&role!=='customer')content=<AccessRedirect href={(route==='dang-ky'?'/dang-ky':'/dang-nhap')}/>;
 else if(auth)content=IS_UNIFIED_APP?<Auth role="customer" register={route==='dang-ky'}/>:role==='staff'?(route==='dang-ky'?<StaffEmpty title="Tài khoản nhân viên được người quản lý cấp" description="Liên hệ người quản lý để được cấp tài khoản làm việc." action={<Button render={<Link href="/dang-nhap"/>} nativeButton={false}>Đăng nhập</Button>}/>:<StaffLogin/>):<Auth role={role} register={route==='dang-ky'}/>;
-else if(needsLogin)content=IS_UNIFIED_APP?user?<section className="mx-auto w-full max-w-xl p-5 py-12"><Heading title="Bạn không có quyền truy cập" sub="Vui lòng trở về khu vực dành cho tài khoản của bạn."/><Button render={<Link href={AREA_HOME[user.role]}/>} nativeButton={false}>Về khu vực của tôi</Button></section>:<AccessRedirect href={'/dang-nhap?next='+encodeURIComponent(areaHref(role,'/'+path.join('/'),true))}/>:role==='staff'?<StaffEmpty title="Đăng nhập để tiếp tục" description="Sử dụng tài khoản nhân viên để xem công việc được phân công." action={<Button render={<Link href="/dang-nhap"/>} nativeButton={false}>Đăng nhập</Button>}/>:role==='admin'?<><AdminPageHeader title="Đăng nhập để tiếp tục"/><AdminEmpty title="Khu vực dành cho quản trị viên" description="Sử dụng tài khoản quản trị viên đang hoạt động để quản lý dịch vụ." action={<Button render={<Link href="/dang-nhap"/>} nativeButton={false}>Đăng nhập</Button>}/></>:<><Heading title="Đăng nhập để tiếp tục" sub={`Khu vực dành cho ${titles[role].toLowerCase()}.`}/><Go href={role==='customer'&&route==='dat-dich-vu'&&path[1]?`/dang-nhap?next=${encodeURIComponent(`/dat-dich-vu/${path[1]}`)}`:'/dang-nhap'}>Đăng nhập</Go></>;
+else if(needsLogin)content=IS_UNIFIED_APP?user?<section className="mx-auto w-full max-w-xl p-5 py-12"><Heading title="Bạn không có quyền truy cập" sub="Vui lòng trở về khu vực dành cho tài khoản của bạn."/><Button render={<Link href={AREA_HOME[user.role]}/>} nativeButton={false}>Về khu vực của tôi</Button></section>:<AccessRedirect href={'/dang-nhap?next='+encodeURIComponent(areaHref(role,'/'+path.join('/'),true))}/>:role==='staff'?<StaffEmpty title="Đăng nhập để tiếp tục" description="Sử dụng tài khoản nhân viên để xem công việc được phân công." action={<Button render={<Link href="/dang-nhap"/>} nativeButton={false}>Đăng nhập</Button>}/>:role==='admin'?<><AdminPageHeader title="Đăng nhập để tiếp tục"/><AdminEmpty title="Khu vực dành cho quản trị viên" description="Sử dụng tài khoản quản trị viên đang hoạt động để quản lý dịch vụ." action={<Button render={<Link href="/dang-nhap"/>} nativeButton={false}>Đăng nhập</Button>}/></>:<><Heading title="Đăng nhập để tiếp tục" sub={`Khu vực dành cho ${titles[role].toLowerCase()}.`}/><Go href={role==='customer'?`/dang-nhap?next=${encodeURIComponent('/'+path.join('/'))}`:'/dang-nhap'}>Đăng nhập</Go></>;
 else if(!route)content=role==='customer'?<Home/>:role==='staff'?<StaffDashboard/>:<AdminDashboard/>;
 else if(route==='ho-so')content=role==='customer'?<CustomerProfile/>:role==='staff'?<StaffProfile/>:<Profile/>;
 else if(route==='dich-vu')content=role==='customer'?<Services slug={path[1]}/>:role==='admin'?<AdminServices/>:<Empty text="Trang không tồn tại."/>;
+else if(role==='customer'&&route==='san-pham')content=<Products slug={path[1]}/>;
+else if(role==='customer'&&route==='gio-hang')content=<ProductCartPage/>;
+else if(role==='customer'&&route==='thanh-toan-san-pham')content=<ProductCheckoutPage/>;
+else if(role==='customer'&&route==='don-san-pham')content=<ProductOrdersPage id={path[1]}/>;
 else if(route==='dat-dich-vu'&&role==='customer')content=<Booking id={path[1]}/>;
 else if(route==='don'&&path[1])content=role==='customer'?<CustomerOrderDetail id={path[1]}/>:role==='staff'?<StaffJobDetail id={path[1]}/>:<AdminOrderDetail id={path[1]}/>;
 else if(role==='staff'&&route==='cong-viec')content=<StaffJobs/>;
@@ -74,10 +85,11 @@ else if(role==='admin'&&route==='bao-cao')content=<AdminReports/>;
 else content=<><Empty text="Trang không tồn tại."/><Go href="/">Về trang chính</Go></>;
 return (
   <Context.Provider value={{s,user,role}}>
+    {role==='customer'&&CUSTOMER_API_ENABLED&&(dataStatus.error||dataStatus.sessionError)&&<div role="alert" className="relative z-50 flex flex-wrap items-center justify-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"><span>{dataStatus.error||dataStatus.sessionError}</span>{dataStatus.error&&<Button variant="outline" onClick={()=>void refreshCustomerData(true)}>Thử tải lại</Button>}{dataStatus.sessionError&&<Link className="font-semibold underline" href="/dang-nhap">Đăng nhập lại</Link>}</div>}
     {role!=='customer'&&(dataStatus.error||dataStatus.sessionError)&&<div role="alert" className="relative z-50 flex flex-wrap items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950"><span>{dataStatus.error||dataStatus.sessionError}</span>{dataStatus.dirty&&<Link href="/du-lieu" className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">{IS_UNIFIED_APP?'Sao lưu dữ liệu':'Sao lưu dữ liệu gốc'}</Link>}</div>}
     {role==='customer'?(
       <CustomerLayout route={route} user={IS_UNIFIED_APP?user:allowed?user:null} onLogout={logout}>
-        <div className={route&&route!=='dich-vu'&&!auth&&!(allowed&&['dat-dich-vu','don-cua-toi','don','lich-su','ho-so'].includes(route))?'ch-container':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div>
+        <div className={route&&!['dich-vu','san-pham','gio-hang','thanh-toan-san-pham','don-san-pham'].includes(route)&&!auth&&!(allowed&&['dat-dich-vu','don-cua-toi','don','lich-su','ho-so'].includes(route))?'ch-container':''} key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div>
       </CustomerLayout>
     ):role==='staff'?(
       <StaffLayout route={route} user={allowed?user:null} onLogout={logout}><div key={role+'/'+path.join('/')+'/'+(user?.id||'guest')}>{content}</div></StaffLayout>
@@ -99,7 +111,7 @@ function Auth({role,register}:{role:Role;register:boolean}){
   const user=useCurrentUser()
   const requested=params.get('next')||''
   if(IS_UNIFIED_APP&&user)return <AccessRedirect href={safeReturnTo(user.role,requested)}/>
-  const returnTo=IS_UNIFIED_APP?requested:role==='customer'&&/^\/dat-dich-vu\/[A-Za-z0-9_-]+$/.test(requested)?requested:HOME_PATH[role]
+  const returnTo=role==='customer'?safeReturnTo('customer',requested):IS_UNIFIED_APP?safeReturnTo(role,requested):HOME_PATH[role]
   if(role==='customer')return <CustomerAuth register={register} returnTo={returnTo} switchHref={(register?'/dang-nhap':'/dang-ky')+(returnTo&&returnTo!==HOME_PATH[role]?'?next='+encodeURIComponent(returnTo):'')}/>
   return <InternalAuth role={role} register={register}/>
 }

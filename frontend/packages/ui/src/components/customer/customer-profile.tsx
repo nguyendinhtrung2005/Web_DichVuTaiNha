@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import type { User } from "@/lib/types"
 import { Field, useData } from "../../common"
 import { saveCustomerProfile } from "./account-service"
-import { validateProfile } from "./account-validation"
+import { validateCustomerProfile as validateProfile } from "./account-validation"
 
 type ProfileValues = { name: string; email: string; phone: string; address: string; avatar: string }
 type ProfileErrors = Partial<Record<keyof ProfileValues, string>>
@@ -210,9 +210,7 @@ function ProfileContent({ user }: { user: User }) {
       focusAfterRender("feedback")
       draftUser.current = { ...draftUser.current, ...nextValues }
       setEditing(false)
-      setFeedback(result.persistence === "session"
-        ? { message: "Thay đổi hồ sơ chỉ được giữ trong phiên hiện tại; trình duyệt chưa lưu được trên thiết bị.", warning: true }
-        : { message: "Đã lưu thông tin hồ sơ trên trình duyệt này." })
+      setFeedback({ message: "Đã lưu thông tin hồ sơ vào tài khoản của bạn." })
     } catch {
       if (mounted.current) setSubmitError("Chưa lưu được hồ sơ. Vui lòng thử lại; thông tin bạn nhập vẫn được giữ.")
     } finally {
@@ -242,15 +240,15 @@ function ProfileContent({ user }: { user: User }) {
           <CardContent>
             {editing ? <form noValidate onSubmit={saveProfile} aria-busy={busy || avatarReading} className="space-y-6">
               <div className="grid min-w-0 gap-5 sm:grid-cols-2">
-                <div className="min-w-0 sm:col-span-2"><Field label="Họ và tên" error={errors.name}><Input ref={nameInput} name="name" required autoComplete="name" maxLength={120} value={values.name} disabled={busy} onChange={(event) => changeValue("name", event.target.value)} /></Field></div>
-                <Field label="Email" error={errors.email}><Input name="email" type="email" required autoComplete="email" maxLength={254} value={values.email} disabled={busy} onChange={(event) => changeValue("email", event.target.value)} /></Field>
+                <div className="min-w-0 sm:col-span-2"><Field label="Họ và tên" error={errors.name}><Input ref={nameInput} name="name" required autoComplete="name" maxLength={100} value={values.name} disabled={busy} onChange={(event) => changeValue("name", event.target.value)} /></Field></div>
+                <Field label="Email (không bắt buộc)" error={errors.email} hint="Có thể dùng email này để đăng nhập."><Input name="email" type="email" autoComplete="email" maxLength={254} value={values.email} disabled={busy} onChange={(event) => changeValue("email", event.target.value)} /></Field>
                 <Field label="Số điện thoại" error={errors.phone} hint="Số di động hoặc số điện thoại bàn tại Việt Nam."><Input name="phone" type="tel" required autoComplete="tel" value={values.phone} disabled={busy} onChange={(event) => changeValue("phone", event.target.value)} /></Field>
-                <div className="min-w-0 sm:col-span-2"><Field label="Địa chỉ mặc định" error={errors.address} hint="Có thể để trống và nhập địa chỉ khi đặt dịch vụ."><Textarea name="address" rows={3} autoComplete="street-address" maxLength={300} value={values.address} disabled={busy} onChange={(event) => changeValue("address", event.target.value)} /></Field></div>
+                <div className="min-w-0 sm:col-span-2"><Field label="Địa chỉ mặc định" hint="Chưa hỗ trợ sửa địa chỉ mặc định vì hồ sơ địa chỉ cần tọa độ. Bạn vẫn nhập địa chỉ khi đặt dịch vụ."><Textarea name="address" rows={3} autoComplete="street-address" value={values.address} disabled /></Field></div>
               </div>
-              <section className="rounded-xl border border-border bg-slate-50/60 p-4 sm:p-5" aria-label="Chỉnh sửa ảnh đại diện"><div className="mb-4 flex items-center gap-2.5"><CameraIcon aria-hidden="true" className="size-5 text-primary" /><h3 className="m-0 text-sm font-semibold">Ảnh đại diện</h3></div><Field label="Chọn ảnh đại diện" hint="Ảnh PNG, JPEG hoặc WebP, tối đa 1 MB." error={avatarError}><Input ref={fileInput} name="avatar" type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={readAvatar} className="h-auto min-h-11 py-2 file:mr-3 file:rounded-md file:bg-white file:px-2 file:text-xs" /></Field>{avatarReading && <p role="status" className="m-0 mt-3 flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircleIcon aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />Đang đọc ảnh...</p>}{(avatarError || avatarReading || values.avatar !== (user.avatar || "")) && <Button variant="ghost" className="mt-3" disabled={busy} onClick={keepCurrentAvatar}>Giữ ảnh hiện tại</Button>}</section>
+              <section className="rounded-xl border border-border bg-slate-50/60 p-4 sm:p-5" aria-label="Ảnh đại diện"><div className="mb-4 flex items-center gap-2.5"><CameraIcon aria-hidden="true" className="size-5 text-primary" /><h3 className="m-0 text-sm font-semibold">Ảnh đại diện</h3></div><Field label="Chọn ảnh đại diện" hint="Chưa hỗ trợ lưu ảnh đại diện trong schema hiện tại."><Input name="avatar" type="file" disabled className="h-auto min-h-11 py-2" /></Field></section>
               {submitError && <p role="alert" className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-7 text-red-800">{submitError}</p>}
               <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end"><Button type="submit" disabled={busy || avatarReading || Boolean(avatarError)} className="px-5">{busy ? <><LoaderCircleIcon aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Đang lưu...</> : "Lưu hồ sơ"}</Button><Button type="button" variant="outline" disabled={busy} onClick={cancelEditing}>Hủy thay đổi</Button></div>
-              <p className="m-0 text-xs leading-6 text-muted-foreground">Thay đổi được lưu trên trình duyệt bạn đang sử dụng.</p>
+              <p className="m-0 text-xs leading-6 text-muted-foreground">Họ tên, số điện thoại và email được lưu vào tài khoản qua API.</p>
             </form> : <dl className="m-0 grid min-w-0 gap-x-6 gap-y-6 sm:grid-cols-2"><ProfileItem label="Họ và tên">{user.name}</ProfileItem><ProfileItem label="Số điện thoại">{user.phone}</ProfileItem><ProfileItem label="Email" wide><span className="break-all">{user.email}</span></ProfileItem><ProfileItem label="Địa chỉ mặc định" wide>{user.address || <span className="font-normal text-muted-foreground">Chưa có địa chỉ mặc định.</span>}</ProfileItem></dl>}
           </CardContent>
         </Card>

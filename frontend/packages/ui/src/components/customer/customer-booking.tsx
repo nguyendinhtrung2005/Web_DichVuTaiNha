@@ -16,7 +16,8 @@ import { HOUSE_TYPE_LABEL, TIME_SLOTS } from "@/lib/config"
 import { formatCurrency } from "@/lib/format"
 import { estimateDuration, estimatePrice } from "@/lib/mock-data"
 import type { HouseType, Order, Service, User } from "@/lib/types"
-import { saveBookingRequest } from "./booking-service"
+import { CLEANING_TYPE_LABEL, cleaningTypeOf, serviceRequiresHouseDetails } from "@/lib/service-taxonomy"
+import { saveBookingRequest, type BookingRequest } from "./booking-service"
 import { bookingDateTime, firstInvalidBookingStep, localDateValue, validateBookingStep, type BookingErrors, type BookingValues } from "./booking-validation"
 
 const STEPS = ["Dịch vụ", "Thông tin nhà ở", "Ngày giờ", "Kiểm tra yêu cầu"]
@@ -48,24 +49,27 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
     name: previous?.contact.name || user.name || "",
     phone: previous?.contact.phone || user.phone || "",
     address: previous?.contact.address || user.address || "",
-    houseType: previous?.contact.houseType || "can-ho",
-    area: String(previous?.contact.area ?? 60),
-    rooms: String(previous?.contact.rooms ?? 2),
-    floors: String(previous?.contact.floors ?? 1),
+    houseType: previous?.contact.houseType || (initialService && cleaningTypeOf(initialService) === "phong-tro" ? "phong-tro" : "can-ho"),
+    area: String(previous?.contact.area ?? (initialService && serviceRequiresHouseDetails(initialService) ? cleaningTypeOf(initialService) === "phong-tro" ? 25 : 60 : "")),
+    rooms: String(previous?.contact.rooms ?? (initialService && serviceRequiresHouseDetails(initialService) ? cleaningTypeOf(initialService) === "phong-tro" ? 1 : 2 : "")),
+    floors: String(previous?.contact.floors ?? (initialService && serviceRequiresHouseDetails(initialService) ? 1 : "")),
     hasPets: previous?.contact.hasPets || false,
     date: "", time: "", specialRequest: previous?.specialRequest || "",
   }))
   const [step, setStep] = useState(0)
   const [errors, setErrors] = useState<BookingErrors>({})
   const [submitError, setSubmitError] = useState("")
+  const [uncertainSubmission, setUncertainSubmission] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failedImage, setFailedImage] = useState<string | null>(null)
   const submitLock = useRef(false)
+  const bookingAttempt = useRef<BookingRequest | null>(null)
   const interacted = useRef(false)
   const formRef = useRef<HTMLFormElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const service = services.find((item) => item.id === values.serviceId)
   const currentService = service?.status === "active" ? service : undefined
+  const requireHouseDetails = Boolean(currentService && serviceRequiresHouseDetails(currentService))
   const quantity = Number(values.quantity)
   const validQuantity = Boolean(currentService && values.quantity.trim() && Number.isFinite(quantity) && quantity >= currentService.minQuantity && quantity > 0 && Number.isFinite(estimatePrice(currentService, quantity)) && Number.isFinite(estimateDuration(currentService, quantity)))
   const scheduled = bookingDateTime(values.date, values.time)
@@ -79,40 +83,60 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
     setValues((old) => ({ ...old, [key]: value }))
     setErrors((old) => ({ ...old, [key]: undefined }))
     setSubmitError("")
+    bookingAttempt.current = null
+    setUncertainSubmission(false)
   }
   const goToStep = (next: number) => { interacted.current = true; setStep(next); setSubmitError("") }
   const focusError = () => requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (submitLock.current) return
-    const found = validateBookingStep(step, values, currentService)
-    if (Object.keys(found).length) {
-      setErrors(found)
-      if (step === 3) goToStep(firstInvalidBookingStep(found))
-      focusError()
-      return
+    const retry = uncertainSubmission ? bookingAttempt.current : null
+    if (!retry) {
+      const found = validateBookingStep(step, values, currentService)
+      if (Object.keys(found).length) {
+        setErrors(found)
+        if (step === 3) goToStep(firstInvalidBookingStep(found))
+        focusError()
+        return
+      }
+      if (step < 3) { setErrors({}); goToStep(step + 1); return }
     }
-    if (step < 3) { setErrors({}); goToStep(step + 1); return }
     const time = bookingDateTime(values.date, values.time)
-    if (!currentService || !time) return
+    if (!retry && (!currentService || !time)) return
     submitLock.current = true
     setSaving(true)
     setSubmitError("")
     let saved = false
     try {
-      const result = await saveBookingRequest({
-        serviceId: currentService.id,
-        quantity: Number(values.quantity),
-        contact: { name: values.name.trim(), phone: values.phone.trim(), address: values.address.trim(), houseType: values.houseType, area: Number(values.area), rooms: Number(values.rooms), floors: Number(values.floors), hasPets: values.hasPets },
-        scheduledAt: time.toISOString(),
-        specialRequest: values.specialRequest.trim(),
-      })
-      if (!result.ok) { setSubmitError(result.error); return }
+      let request = retry ?? bookingAttempt.current
+      if (!request) {
+        if (!currentService || !time) return
+        request = {
+          requestKey: crypto.randomUUID(),
+          serviceId: currentService.id,
+          quantity: Number(values.quantity),
+          contact: { name: values.name.trim(), phone: values.phone.trim(), address: values.address.trim(), houseType: values.houseType, ...(values.area.trim() ? { area: Number(values.area) } : {}), ...(values.rooms.trim() ? { rooms: Number(values.rooms) } : {}), ...(values.floors.trim() ? { floors: Number(values.floors) } : {}), hasPets: values.hasPets },
+          scheduledAt: time.toISOString(),
+          specialRequest: values.specialRequest.trim(),
+        }
+      }
+      bookingAttempt.current = request
+      const result = await saveBookingRequest(request)
+      if (!result.ok) {
+        setSubmitError(result.error)
+        setUncertainSubmission(result.uncertain)
+        if (!result.uncertain) bookingAttempt.current = null
+        return
+      }
       saved = true
-      toast.success(result.persistence === "session" ? "Đã giữ yêu cầu trong phiên hiện tại" : "Đã lưu yêu cầu trên thiết bị này")
+      bookingAttempt.current = null
+      setUncertainSubmission(false)
+      toast.success("Đã gửi yêu cầu đặt dịch vụ")
       router.push(`/don/${result.order.id}`)
     } catch {
-      setSubmitError("Chưa thể lưu yêu cầu. Vui lòng thử lại.")
+      setSubmitError("Chưa xác nhận được kết quả. Hãy gửi lại đúng yêu cầu này để hệ thống kiểm tra, tránh tạo đơn trùng.")
+      setUncertainSubmission(true)
     } finally {
       if (!saved) { submitLock.current = false; setSaving(false) }
     }
@@ -129,7 +153,7 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
 
       <nav aria-label="Các bước đặt dịch vụ" className="mb-8 rounded-2xl border border-border bg-slate-50 p-2 sm:p-3">
         <ol className="m-0 grid list-none grid-cols-4 gap-1 p-0 sm:gap-3">
-          {STEPS.map((label, index) => <li key={label} className="min-w-0"><button type="button" disabled={saving || index > step} onClick={() => goToStep(index)} aria-current={index === step ? "step" : undefined} className={`flex min-h-20 w-full min-w-0 flex-col items-center gap-2 rounded-xl px-1 py-3 text-center text-[0.65rem] leading-4 font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-default sm:min-h-16 sm:flex-row sm:justify-center sm:gap-3 sm:px-3 sm:text-sm ${index === step ? "bg-white text-primary shadow-sm" : index < step ? "text-foreground hover:bg-white" : "text-muted-foreground"}`}><span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs sm:size-8 sm:text-sm ${index <= step ? "bg-primary text-white" : "bg-slate-200 text-muted-foreground"}`}>{index < step ? <CheckIcon aria-hidden="true" className="size-4" /> : index + 1}</span><span className="min-w-0 break-words">{label}</span></button></li>)}
+          {STEPS.map((label, index) => <li key={label} className="min-w-0"><button type="button" disabled={saving || uncertainSubmission || index > step} onClick={() => goToStep(index)} aria-current={index === step ? "step" : undefined} className={`flex min-h-20 w-full min-w-0 flex-col items-center gap-2 rounded-xl px-1 py-3 text-center text-[0.65rem] leading-4 font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-default sm:min-h-16 sm:flex-row sm:justify-center sm:gap-3 sm:px-3 sm:text-sm ${index === step ? "bg-white text-primary shadow-sm" : index < step ? "text-foreground hover:bg-white" : "text-muted-foreground"}`}><span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs sm:size-8 sm:text-sm ${index <= step ? "bg-primary text-white" : "bg-slate-200 text-muted-foreground"}`}>{index < step ? <CheckIcon aria-hidden="true" className="size-4" /> : index + 1}</span><span className="min-w-0 break-words">{label}</span></button></li>)}
         </ol>
       </nav>
 
@@ -138,7 +162,7 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
           <CardHeader className="gap-2"><p className="m-0 text-xs font-semibold text-primary">Bước {step + 1} / 4</p><h2 ref={headingRef} tabIndex={-1} className="m-0 scroll-mt-28 text-xl leading-7 font-semibold outline-none sm:text-2xl">{STEPS[step]}</h2></CardHeader>
           <CardContent>
             <form ref={formRef} noValidate onSubmit={submit} className="space-y-6" aria-busy={saving}>
-              <fieldset className="m-0 min-w-0 space-y-6 border-0 p-0" disabled={saving}>
+              <fieldset className="m-0 min-w-0 space-y-6 border-0 p-0" disabled={saving || uncertainSubmission}>
                 <legend className="sr-only">{STEPS[step]}</legend>
                 {step === 0 && <>
                   {unavailableSelection && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900" role="status">Dịch vụ trong đường dẫn này không còn khả dụng. Vui lòng chọn một dịch vụ khác bên dưới.</div>}
@@ -146,18 +170,19 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
                   <Field label="Dịch vụ" error={errors.serviceId} hint="Xem lại phạm vi công việc trước khi chọn số lượng."><select id={fieldId("serviceId")} className={controlClass} required value={values.serviceId} onChange={(event) => { const next = active.find((item) => item.id === event.target.value); change("serviceId", event.target.value); change("quantity", String(next?.defaultQuantity ?? "")) }}><option value="" disabled>Chọn dịch vụ</option>{active.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
                   {currentService && <>
                     <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4"><h3 className="m-0 text-base leading-6 font-semibold">{currentService.name}</h3><p className="m-0 mt-2 text-sm leading-6 text-muted-foreground">{currentService.shortDesc}</p><Link href={`/dich-vu/${currentService.slug}`} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">Xem chi tiết dịch vụ<ArrowRightIcon aria-hidden="true" className="size-4" /></Link></div>
-                    <Field label={`${currentService.quantityLabel} (${currentService.unit})`} error={errors.quantity} hint={`Tối thiểu ${currentService.minQuantity} ${currentService.unit}. Đơn giá tham khảo ${formatCurrency(currentService.price)} / ${currentService.unit}.`}><Input id={fieldId("quantity")} className="min-h-12 rounded-xl" type="number" inputMode="decimal" step="any" min={currentService.minQuantity} required value={values.quantity} onChange={(event) => change("quantity", event.target.value)} /></Field>
+                    <Field label={`${currentService.quantityLabel} (${currentService.unit})`} error={errors.quantity} hint={`Tối thiểu ${currentService.minimumQuantityKnown === false ? "1" : currentService.minQuantity} ${currentService.unit}${currentService.minimumQuantityKnown === false ? " (mức kỹ thuật; danh mục chưa cung cấp số tối thiểu)" : ""}. ${currentService.pricingModeKnown === false ? "Giá cơ sở tham khảo" : currentService.pricingMode === "fixed" ? "Đơn giá cố định" : "Đơn giá tham khảo"} ${formatCurrency(currentService.price)} / ${currentService.unit}.`}><Input id={fieldId("quantity")} className="min-h-12 rounded-xl" type="number" inputMode="decimal" step="any" min={currentService.minQuantity} required value={values.quantity} onChange={(event) => change("quantity", event.target.value)} /></Field>
                   </>}
                 </>}
 
                 {step === 1 && <>
+                  <p className="m-0 text-sm leading-6 text-muted-foreground">{currentService && cleaningTypeOf(currentService) ? CLEANING_TYPE_LABEL[cleaningTypeOf(currentService)!] + ": " : ""}{requireHouseDetails ? "Cho biết diện tích, số phòng và số tầng để chuẩn bị công việc phù hợp." : "Số lượng dịch vụ đã chọn ở bước trước. Diện tích, số phòng và số tầng là thông tin bổ sung không bắt buộc."}</p>
                   <div className="grid min-w-0 gap-5 sm:grid-cols-2">
                     <Field label="Họ tên liên hệ" error={errors.name}><Input id={fieldId("name")} className="min-h-12 rounded-xl" required autoComplete="name" maxLength={120} value={values.name} onChange={(event) => change("name", event.target.value)} /></Field>
                     <Field label="Số điện thoại" error={errors.phone}><Input id={fieldId("phone")} className="min-h-12 rounded-xl" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} required value={values.phone} onChange={(event) => change("phone", event.target.value)} /></Field>
                   </div>
                   <Field label="Địa chỉ thực hiện" error={errors.address} hint="Ghi số nhà, đường, phường/xã và quận/huyện; thêm tên tòa nhà hoặc căn hộ nếu có."><Textarea id={fieldId("address")} className="min-h-24 rounded-xl" required autoComplete="street-address" maxLength={300} value={values.address} onChange={(event) => change("address", event.target.value)} /></Field>
                   <Field label="Loại nhà" error={errors.houseType}><select id={fieldId("houseType")} className={controlClass} required value={values.houseType} onChange={(event) => change("houseType", event.target.value as HouseType)}>{Object.entries(HOUSE_TYPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
-                  <div className="grid min-w-0 gap-5 sm:grid-cols-3">{([["area", "Diện tích (m²)"], ["rooms", "Số phòng"], ["floors", "Số tầng"]] as const).map(([key, label]) => <Field key={key} label={label} error={errors[key]}><Input id={fieldId(key)} className="min-h-12 rounded-xl" type="number" inputMode={key === "area" ? "decimal" : "numeric"} min={key === "area" ? 0.01 : 1} step={key === "area" ? "any" : 1} required value={values[key]} onChange={(event) => change(key, event.target.value)} /></Field>)}</div>
+                  <div className="grid min-w-0 gap-5 sm:grid-cols-3">{([["area", "Diện tích (m²)"], ["rooms", "Số phòng"], ["floors", "Số tầng"]] as const).map(([key, label]) => <Field key={key} label={label + (requireHouseDetails ? "" : " (không bắt buộc)")} error={errors[key]}><Input id={fieldId(key)} className="min-h-12 rounded-xl" type="number" inputMode={key === "area" ? "decimal" : "numeric"} min={key === "area" ? 0.01 : 1} step={key === "area" ? "any" : 1} required={requireHouseDetails} value={values[key]} onChange={(event) => change(key, event.target.value)} /></Field>)}</div>
                   <label htmlFor={fieldId("hasPets")} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm"><input id={fieldId("hasPets")} className="size-5 shrink-0 accent-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring" type="checkbox" checked={values.hasPets} onChange={(event) => change("hasPets", event.target.checked)} /><span>Nhà có thú cưng</span></label>
                 </>}
 
@@ -174,16 +199,16 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
                 {step === 3 && <>
                   <div className="space-y-5">
                     <ReviewBlock title="Dịch vụ và số lượng" onEdit={() => goToStep(0)}><p className="m-0 font-medium text-foreground">{currentService?.name}</p><p className="m-0 mt-2 text-sm text-muted-foreground">{values.quantity} {currentService?.unit} × {formatCurrency(currentService?.price || 0)} / {currentService?.unit}</p></ReviewBlock>
-                    <ReviewBlock title="Thông tin thực hiện" onEdit={() => goToStep(1)}><p className="m-0 break-words font-medium text-foreground">{values.name} · {values.phone}</p><p className="m-0 mt-2 break-words text-sm leading-6 text-muted-foreground">{values.address}</p><p className="m-0 mt-2 text-sm leading-6 text-muted-foreground">{HOUSE_TYPE_LABEL[values.houseType]} · {values.area} m² · {values.rooms} phòng · {values.floors} tầng{values.hasPets ? " · Có thú cưng" : ""}</p></ReviewBlock>
+                    <ReviewBlock title="Thông tin thực hiện" onEdit={() => goToStep(1)}><p className="m-0 break-words font-medium text-foreground">{values.name} · {values.phone}</p><p className="m-0 mt-2 break-words text-sm leading-6 text-muted-foreground">{values.address}</p><p className="m-0 mt-2 text-sm leading-6 text-muted-foreground">{[HOUSE_TYPE_LABEL[values.houseType], values.area ? values.area + " m²" : "", values.rooms ? values.rooms + " phòng" : "", values.floors ? values.floors + " tầng" : "", values.hasPets ? "Có thú cưng" : ""].filter(Boolean).join(" · ")}</p></ReviewBlock>
                     <ReviewBlock title="Thời gian đề xuất và ghi chú" onEdit={() => goToStep(2)}><p className="m-0 font-medium text-foreground">{scheduled ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "full", timeStyle: "short" }).format(scheduled) : "Chưa chọn thời gian"}</p><p className="m-0 mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{values.specialRequest || "Không có ghi chú thêm."}</p></ReviewBlock>
                   </div>
-                  <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm leading-6 text-foreground"><ClipboardListIcon aria-hidden="true" className="mb-2 size-5 text-primary" />Yêu cầu được lưu trên trình duyệt này. Lịch hẹn chưa được xác nhận.</div>
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm leading-6 text-foreground"><ClipboardListIcon aria-hidden="true" className="mb-2 size-5 text-primary" />Yêu cầu sẽ được gửi tới hệ thống. Lịch hẹn cần được xác nhận.</div>
                 </>}
               </fieldset>
               {submitError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-destructive">{submitError}</div>}
               <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
-                {step > 0 ? <Button type="button" variant="outline" size="lg" disabled={saving} onClick={() => goToStep(step - 1)} className="w-full sm:w-auto"><ArrowLeftIcon aria-hidden="true" />Quay lại</Button> : <Button variant="outline" size="lg" disabled={saving} className="w-full sm:w-auto" render={<Link href="/dich-vu" />} nativeButton={false}>Chọn từ danh sách</Button>}
-                <Button type="submit" size="lg" className="w-full px-5 sm:w-auto" disabled={saving}>{saving ? <><LoaderCircleIcon aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Đang lưu yêu cầu…</> : step === 3 ? <>Lưu yêu cầu<CheckIcon aria-hidden="true" /></> : <>Tiếp theo<ArrowRightIcon aria-hidden="true" /></>}</Button>
+                {step > 0 ? <Button type="button" variant="outline" size="lg" disabled={saving || uncertainSubmission} onClick={() => goToStep(step - 1)} className="w-full sm:w-auto"><ArrowLeftIcon aria-hidden="true" />Quay lại</Button> : <Button variant="outline" size="lg" disabled={saving || uncertainSubmission} className="w-full sm:w-auto" render={<Link href="/dich-vu" />} nativeButton={false}>Chọn từ danh sách</Button>}
+                <Button type="submit" size="lg" className="w-full px-5 sm:w-auto" disabled={saving}>{saving ? <><LoaderCircleIcon aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Đang lưu yêu cầu…</> : uncertainSubmission ? <>Gửi lại để xác nhận<RefreshCwIcon aria-hidden="true" /></> : step === 3 ? <>Lưu yêu cầu<CheckIcon aria-hidden="true" /></> : <>Tiếp theo<ArrowRightIcon aria-hidden="true" /></>}</Button>
               </div>
             </form>
           </CardContent>
@@ -197,7 +222,7 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
                 <div className="relative aspect-[4/3] rounded-xl bg-muted"><Image src={failedImage === image ? "/placeholder.svg" : image} alt={currentService.name} fill sizes="(min-width: 1024px) 288px, (min-width: 640px) calc(100vw - 96px), calc(100vw - 72px)" className="rounded-xl object-cover" onError={() => setFailedImage(image)} /></div>
                 <h3 className="m-0 text-base leading-6 font-semibold">{currentService.name}</h3>
                 <dl className="m-0 space-y-3 text-sm"><SummaryRow title="Số lượng" value={validQuantity ? `${values.quantity} ${currentService.unit}` : "Chưa chọn hợp lệ"} /><SummaryRow title="Đơn giá" value={`${formatCurrency(currentService.price)} / ${currentService.unit}`} />{validQuantity && <SummaryRow title="Thời lượng dự kiến" value={`${estimateDuration(currentService, quantity)} phút`} />}{scheduled && <SummaryRow title="Thời gian đề xuất" value={new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(scheduled)} />}</dl>
-                <div className="rounded-xl bg-blue-50 p-4"><p className="m-0 text-sm text-muted-foreground">Tổng giá dự kiến</p><p className="m-0 mt-2 break-words text-2xl leading-8 font-bold text-primary tabular-nums">{validQuantity ? formatCurrency(estimatePrice(currentService, quantity)) : "—"}</p><p className="m-0 mt-2 text-xs leading-5 text-muted-foreground">Tính theo số lượng × đơn giá tham khảo. Giá cuối cùng cần được xác nhận.</p></div>
+                <div className="rounded-xl bg-blue-50 p-4"><p className="m-0 text-sm text-muted-foreground">{currentService.pricingModeKnown === false ? "Tổng tham khảo (cách tính chưa cấu hình)" : currentService.pricingMode === "fixed" ? "Tổng giá cố định" : "Tổng giá tham khảo"}</p><p className="m-0 mt-2 break-words text-2xl leading-8 font-bold text-primary tabular-nums">{validQuantity ? formatCurrency(estimatePrice(currentService, quantity)) : "—"}</p><p className="m-0 mt-2 text-xs leading-5 text-muted-foreground">{currentService.pricingModeKnown === false ? "Giá cơ sở và cách tính chưa được cung cấp đầy đủ; CleanHome cần xác nhận giá cuối cùng." : currentService.pricingMode === "fixed" ? "Tính theo số lượng × đơn giá cố định." : currentService.pricingMode === "survey" ? "Giá cuối cùng cần khảo sát và được xác nhận trước khi thực hiện." : "Tính theo số lượng × đơn giá tham khảo; giá cuối cùng cần được xác nhận."}</p></div>
               </> : <div className="rounded-xl bg-slate-50 p-5 text-sm leading-6 text-muted-foreground"><HouseIcon aria-hidden="true" className="mb-3 size-6 text-primary" />Chọn một dịch vụ đang cung cấp để xem số lượng và giá dự kiến.</div>}
               <p className="m-0 flex items-start gap-2 text-xs leading-5 text-muted-foreground"><Clock3Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><span>Ngày giờ là đề xuất của bạn, chưa phải lịch hẹn đã xác nhận.</span></p>
             </CardContent>

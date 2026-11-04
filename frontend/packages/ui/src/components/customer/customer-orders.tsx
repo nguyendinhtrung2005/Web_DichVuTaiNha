@@ -56,16 +56,16 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
   const rangeError = Boolean(from && to && from > to)
   const filteredOrders = ownOrders
     .filter((order) => {
-      const searchText = normalizeSearch(`${order.code} ${services.get(order.serviceId)?.name || ""} ${order.contact.name}`)
+      const searchText = normalizeSearch(`${order.code} ${order.serviceName || services.get(order.serviceId)?.name || ""} ${order.contact.name}`)
       const scheduledDay = day(new Date(order.scheduledAt))
       return !rangeError && (!normalizedQuery || searchText.includes(normalizedQuery)) && (!status || order.status === status)
         && (!from || scheduledDay >= from) && (!to || scheduledDay <= to)
     })
     .sort((a, b) => {
-      if (sort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      if (sort === "oldest") return (Date.parse(a.createdAt) || 0) - (Date.parse(b.createdAt) || 0)
       if (sort === "schedule-asc") return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
       if (sort === "schedule-desc") return new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      return (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)
     })
   const pages = Math.ceil(filteredOrders.length / PAGE_SIZE)
   const currentPage = Math.min(page, Math.max(0, pages - 1))
@@ -153,8 +153,8 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
                         <div className="flex min-w-0 items-center gap-4">
                           {service?.image && <Image src={service.image} alt={service.name} width={72} height={72} sizes="72px" className="size-18 shrink-0 rounded-xl object-cover" />}
                           <div className="min-w-0">
-                            <h2 className="m-0 break-words text-base leading-6 font-semibold">{service?.name || "Dịch vụ không còn trong danh sách"}</h2>
-                            <p className="m-0 mt-2 text-sm text-muted-foreground">{order.quantity} {service?.unit || "đơn vị"}</p>
+                            <h2 className="m-0 break-words text-base leading-6 font-semibold">{order.serviceName || service?.name || "Dịch vụ không còn trong danh sách"}</h2>
+                            <p className="m-0 mt-2 text-sm text-muted-foreground">{order.quantity} {order.unit || service?.unit || "đơn vị"}</p>
                           </div>
                         </div>
                         <dl className="m-0 grid gap-4 border-t border-border pt-5 text-sm">
@@ -177,7 +177,7 @@ export function CustomerOrders({ history = false }: { history?: boolean } = {}) 
                   <thead className="bg-slate-50 text-xs text-muted-foreground"><tr>{["Đơn / dịch vụ", "Lịch / địa chỉ", "Trạng thái", history ? "Chi phí đã lưu" : "Tổng dự kiến", "Chi tiết"].map((label) => <th key={label} scope="col" className="px-4 py-4 font-semibold first:rounded-tl-2xl last:rounded-tr-2xl">{label}</th>)}</tr></thead>
                   <tbody>
                     {displayedOrders.map((order) => <tr key={order.id} className="border-t border-border transition-colors hover:bg-slate-50/60">
-                      <td className="px-4 py-5 align-top"><p className="m-0 font-semibold">{order.code}</p><p className="m-0 mt-2 break-words leading-6 text-muted-foreground">{services.get(order.serviceId)?.name || "Dịch vụ không còn trong danh sách"}</p></td>
+                      <td className="px-4 py-5 align-top"><p className="m-0 font-semibold">{order.code}</p><p className="m-0 mt-2 break-words leading-6 text-muted-foreground">{order.serviceName || services.get(order.serviceId)?.name || "Dịch vụ không còn trong danh sách"}</p></td>
                       <td className="px-4 py-5 align-top"><p className="m-0 leading-6">{date(order.scheduledAt)}</p><p className="m-0 mt-2 break-words text-xs leading-6 text-muted-foreground">{order.contact.address}</p></td>
                       <td className="px-4 py-5 align-top"><CustomerOrderStatus status={order.status} /></td>
                       <td className="px-4 py-5 align-top"><p className="m-0 break-words leading-6 font-semibold text-primary tabular-nums">{money(order.price)}</p></td>

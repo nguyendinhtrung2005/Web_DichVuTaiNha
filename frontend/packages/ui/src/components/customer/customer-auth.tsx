@@ -20,7 +20,7 @@ import { safeReturnTo } from "@/components/shared/route-policy"
 export function CustomerAuth({ register, returnTo, switchHref }: { register: boolean; returnTo: string; switchHref: string }) {
   const router = useRouter()
   const generatedId = useId()
-  const [values, setValues] = useState<RegistrationValues>({ name: "", email: "", phone: "", password: "", confirm: "" })
+  const [values, setValues] = useState<RegistrationValues>({ identifier: "", name: "", email: "", phone: "", password: "", confirm: "" })
   const [errors, setErrors] = useState<AccountErrors<RegistrationValues>>({})
   const [submitError, setSubmitError] = useState("")
   const [busy, setBusy] = useState(false)
@@ -65,15 +65,14 @@ export function CustomerAuth({ register, returnTo, switchHref }: { register: boo
     try {
       const result = register
         ? await registerCustomer({ name: values.name, email: values.email, phone: values.phone, password: values.password })
-        : await loginCustomer(values.email, values.password)
+        : await loginCustomer(values.identifier, values.password)
       if (!result.ok) {
         focusIntent.current = "error"
         setSubmitError(result.error)
         return
       }
       completed = true
-      if (result.persistence === "session") toast.warning(register ? "Tài khoản chỉ được giữ trong phiên hiện tại" : "Đã đăng nhập trong phiên hiện tại")
-      else toast.success(register ? "Đã tạo tài khoản trên trình duyệt này" : "Đã đăng nhập trên trình duyệt này")
+      toast.success(register ? "Đã tạo tài khoản" : "Đăng nhập thành công")
       router.replace(IS_UNIFIED_APP ? safeReturnTo(result.user.role, returnTo) : returnTo)
     } catch {
       focusIntent.current = "error"
@@ -112,10 +111,10 @@ export function CustomerAuth({ register, returnTo, switchHref }: { register: boo
             <fieldset disabled={busy} className="m-0 min-w-0 space-y-5 border-0 p-0">
               <legend className="sr-only">{register ? "Thông tin tạo tài khoản" : "Thông tin đăng nhập"}</legend>
               {register && <div className="grid min-w-0 gap-5 sm:grid-cols-2">
-                <Field label="Họ và tên" error={errors.name}><Input id={fieldId("name")} name="name" autoComplete="name" required maxLength={120} className="min-h-12 rounded-xl" value={values.name} onChange={(event) => change("name", event.target.value)} /></Field>
+                <Field label="Họ và tên" error={errors.name}><Input id={fieldId("name")} name="name" autoComplete="name" required maxLength={100} className="min-h-12 rounded-xl" value={values.name} onChange={(event) => change("name", event.target.value)} /></Field>
                 <Field label="Số điện thoại" error={errors.phone}><Input id={fieldId("phone")} name="phone" type="tel" inputMode="tel" autoComplete="tel" required maxLength={20} className="min-h-12 rounded-xl" value={values.phone} onChange={(event) => change("phone", event.target.value)} /></Field>
               </div>}
-              <Field label="Email" error={errors.email}><Input id={fieldId("email")} name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} required maxLength={254} className="min-h-12 rounded-xl" placeholder="Email của bạn" value={values.email} onChange={(event) => change("email", event.target.value)} /></Field>
+              {register ? <Field label="Email (không bắt buộc)" error={errors.email} hint="Có thể dùng email này để đăng nhập."><Input id={fieldId("email")} name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={254} className="min-h-12 rounded-xl" placeholder="Email của bạn" value={values.email} onChange={(event) => change("email", event.target.value)} /></Field> : <Field label="Số điện thoại hoặc email" error={errors.identifier}><Input id={fieldId("identifier")} name="identifier" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required maxLength={254} className="min-h-12 rounded-xl" placeholder="Số điện thoại hoặc email của bạn" value={values.identifier} onChange={(event) => change("identifier", event.target.value)} /></Field>}
               <Field label="Mật khẩu" error={errors.password} hint={register ? "Ít nhất 8 ký tự." : undefined}><PasswordField id={fieldId("password")} name="password" autoComplete={register ? "new-password" : "current-password"} required minLength={register ? 8 : undefined} disabled={busy} value={values.password} onChange={(event) => change("password", event.target.value)} /></Field>
               {register && <Field label="Nhập lại mật khẩu" error={errors.confirm}><PasswordField id={fieldId("confirm")} name="confirm" autoComplete="new-password" toggleLabel="mật khẩu xác nhận" required disabled={busy} value={values.confirm} onChange={(event) => change("confirm", event.target.value)} /></Field>}
             </fieldset>
@@ -125,7 +124,7 @@ export function CustomerAuth({ register, returnTo, switchHref }: { register: boo
           </form>
 
           <p className="m-0 mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground"><span>{register ? "Đã có tài khoản?" : "Chưa có tài khoản?"}</span><Link href={switchHref} aria-disabled={busy || undefined} tabIndex={busy ? -1 : undefined} onClick={(event) => { if (busy) event.preventDefault() }} className={`inline-flex min-h-11 items-center rounded-md font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring ${busy ? "pointer-events-none opacity-60" : ""}`}>{register ? "Đăng nhập" : "Đăng ký"}</Link></p>
-          <div className="mt-5 flex min-w-0 items-start gap-2.5 rounded-xl bg-slate-50 px-4 py-3"><InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><p className="m-0 min-w-0 text-xs leading-6 text-muted-foreground">Thông tin tài khoản hiện được lưu trên trình duyệt này. Dùng cùng trình duyệt để tiếp tục xem những yêu cầu đã lưu.</p></div>
+          <div className="mt-5 flex min-w-0 items-start gap-2.5 rounded-xl bg-slate-50 px-4 py-3"><InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><p className="m-0 min-w-0 text-xs leading-6 text-muted-foreground">Đăng nhập bằng số điện thoại hoặc email đã đăng ký. Phiên đăng nhập dùng cookie bảo mật; mật khẩu không được lưu trên trình duyệt.</p></div>
         </CardContent>
       </Card>
     </section>
