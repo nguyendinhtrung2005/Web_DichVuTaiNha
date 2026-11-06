@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createStaffAuth, AuthBffError } from './auth-core.mjs'
 import { loadStaffAuthConfig } from './config.mjs'
+import { staffSupportConversations } from './support-chat-context.mjs'
 
 const MAX_BODY = 8192
 const SID = /^[A-Za-z0-9_-]{43}$/
@@ -26,6 +27,9 @@ function guard(request, action, config) {
   if ((write || origin !== null) && origin !== config.appOrigin) fail(403, 'ORIGIN_DENIED', 'Nguồn yêu cầu không được cho phép.')
   const fetchSite = request.headers.get('sec-fetch-site')
   if (write && fetchSite && fetchSite !== 'same-origin') fail(403, 'ORIGIN_DENIED', 'Nguồn yêu cầu không được cho phép.')
+  // Inspection may rotate a renewable credential. Do not let a cross-site
+  // navigation with a Lax cookie keep that session alive as a side effect.
+  if (!write && config.renewalEnabled && fetchSite && !['same-origin', 'none'].includes(fetchSite)) fail(403, 'ORIGIN_DENIED', 'Nguồn yêu cầu không được cho phép.')
   if (url.search) fail(400, 'INVALID_INPUT', 'Yêu cầu chứa tham số không được hỗ trợ.')
   if (write && request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase() !== 'application/json') fail(415, 'JSON_REQUIRED', 'Vui lòng gửi dữ liệu JSON.')
 }
@@ -67,27 +71,45 @@ export function createStaffAuthHttp({ configFactory = loadStaffAuthConfig, authF
   return async function handle(request, action) {
     const requestId = randomUUID()
     const headers = new Headers({ 'Cache-Control': 'no-store, max-age=0', Pragma: 'no-cache', Expires: '0', Vary: 'Cookie', 'X-Content-Type-Options': 'nosniff', 'X-Request-Id': requestId })
-    let config, authStarted = false
+    let config, sid, authStarted = false
     const response = (data, status = 200) => Response.json(data, { status, headers })
     try {
-      if (!['login', 'session', 'logout'].includes(action)) fail(404, 'NOT_FOUND', 'Không tìm thấy API.')
+      if (!['login', 'session', 'logout', 'renew'].includes(action)) fail(404, 'NOT_FOUND', 'Không tìm thấy API.')
       config = configFactory()
       guard(request, action, config)
-      const sid = sidFrom(request, config.cookieName)
+      sid = sidFrom(request, config.cookieName)
       const auth = authFactory({ config })
       if (action === 'session') {
         authStarted = true
-        return response({ session: await auth.inspect(sid) })
+        const session = await auth.inspect(sid)
+        if (config.renewalEnabled && session.renewable === true) {
+          const maxAge = Math.floor((Date.parse(session.expiresAt) - now()) / 1000)
+          if (!SID.test(sid || '') || !Number.isFinite(maxAge) || maxAge < 1) fail(503, 'SESSION_UNAVAILABLE', 'Chưa thể lưu phiên đăng nhập. Vui lòng thử lại.')
+          headers.set('Set-Cookie', cookie(config, sid, maxAge))
+        }
+        return response({ session })
       }
       const input = await jsonBody(request)
+      if (action === 'renew') {
+        if (Object.keys(input).length) fail(400, 'INVALID_INPUT', 'Yêu cầu chứa trường không được hỗ trợ.')
+        if (!config.renewalEnabled) fail(503, 'SESSION_RENEWAL_DISABLED', 'Gia hạn phiên chưa được cấu hình.')
+        authStarted = true
+        const { session } = await auth.renew(sid)
+        const maxAge = Math.floor((Date.parse(session?.expiresAt) - now()) / 1000)
+        if (session?.renewable !== true || !SID.test(sid || '') || !Number.isFinite(maxAge) || maxAge < 1) fail(503, 'SESSION_UNAVAILABLE', 'Chưa thể lưu phiên đăng nhập. Vui lòng thử lại.')
+        headers.set('Set-Cookie', cookie(config, sid, maxAge))
+        return response({ session })
+      }
       if (action === 'logout') {
         if (Object.keys(input).length) fail(400, 'INVALID_INPUT', 'Yêu cầu chứa trường không được hỗ trợ.')
-        await auth.logout(sid)
+        const result = await auth.logout(sid)
+        staffSupportConversations.clearSession(sid)
         headers.set('Set-Cookie', emptyCookie(config))
-        return response({ ok: true })
+        return response({ ok: true, ...(result?.authRevocationPending === true ? { authRevocationPending: true } : {}) })
       }
       if (Object.keys(input).some(key => !['phone', 'password'].includes(key))) fail(400, 'INVALID_INPUT', 'Yêu cầu chứa trường không được hỗ trợ.')
       const result = await auth.login(input, sid)
+      staffSupportConversations.clearSession(sid)
       const maxAge = Math.floor((Date.parse(result.session.expiresAt) - now()) / 1000)
       if (!SID.test(result.sid) || !Number.isFinite(maxAge) || maxAge < 1) {
         if (SID.test(result.sid)) await auth.logout(result.sid)
@@ -99,7 +121,7 @@ export function createStaffAuthHttp({ configFactory = loadStaffAuthConfig, authF
       const known = error instanceof AuthBffError
       const status = known ? error.status : 503
       const code = known ? error.code : 'SESSION_UNAVAILABLE'
-      if (config && authStarted && [401, 403].includes(status)) headers.set('Set-Cookie', emptyCookie(config))
+      if (config && authStarted && [401, 403].includes(status)) { staffSupportConversations.clearSession(sid); headers.set('Set-Cookie', emptyCookie(config)) }
       if (status === 401) headers.set('WWW-Authenticate', 'Session')
       if ([429, 503].includes(status)) headers.set('Retry-After', String(known && Number.isSafeInteger(error.retryAfter) && error.retryAfter > 0 ? Math.min(error.retryAfter, 3600) : status === 429 ? 60 : 5))
       return response({ error: { code, message: known ? error.message : 'Chưa thể xử lý phiên đăng nhập. Vui lòng thử lại.' }, requestId }, status)

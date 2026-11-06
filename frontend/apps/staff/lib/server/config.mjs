@@ -32,6 +32,17 @@ function integer(value, fallback, min, max) {
   return parsed;
 }
 
+function enabled(value) {
+  if (value === undefined || value === '' || value === 'false') return false;
+  if (value === 'true') return true;
+  return invalidConfig();
+}
+
+function optionalAbsoluteAge(value, production) {
+  if (!production && value === '0') return 0;
+  return integer(value, production ? 28800 : 604800, 60, production ? 28800 : 31_536_000);
+}
+
 /** Server-only configuration. No credential is accepted through NEXT_PUBLIC_* variables. */
 export function loadStaffAuthConfig(env = process.env, cwd = process.cwd()) {
   const production = env.NODE_ENV === 'production';
@@ -44,6 +55,12 @@ export function loadStaffAuthConfig(env = process.env, cwd = process.cwd()) {
   const sessionDir = directoryPath(env.STAFF_SESSION_DIR || '.auth-data/sessions', cwd);
   const keyFile = directoryPath(env.STAFF_SESSION_KEY_FILE || '.auth-data/session.key', cwd);
   if (keyFile === sessionDir) invalidConfig();
+  const renewalEnabled = enabled(env.STAFF_SESSION_RENEWAL_ENABLED);
+  const idleTimeoutSeconds = integer(env.STAFF_SESSION_IDLE_SECONDS, production ? 1800 : 604800, 60, production ? 1800 : 2592000);
+  const absoluteAgeSeconds = optionalAbsoluteAge(env.STAFF_SESSION_ABSOLUTE_SECONDS, production);
+  if (renewalEnabled && production && (new URL(appOrigin).protocol !== 'https:' || new URL(authUrl).protocol !== 'https:')) invalidConfig();
+  const bffToken = env.AUTH_SERVICE_BFF_TOKEN || undefined;
+  if (renewalEnabled && (typeof bffToken !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(bffToken))) invalidConfig();
   return Object.freeze({
     authUrl,
     appOrigin,
@@ -53,6 +70,11 @@ export function loadStaffAuthConfig(env = process.env, cwd = process.cwd()) {
     keyFile,
     timeoutMs: integer(env.STAFF_AUTH_TIMEOUT_MS, 8000, 100, 15000),
     maxAgeSeconds: integer(env.STAFF_SESSION_MAX_AGE_SECONDS, 3600, 1, 3600),
+    renewalEnabled,
+    idleTimeoutSeconds,
+    absoluteAgeSeconds,
+    refreshBeforeSeconds: integer(env.STAFF_SESSION_REFRESH_BEFORE_SECONDS, 60, 1, 300),
+    bffToken,
     production,
   });
 }
