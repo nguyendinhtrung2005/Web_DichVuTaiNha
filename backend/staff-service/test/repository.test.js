@@ -130,7 +130,7 @@ test('schema check fails safely on missing/incompatible schema; no DDL is issued
 
 test('schema metadata from the original DDL is accepted; incompatible defaults/indexes/FKs/versions are rejected', async () => {
   const ddl = await readFile(new URL('../../../databases/schema.sql', import.meta.url), 'utf8')
-  const names = ['users', 'employees', 'employee_availability', 'assignments', 'bookings', 'booking_items', 'services', 'booking_status_history']
+  const names = ['users', 'branches', 'employees', 'employee_availability', 'assignments', 'bookings', 'booking_items', 'services', 'booking_status_history', 'notifications']
   const columns = [], indexes = [], foreignKeys = [], engines = []
   for (const match of ddl.matchAll(/CREATE TABLE (\w+) \(([\s\S]*?)\) ENGINE=(\w+)/g)) {
     const [, table, body, engine] = match

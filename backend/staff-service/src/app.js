@@ -2,9 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import { randomUUID } from 'node:crypto'
 import { HttpError } from './errors.js'
-import { listQuery, positiveId, transitionInput } from './validation.js'
+import { availabilityQuery, incomeQuery, listQuery, notificationQuery, positiveId, transitionInput } from './validation.js'
 
-export function createApp({ service, authenticate, repository, corsOrigins = ['http://localhost:3002'], logger = () => {}, statusUpdatesConfigured = false }) {
+export function createApp({ service, notificationService, areaService, incomeService, authenticate, repository, corsOrigins = ['http://localhost:3002'], logger = () => {}, statusUpdatesConfigured = false }) {
   const app = express()
   app.disable('x-powered-by')
   app.set('query parser', 'simple')
@@ -34,6 +34,13 @@ export function createApp({ service, authenticate, repository, corsOrigins = ['h
   router.get('/jobs', async (req, res) => res.json(await service.list(req.actor, listQuery(req.query))))
   router.get('/schedule', async (req, res) => res.json(await service.list(req.actor, listQuery(req.query, true))))
   router.get('/jobs/:assignmentId', async (req, res) => res.json(await service.detail(req.actor, positiveId(req.params.assignmentId))))
+  router.get('/notifications', async (req, res) => res.json(await notificationService.list(req.actor, notificationQuery(req.query))))
+  router.get('/notifications/unread-count', async (req, res) => res.json(await notificationService.unreadCount(req.actor)))
+  router.patch('/notifications/read-all', async (req, res) => res.json(await notificationService.markAllRead(req.actor)))
+  router.patch('/notifications/:notificationId/read', async (req, res) => res.json(await notificationService.markRead(req.actor, positiveId(req.params.notificationId))))
+  router.get('/branch', async (req, res) => res.json(await areaService.branch(req.actor)))
+  router.get('/availability', async (req, res) => res.json(await areaService.availability(req.actor, availabilityQuery(req.query))))
+  router.get('/income/estimate', async (req, res) => res.json(await incomeService.estimate(req.actor, incomeQuery(req.query))))
   router.patch('/jobs/:assignmentId/status', async (req, res) => {
     const input = transitionInput(req.body, req.get('Idempotency-Key'))
     const result = await service.advance(req.actor, positiveId(req.params.assignmentId), input)
