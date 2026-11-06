@@ -66,9 +66,16 @@ export function createStaffJobsHttp({ configFactory = loadStaffJobsConfig, authF
       if (url.origin !== config.appOrigin || (request.headers.get('host') && request.headers.get('host') !== url.host)
         || (origin !== null && origin !== config.appOrigin) || (site !== null && site !== 'same-origin')) fail(403, 'ORIGIN_DENIED', 'Nguồn yêu cầu không được cho phép.')
       const query = parseJobsQuery(url.searchParams)
+      // Optional browser identity binding; it never selects or impersonates an employee.
+      const accountId = request.headers.get('X-Staff-Account-Id')
+      if (accountId !== null && (!/^[1-9]\d{0,18}$/.test(accountId) || BigInt(accountId) > 9_223_372_036_854_775_807n)) fail(400, 'VALIDATION_ERROR', 'Danh tính phiên chưa hợp lệ.')
       sid = sessionId(request, config.cookieName)
       auth = authFactory({ config, now })
       authStarted = true
+      if (accountId !== null) {
+        const session = await auth.inspect(sid)
+        if (session.user.id !== accountId) fail(409, 'STAFF_SESSION_CHANGED', 'Tài khoản đăng nhập đã thay đổi. Vui lòng tải lại danh sách.')
+      }
       const result = await auth.withAccessToken(sid, token => readJobs(config, token, query, fetchImpl))
       return Response.json(result, { headers })
     } catch (error) {
