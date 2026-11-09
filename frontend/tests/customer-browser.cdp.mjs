@@ -6,7 +6,14 @@ export async function runCustomerBrowserFlow({ appURL, gatewayURL, fixture, arti
   const browser = await launchBrowser({ artifactDirectory, env });
   const { page } = browser;
   const authenticationResponses = [];
+  const catalogQueries = [];
+  const orderQueries = [];
   page.onEvent((event) => {
+    if (event.method === 'Network.requestWillBeSent') {
+      const url = new URL(event.params.request.url);
+      if (url.pathname === '/api/v1/catalog/services' && url.searchParams.has('q')) catalogQueries.push(url.searchParams.get('q'));
+      if (url.pathname === '/api/v1/orders' && url.searchParams.get('status') === 'completed') orderQueries.push(url.searchParams.toString());
+    }
     if (event.method === 'Network.responseReceived' && event.params.response.url.includes('/api/v1/auth/')) {
       authenticationResponses.push({ route: new URL(event.params.response.url).pathname, status: event.params.response.status });
     }
@@ -49,6 +56,30 @@ export async function runCustomerBrowserFlow({ appURL, gatewayURL, fixture, arti
 
     await page.goto(`${appURL}/dich-vu`);
     await page.text(`${fixture.marker} Service`);
+    const imageMetrics = await page.evaluate(`(async () => {
+      const original = await fetch('/images/hero.png');
+      const optimized = await fetch('/_next/image?url=%2Fimages%2Fhero.png&w=640&q=75', {headers:{Accept:'image/webp'}});
+      const blocked = await fetch('/_next/image?url=https%3A%2F%2Fexample.invalid%2Fprivate.png&w=640&q=75');
+      return {originalStatus:original.status,optimizedStatus:optimized.status,originalBytes:(await original.arrayBuffer()).byteLength,optimizedBytes:(await optimized.arrayBuffer()).byteLength,contentType:optimized.headers.get('content-type'),blockedRemoteStatus:blocked.status};
+    })()`);
+    assert.equal(imageMetrics.originalStatus, 200);
+    assert.equal(imageMetrics.optimizedStatus, 200);
+    assert.equal(imageMetrics.contentType, 'image/webp');
+    assert.ok(imageMetrics.optimizedBytes < imageMetrics.originalBytes, 'Optimized local image must transfer fewer bytes than the source.');
+    assert.equal(imageMetrics.blockedRemoteStatus, 400, 'Optimization must not open arbitrary remote image fetches.');
+    process.stdout.write('Browser optimization PASS: ' + JSON.stringify(imageMetrics) + '\n');
+    const stopSearchFailure = page.onEvent((event) => {
+      if (event.method === 'Fetch.requestPaused') void page.send('Fetch.failRequest', { requestId: event.params.requestId, errorReason: 'Failed' }).catch(() => {});
+    });
+    await page.send('Fetch.enable', { patterns: [{ urlPattern: `${gatewayURL}/api/v1/catalog/services?*q=*`, requestStage: 'Request' }] });
+    await page.fill('Tìm dịch vụ', `${fixture.marker} Service`);
+    await page.click('Tìm kiếm');
+    await page.text('Chưa thể tìm dịch vụ');
+    await page.send('Fetch.disable'); stopSearchFailure();
+    await page.click('Thử lại');
+    await page.text(`${fixture.marker} Service`);
+    assert.ok(catalogQueries.some((query) => query === `${fixture.marker} Service`), 'Search must send q to Catalog, not only filter cached services.');
+    process.stdout.write('Browser PASS: Catalog server search and honest failure/retry without cached success\n');
     await page.goto(`${appURL}/dich-vu/${fixture.serviceId}`);
     await page.text(`${fixture.marker} Service`);
     await page.goto(`${appURL}/dat-dich-vu/${fixture.serviceId}`);
@@ -61,6 +92,7 @@ export async function runCustomerBrowserFlow({ appURL, gatewayURL, fixture, arti
     await page.fill('Giờ mong muốn', '09:00');
     await page.fill('Ghi chú thêm', `${fixture.marker} browser note`);
     await page.click('Tiếp theo');
+    await page.fill('Phương thức thanh toán', 'transfer');
     await page.click('Lưu yêu cầu');
     const orderId = await page.waitFor('location.pathname.match(/^\\/don\\/(\\d+)$/)?.[1]', 'Booking did not navigate to the persisted API order.');
     await fixture.recordOrder(orderId);
@@ -68,6 +100,7 @@ export async function runCustomerBrowserFlow({ appURL, gatewayURL, fixture, arti
     assert.equal(order.status, 200);
     assert.equal(order.body.data.customerId, userId);
     assert.equal(order.body.data.price, 125000);
+    assert.ok((await api('/payments')).body.data.items.some(payment => payment.orderId === orderId && payment.method === 'transfer' && payment.status === 'pending'));
     process.stdout.write('Browser PASS: catalog detail and multi-step booking\n');
 
     await page.click('Chọn / cập nhật thanh toán');
@@ -92,22 +125,45 @@ export async function runCustomerBrowserFlow({ appURL, gatewayURL, fixture, arti
     // Admin/Staff APIs are outside this task. A fixture-only DB update models a
     // legitimately completed assignment so the Customer review screen can run.
     const completedAt = new Date(Date.now() + 4 * 86400000);
-    const created = await api('/orders', { method: 'POST', body: { serviceId: fixture.serviceId, quantity: 1, contact: { name: account.name, phone: account.phone, address: `${fixture.marker} completed fixture address`, houseType: 'can-ho', area: 60, rooms: 2, floors: 1, hasPets: false }, scheduledAt: completedAt.toISOString(), specialRequest: `${fixture.marker} review fixture` } });
+    completedAt.setUTCHours(2, 0, 0, 0);
+    const created = await api('/orders', { method: 'POST', body: { serviceId: fixture.serviceId, quantity: 1, expectedUnitPrice: 125000, contact: { name: account.name, phone: account.phone, address: `${fixture.marker} completed fixture address`, houseType: 'can-ho', area: 60, rooms: 2, floors: 1, hasPets: false }, scheduledAt: completedAt.toISOString(), specialRequest: `${fixture.marker} review fixture` } });
     assert.equal(created.status, 201);
     const completedId = created.body.data.id;
     await fixture.recordOrder(completedId);
     await fixture.completeOrder(completedId, userId);
     await page.goto(`${appURL}/lich-su`);
     await page.text(created.body.data.code);
+    const vietnamDay = new Date(completedAt.getTime() + 7 * 3600000).toISOString().slice(0, 10);
+    await page.fill('Loại dịch vụ', fixture.serviceId);
+    await page.fill('Lịch thực hiện từ ngày', vietnamDay);
+    await page.fill('Đến ngày', vietnamDay);
+    await page.text(created.body.data.code);
+    await page.waitFor('document.querySelector("main").innerText.includes("1 đơn phù hợp")', 'History filter did not settle on the server result.');
+    assert.ok(orderQueries.some((query) => { const params = new URLSearchParams(query); return params.get('serviceId') === fixture.serviceId && params.get('from') === vietnamDay && params.get('to') === vietnamDay; }), 'History filters must reach the Order API.');
     await page.goto(`${appURL}/don/${completedId}`);
     await page.click('Viết đánh giá');
-    await page.fill('Điểm đánh giá', '4');
     await page.fill('Nhận xét', `${fixture.marker} browser review`);
+    await page.click('Lưu đánh giá');
+    await page.text('Vui lòng chọn đánh giá từ 1 đến 5 sao.');
+    await page.fill('Điểm đánh giá', '4');
+    const stopReviewFailure = page.onEvent((event) => {
+      if (event.method === 'Fetch.requestPaused') void page.send('Fetch.failRequest', { requestId: event.params.requestId, errorReason: 'Failed' }).catch(() => {});
+    });
+    await page.send('Fetch.enable', { patterns: [{ urlPattern: `${gatewayURL}/api/v1/orders/${completedId}/reviews`, requestStage: 'Request' }] });
+    await page.click('Lưu đánh giá');
+    await page.text('Không kết nối được API');
+    assert.equal(await page.evaluate('document.querySelector("dialog textarea")?.value'), `${fixture.marker} browser review`);
+    assert.equal(await page.evaluate('document.querySelector("dialog select")?.value'), '4');
+    await page.send('Fetch.disable'); stopReviewFailure();
     await page.click('Lưu đánh giá');
     await page.text(`${fixture.marker} browser review`);
     assert.ok((await api('/reviews')).body.data.items.some((review) => review.orderId === completedId && review.rating === 4));
     await fixture.recordOrder(completedId);
-    await page.goto(`${appURL}/dat-dich-vu/${completedId}`);
+    await page.goto(`${appURL}/dich-vu/${fixture.serviceId}`);
+    await page.text('Điểm đánh giá chung');
+    await page.text('từ 1 đánh giá của đơn đã hoàn thành');
+    assert.equal((await api(`/reviews/service-summary?serviceId=${fixture.serviceId}`)).body.data.averageRating, 4);
+    await page.goto(`${appURL}/dat-dich-vu/${fixture.serviceId}?rebook=${completedId}`);
     await page.click('Tiếp theo');
     assert.equal(await page.evaluate('document.querySelector("textarea")?.value'), `${fixture.marker} completed fixture address`);
     process.stdout.write('Browser PASS: completed history, single-score review and reorder prefill\n');

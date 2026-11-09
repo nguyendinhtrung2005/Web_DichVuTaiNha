@@ -137,21 +137,21 @@ test('Catalog inventory reservation uses database price and rejects overselling'
     async getConnection() { return connection; },
   });
   const first = await repository.reserveProducts({
-    operationKey: 'purchase-30', customerId: '9', items: [{ productId: '5', quantity: 2 }],
+    operationKey: 'purchase-30', customerId: '9', items: [{ productId: '5', quantity: 2, expectedUnitPrice: 42000 }],
   });
   assert.equal(first.total, 84000);
   assert.equal(first.items[0].unitPrice, 42000);
   assert.equal(reserved, 2);
   const repeated = await repository.reserveProducts({
-    operationKey: 'purchase-30', customerId: '9', items: [{ productId: '5', quantity: 2 }],
+    operationKey: 'purchase-30', customerId: '9', items: [{ productId: '5', quantity: 2, expectedUnitPrice: 42000 }],
   });
   assert.equal(repeated.total, 84000);
   assert.equal(reserved, 2, 'Same operation does not reserve stock twice.');
   await assert.rejects(repository.reserveProducts({
-    operationKey: 'purchase-30', customerId: '9', items: [{ productId: '5', quantity: 1 }],
+    operationKey: 'purchase-30', customerId: '9', items: [{ productId: '5', quantity: 1, expectedUnitPrice: 42000 }],
   }), (error) => error.code === 'RESERVATION_KEY_REUSED' && error.status === 409);
   await assert.rejects(repository.reserveProducts({
-    operationKey: 'purchase-31', customerId: '9', items: [{ productId: '5', quantity: 2 }],
+    operationKey: 'purchase-31', customerId: '9', items: [{ productId: '5', quantity: 2, expectedUnitPrice: 42000 }],
   }), (error) => error instanceof HttpError && error.status === 409 && error.code === 'OUT_OF_STOCK');
   assert.equal(reserved, 2);
   assert.equal(rollbacks, 2);
@@ -160,7 +160,7 @@ test('Catalog inventory reservation uses database price and rejects overselling'
 test('product-order input has no service schedule, rejects client prices, duplicate items and invalid quantities', () => {
   const valid = {
     requestKey: '7ac2b220-95c7-4a2d-b184-322b1f76d9b8',
-    items: [{ productId: '3', quantity: 2 }],
+    items: [{ productId: '3', quantity: 2, expectedUnitPrice: 42000 }],
     contact: { name: 'Khách hàng', phone: '0391234567' },
   };
   assert.deepEqual(createProductInput(valid), valid);
@@ -221,8 +221,13 @@ test('service metadata accepts bounded fractional quantities and rejects mislead
   assert.equal(service.defaultQuantity, 2.5);
   assert.equal(service.pricingMode, 'survey');
   assert.equal(service.minimumQuantityKnown, true);
+  for (const quantity of [0.01, 0.5]) {
+    const [fractional] = (await createCatalogRepository(servicePool({ ...valid, minQuantity: quantity, defaultQuantity: quantity })).list({ page: 1, limit: 10 })).items;
+    assert.equal(fractional.minQuantity, quantity);
+    assert.equal(fractional.defaultQuantity, quantity);
+  }
   for (const patch of [
-    { group: 'unknown' }, { minQuantity: null }, { minQuantity: 1.001 }, { defaultQuantity: 1 },
+    { group: 'unknown' }, { minQuantity: null }, { minQuantity: 1.001 }, { minQuantity: 0.001 }, { defaultQuantity: 1 },
     { baseMinutes: -1 }, { pricingMode: null }, { pricingMode: 'paid' },
     { group: 'cham-soc', cleaningType: 'phong-tro' }, { scope: ['Lau sàn', 1] },
   ]) {
@@ -289,7 +294,7 @@ test('Order product-schema readiness recovers without restarting its process', a
   assert.deepEqual(await repository.listProductOrders('1', { page: 1, limit: 10 }), { items: [], total: 0, page: 1, limit: 10 });
 });
 
-const purchase = () => ({ id: '7', customerId: '2', status: 'processing', items: [{ productId: '5', quantity: 1 }] });
+const purchase = () => ({ id: '7', customerId: '2', status: 'processing', items: [{ productId: '5', quantity: 1, expectedUnitPrice: 42000 }] });
 const stockReservation = () => ({
   operationKey: 'purchase-7', customerId: '2', status: 'reserved', total: 42000,
   items: [{ productId: '5', quantity: 1, code: 'SP5', name: 'Dung dịch lau nhà', unit: 'chai', unitPrice: 42000 }],
@@ -400,13 +405,16 @@ test('journal unique-key recovery reuses its held connection instead of waiting 
   const repository = createOrderRepository({
     async execute(sql) {
       if (sql.includes('information_schema.tables')) return [[{ present: 2 }]];
+      if (sql.includes('information_schema.columns')) { assert.equal(acquired, 0); return [[{ dataType: 'varchar', nullable: 'YES', maxLength: 16 }]]; }
+      if (sql.includes('information_schema.check_constraints')) { assert.equal(acquired, 0); return [[{ clause: "payment_method IS NULL OR payment_method IN ('CASH','TRANSFER')" }]]; }
       throw new Error('Recovery must not acquire a second connection through pool.execute.');
     },
     async getConnection() { acquired += 1; return connection; },
   });
   const order = await repository.createProductOrder('2', {
     requestKey: '7ac2b220-95c7-4a2d-b184-322b1f76d9b8',
-    items: [{ productId: '5', quantity: 1 }], contact: { name: 'Synthetic customer', phone: '0391234567' },
+    paymentMethod: 'cash',
+    items: [{ productId: '5', quantity: 1, expectedUnitPrice: 42000 }], contact: { name: 'Synthetic customer', phone: '0391234567' },
   });
   assert.equal(order.id, '7');
   assert.equal(order.status, 'processing');
@@ -470,7 +478,7 @@ test('one owned order operation excludes a concurrent reserve while an earlier b
 test('operation-scoped Order reads and writes reuse one loaned pool connection and release it once', async () => {
   let leased = false, acquired = 0, released = 0, unlocked = 0;
   const row = { id: '7', customer_id: '2', request_key: '7ac2b220-95c7-4a2d-b184-322b1f76d9b8',
-    items_request: JSON.stringify([{ productId: '5', quantity: 1 }]),
+    items_request: JSON.stringify([{ productId: '5', quantity: 1, expectedUnitPrice: 42000 }]),
     contact_snapshot: JSON.stringify({ name: 'Synthetic customer', phone: '0391234567' }),
     status: 'PROCESSING', total_amount: null, error_code: null, created_at: new Date(), updated_at: new Date() };
   const connection = {

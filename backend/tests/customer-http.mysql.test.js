@@ -12,7 +12,7 @@ function bookingInput(serviceId, marker) {
   at.setUTCHours(2, 0, 0, 0);
   return {
     requestKey: randomUUID(),
-    serviceId, quantity: 1,
+    serviceId, quantity: 1, expectedUnitPrice: 125000,
     contact: { name: `${marker} Contact`, phone: '0391234567', address: `${marker} synthetic test address`, houseType: 'can-ho', area: 60, rooms: 2, floors: 1, hasPets: false },
     scheduledAt: at.toISOString(), specialRequest: `${marker} test only`,
   };
@@ -99,6 +99,22 @@ test('Customer API via real HTTP and approved local MySQL fixtures', { skip: !en
       assert.ok(categories.body.data.some((category) => category.id === fixture.categoryId));
     });
 
+    await t.test('inactive fixture account cannot log in or retain its old authenticated session', async () => {
+      try {
+        const [changed] = await pool.execute("UPDATE users SET status='INACTIVE' WHERE id=? AND full_name=?", [otherUser.id, other.name]);
+        assert.equal(changed.affectedRows, 1, 'Only the marked synthetic account may be disabled.');
+        const denied = await request('POST', '/auth/login', { identifier: other.phone, password: other.password });
+        assert.equal(denied.status, 401);
+        assert.equal(denied.cookie, undefined);
+        assert.equal((await request('GET', '/users/me', undefined, otherCookie)).status, 401);
+      } finally {
+        await pool.execute("UPDATE users SET status='ACTIVE' WHERE id=? AND full_name=?", [otherUser.id, other.name]);
+      }
+      const renewed = await request('POST', '/auth/login', { identifier: other.phone, password: other.password });
+      assert.equal(renewed.status, 200);
+      otherCookie = renewed.cookie;
+    });
+
     await t.test('session, CORS, origin and internal endpoint protection', async () => {
       assert.equal((await request('GET', '/users/me')).status, 401);
       assert.equal((await request('GET', '/orders')).status, 401);
@@ -156,6 +172,49 @@ test('Customer API via real HTTP and approved local MySQL fixtures', { skip: !en
     });
     assert.ok(order, 'Booking setup must succeed.');
 
+    await t.test('fractional service minimum and quantity persist the Catalog price without rounding to a whole unit', async () => {
+      const fixtureName = fixture.marker + ' Service';
+      const [previous] = await pool.execute('SELECT customer_config FROM services WHERE id=? AND name=?', [fixture.serviceId, fixtureName]);
+      assert.equal(previous.length, 1, 'Only this suite\'s marked service may be changed.');
+      const originalMetadata = previous[0].customer_config;
+      try {
+        const [updated] = await pool.execute('UPDATE services SET customer_config=? WHERE id=? AND name=?', [
+          JSON.stringify({ version: 1, group: 've-sinh', cleaningType: 'nha-gia-dinh', minQuantity: 0.5, defaultQuantity: 0.5, pricingMode: 'fixed' }),
+          fixture.serviceId, fixtureName,
+        ]);
+        assert.equal(updated.affectedRows, 1);
+        const catalog = await request('GET', '/catalog/services/' + fixture.serviceId);
+        assert.equal(catalog.status, 200);
+        assert.equal(catalog.body.data.minQuantity, 0.5);
+        const payload = { ...bookingInput(fixture.serviceId, fixture.marker), quantity: 0.5 };
+        for (const field of ['area', 'rooms', 'floors']) {
+          const incomplete = { ...payload, contact: { ...payload.contact } };
+          delete incomplete.contact[field];
+          const invalid = await request('POST', '/orders', incomplete, cookie);
+          assert.equal(invalid.status, 400);
+          assert.ok(invalid.body.error.fields['contact.' + field]);
+        }
+        const fractional = await request('POST', '/orders', payload, cookie);
+        assert.equal(fractional.status, 201);
+        await fixture.recordOrder(fractional.body.data.id);
+        assert.equal(fractional.body.data.quantity, 0.5);
+        assert.equal(fractional.body.data.price, 62500);
+        const [items] = await pool.execute('SELECT quantity,unit_price FROM booking_items WHERE booking_id=?', [fractional.body.data.id]);
+        assert.equal(items.length, 1);
+        assert.equal(Number(items[0].quantity), 0.5);
+        assert.equal(Number(items[0].unit_price), 125000);
+        assert.equal((await request('POST', '/orders', { ...payload, requestKey: randomUUID(), quantity: 0.49 }, cookie)).status, 400);
+        const replay = await request('POST', '/orders', payload, cookie);
+        assert.equal(replay.status, 200);
+        assert.equal(replay.body.data.id, fractional.body.data.id);
+      } finally {
+        await pool.execute('UPDATE services SET customer_config=? WHERE id=? AND name=?', [
+          originalMetadata === null || typeof originalMetadata === 'string' ? originalMetadata : JSON.stringify(originalMetadata),
+          fixture.serviceId, fixtureName,
+        ]);
+      }
+    });
+
     await t.test('other customer cannot read, cancel, pay or review this booking', async () => {
       for (const [method, route, body] of [
         ['GET', `/orders/${order.id}`],
@@ -212,22 +271,97 @@ test('Customer API via real HTTP and approved local MySQL fixtures', { skip: !en
       await fixture.recordOrder(paymentOrder.id);
     });
 
-    await t.test('one rating on completed owned booking with a real assignment; duplicate review conflicts', async () => {
+    await t.test('one rating on completed owned booking with a real assignment; duplicate review conflicts', async (reviewContext) => {
       assert.equal((await request('POST', `/orders/${order.id}/reviews`, { rating: 5, comment: 'Not completed yet' }, cookie)).status, 422);
       const created = await request('POST', '/orders', bookingInput(fixture.serviceId, fixture.marker), cookie);
       assert.equal(created.status, 201);
       const completed = created.body.data;
       await fixture.recordOrder(completed.id);
       await fixture.completeOrder(completed.id, user.id);
+      await reviewContext.test('invalid review input never creates a review or consumes the completed booking', async () => {
+        for (const comment of ['', '   ', '\t\n', '\u00a0', null, 'x'.repeat(2001)]) {
+          const rejected = await request('POST', `/orders/${completed.id}/reviews`, { rating: 4, comment }, cookie);
+          assert.equal(rejected.status, 400);
+          assert.equal(rejected.body.error.code, 'INVALID_INPUT');
+          assert.ok(rejected.body.error.fields.comment);
+        }
+        for (const rating of [0, 6, 1.5, '4']) {
+          assert.equal((await request('POST', `/orders/${completed.id}/reviews`, { rating, comment: 'Valid comment' }, cookie)).status, 400);
+        }
+        const [reviews] = await pool.execute('SELECT COUNT(*) AS total FROM reviews WHERE booking_id=?', [completed.id]);
+        assert.equal(Number(reviews[0].total), 0);
+      });
       const review = { rating: 4, comment: `${fixture.marker} synthetic review` };
-      const result = await request('POST', `/orders/${completed.id}/reviews`, review, cookie);
+      const result = await request('POST', `/orders/${completed.id}/reviews`, { ...review, comment: '  ' + review.comment + '  ' }, cookie);
       assert.equal(result.status, 201);
       assert.equal(result.body.data.rating, 4);
+      assert.equal(result.body.data.comment, review.comment);
       assert.equal((await request('POST', `/orders/${completed.id}/reviews`, review, cookie)).status, 409);
       assert.equal((await request('POST', `/orders/${completed.id}/reviews`, { ...review, rating: 6 }, cookie)).status, 400);
       assert.equal((await request('GET', '/reviews', undefined, cookie)).body.data.total, 1);
       assert.equal((await request('GET', '/reviews', undefined, otherCookie)).body.data.total, 0);
       await fixture.recordOrder(completed.id);
+      const summary = await request('GET', `/reviews/service-summary?serviceId=${fixture.serviceId}`);
+      assert.equal(summary.status, 200);
+      assert.deepEqual(summary.body.data, { serviceId: fixture.serviceId, count: 1, averageRating: 4 });
+      assert.deepEqual(Object.keys(summary.body.data).sort(), ['averageRating', 'count', 'serviceId']);
+      assert.equal((await request('GET', '/reviews/service-summary?serviceId=bad')).status, 400);
+      const unknown = await request('GET', '/reviews/service-summary?serviceId=9223372036854775807');
+      assert.deepEqual(unknown.body.data, { serviceId: '9223372036854775807', count: 0, averageRating: null });
+      const internal = await fetch(`${stack.urls.order}/internal/v1/services/${fixture.serviceId}/completed-bookings`);
+      assert.ok([401, 403].includes(internal.status));
+      assert.equal((await fetch(`${stack.urls.gateway}/internal/v1/services/${fixture.serviceId}/completed-bookings`)).status, 404);
+      const orderUrl = stack.config.urls.order;
+      try {
+        stack.config.urls.order = 'http://127.0.0.1:1';
+        const unavailable = await request('GET', `/reviews/service-summary?serviceId=${fixture.serviceId}`);
+        assert.equal(unavailable.status, 503);
+        assert.ok(!('data' in unavailable.body), 'Dependency failure must not be represented as zero reviews.');
+      } finally { stack.config.urls.order = orderUrl; }
+    });
+
+    await t.test('Order filters apply ownership, service snapshots, Vietnam day boundaries, pagination and errors through Gateway', async () => {
+      const targetDay = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      const start = Date.parse(targetDay + 'T00:00:00+07:00');
+      const createdIds = [];
+      for (const time of [start - 1000, start, start + 86400000 - 1000, start + 86400000]) {
+        const result = await request('POST', '/orders', bookingInput(fixture.serviceId, fixture.marker), cookie);
+        assert.equal(result.status, 201);
+        await fixture.recordOrder(result.body.data.id);
+        // Historical snapshots can predate today's booking-slot policy.
+        await pool.execute('UPDATE bookings SET scheduled_start=?,scheduled_end=? WHERE id=? AND customer_id=?', [new Date(time), new Date(time + 7200000), result.body.data.id, user.id]);
+        createdIds.push(result.body.data.id);
+      }
+      const secondCustomer = await request('POST', '/orders', bookingInput(fixture.serviceId, fixture.marker), otherCookie);
+      assert.equal(secondCustomer.status, 201);
+      await fixture.recordOrder(secondCustomer.body.data.id);
+      await pool.execute('UPDATE bookings SET scheduled_start=?,scheduled_end=? WHERE id=? AND customer_id=?', [new Date(start), new Date(start + 7200000), secondCustomer.body.data.id, otherUser.id]);
+      const criteria = `from=${targetDay}&to=${targetDay}&serviceId=${fixture.serviceId}&status=pending&q=${encodeURIComponent(fixture.marker)}`;
+      const first = await request('GET', `/orders?${criteria}&sort=schedule-asc&limit=1&page=1`, undefined, cookie);
+      const second = await request('GET', `/orders?${criteria}&sort=schedule-asc&limit=1&page=2`, undefined, cookie);
+      assert.equal(first.status, 200); assert.equal(second.status, 200);
+      assert.equal(first.body.data.total, 2); assert.equal(second.body.data.total, 2);
+      assert.deepEqual([first.body.data.items[0].id, second.body.data.items[0].id], createdIds.slice(1, 3));
+      const descending = await request('GET', `/orders?${criteria}&sort=schedule-desc`, undefined, cookie);
+      assert.deepEqual(descending.body.data.items.map((item) => item.id), createdIds.slice(1, 3).reverse());
+      const byCode = await request('GET', '/orders?q=' + first.body.data.items[0].code, undefined, cookie);
+      assert.deepEqual(byCode.body.data.items.map((item) => item.id), [createdIds[1]]);
+      assert.equal((await request('GET', '/orders?q=' + encodeURIComponent("%' OR 1=1 --"), undefined, cookie)).body.data.total, 0);
+      assert.equal((await request('GET', '/orders?' + criteria)).status, 401);
+      const isolated = await request('GET', '/orders?' + criteria, undefined, otherCookie);
+      assert.deepEqual(isolated.body.data.items.map((item) => item.id), [secondCustomer.body.data.id]);
+      for (const query of ['from=2026-02-31', 'from=2026-11-10&to=2026-11-09', 'sort=DROP', 'status=ADMIN', 'serviceId=bad']) {
+        assert.equal((await request('GET', '/orders?' + query, undefined, cookie)).status, 400);
+      }
+      const fixtureName = fixture.marker + ' Service';
+      try {
+        await pool.execute('UPDATE services SET is_active=FALSE WHERE id=? AND name=?', [fixture.serviceId, fixtureName]);
+        const historical = await request('GET', '/orders?' + criteria, undefined, cookie);
+        assert.equal(historical.status, 200);
+        assert.equal(historical.body.data.total, 2, 'Order filters must use the saved items even if Catalog is inactive.');
+      } finally {
+        await pool.execute('UPDATE services SET is_active=TRUE WHERE id=? AND name=?', [fixture.serviceId, fixtureName]);
+      }
     });
 
     await t.test('Catalog dependency failure fails closed without a booking insert', async () => {

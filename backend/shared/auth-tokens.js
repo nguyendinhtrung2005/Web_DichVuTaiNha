@@ -25,12 +25,12 @@ export function createSigningKeys(config) {
   const kid = randomUUID();
   return { privateKey, kid, jwks: { keys: [{ ...publicKey.export({ format: 'jwk' }), use: 'sig', alg: 'RS256', kid }] } };
 }
-export function issueToken(keys, config, userId, sid, now = Math.floor(Date.now() / 1000)) {
+export function issueToken(keys, config, userId, sid, now = Math.floor(Date.now() / 1000), role = 'CUSTOMER') {
   const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
-  const unsigned = encode({ alg: 'RS256', typ: 'JWT', kid: keys.kid }) + '.' + encode({ sub: String(userId), role: 'CUSTOMER', sid, iss: config.issuer, aud: config.audience, iat: now, exp: now + config.sessionTtl });
+  const unsigned = encode({ alg: 'RS256', typ: 'JWT', kid: keys.kid }) + '.' + encode({ sub: String(userId), role, sid, iss: config.issuer, aud: config.audience, iat: now, exp: now + config.sessionTtl });
   return unsigned + '.' + sign('RSA-SHA256', Buffer.from(unsigned), keys.privateKey).toString('base64url');
 }
-export function verifyToken(token, jwks, config) {
+export function verifyToken(token, jwks, config, allowedRoles = ['CUSTOMER']) {
   try {
     if (typeof token !== 'string' || token.length > 8192) throw unauthorized();
     const parts = token.split('.');
@@ -41,7 +41,7 @@ export function verifyToken(token, jwks, config) {
     const key = jwks.keys.find((candidate) => candidate.kid === header.kid && candidate.kty === 'RSA' && candidate.alg === 'RS256' && candidate.use === 'sig');
     if (!key || !verify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), createPublicKey({ key, format: 'jwk' }), Buffer.from(parts[2], 'base64url'))) throw unauthorized();
     const now = Math.floor(Date.now() / 1000);
-    if (claims.iss !== config.issuer || claims.aud !== config.audience || claims.role !== 'CUSTOMER' ||
+    if (claims.iss !== config.issuer || claims.aud !== config.audience || !allowedRoles.includes(claims.role) ||
         !/^[1-9]\d{0,18}$/.test(claims.sub) || typeof claims.sid !== 'string' ||
         !Number.isInteger(claims.exp) || claims.exp <= now || !Number.isInteger(claims.iat) ||
         claims.iat > now + 30 || claims.exp <= claims.iat || claims.exp - claims.iat > config.sessionTtl) throw unauthorized();

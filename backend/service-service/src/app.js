@@ -11,13 +11,15 @@ function reservationInput(body) {
   if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 50) throw invalid('items', 'Đơn cần từ 1 đến 50 sản phẩm.');
   const seen = new Set();
   const items = body.items.map((item, index) => {
-    object(item, ['productId', 'quantity']);
+    object(item, ['productId', 'quantity', 'expectedUnitPrice']);
     const productId = id(item.productId, `items.${index}.productId`);
     const quantity = number(item.quantity, `items.${index}.quantity`, 1, 999);
     if (!Number.isInteger(quantity)) throw invalid(`items.${index}.quantity`, 'Số lượng phải là số nguyên.');
     if (seen.has(productId)) throw invalid('items', 'Không được lặp sản phẩm trong đơn.');
     seen.add(productId);
-    return { productId, quantity };
+    const expectedUnitPrice = number(item.expectedUnitPrice, `items.${index}.expectedUnitPrice`, 0, 9999999999.99);
+    if (Math.abs(expectedUnitPrice * 100 - Math.round(expectedUnitPrice * 100)) > 0.000001) throw invalid(`items.${index}.expectedUnitPrice`, 'Đơn giá có tối đa hai chữ số thập phân.');
+    return { productId, quantity, expectedUnitPrice };
   });
   return { operationKey, customerId: id(body.customerId, 'customerId'), items };
 }

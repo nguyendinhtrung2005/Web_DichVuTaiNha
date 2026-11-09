@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { HttpError } from '../../shared/http.js';
 import { checkCustomerBookingIdempotencySchema } from '../../shared/database-checks.js';
+import { checkProductPaymentSchema } from './product-payment-schema.js';
 
 const statuses = {
   PENDING: 'pending', CONFIRMED: 'confirmed', IN_PROGRESS: 'in_progress',
@@ -9,6 +10,9 @@ const statuses = {
 const statusLabels = {
   PENDING: 'Đơn chờ xác nhận', CONFIRMED: 'Đơn đã xác nhận', IN_PROGRESS: 'Đang thực hiện',
   COMPLETED: 'Hoàn thành dịch vụ', CANCELLED: 'Đơn đã hủy',
+};
+const assignmentStatuses = {
+  ASSIGNED: 'waiting', ACCEPTED: 'accepted', IN_PROGRESS: 'in_progress', COMPLETED: 'done', DONE: 'done',
 };
 const selectBooking = `SELECT id, customer_id, branch_id, address_snapshot,
   scheduled_start, scheduled_end, status, total_amount FROM bookings`;
@@ -129,6 +133,21 @@ async function loadOne(client, customerId, bookingId) {
   return (await hydrate(client, rows))[0] ?? null;
 }
 
+async function loadById(client, bookingId) {
+  const [rows] = await client.execute(`${selectBooking} WHERE id = ?`, [bookingId]);
+  return (await hydrate(client, rows))[0] ?? null;
+}
+
+function pendingCancellation(historyRows) {
+  let pending = false;
+  for (const row of historyRows) {
+    const event = noteEvent(row.note);
+    if (event?.type === 'CUSTOMER_CANCEL_REQUESTED') pending = true;
+    if (event?.type === 'CUSTOMER_CANCEL_RESOLVED') pending = false;
+  }
+  return pending;
+}
+
 function totals(service, quantity) {
   const cents = BigInt(Math.round(service.price * 100));
   const hundredths = BigInt(Math.round(quantity * 100));
@@ -147,6 +166,7 @@ export function bookingRequestHash(input) {
     contact: input.contact,
     scheduledAt: new Date(input.scheduledAt).toISOString(),
     specialRequest: input.specialRequest,
+    ...(input.expectedUnitPrice === undefined ? {} : { expectedUnitPrice: input.expectedUnitPrice }),
   };
   return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
 }
@@ -219,9 +239,11 @@ function productOrderDto(row, itemRows = []) {
     if (!item || typeof item.productId !== 'string' || !Number.isInteger(item.quantity) || item.quantity < 1) {
       throw new HttpError(503, 'INVALID_ORDER_DATA', 'Yêu cầu đơn mua sản phẩm chưa hợp lệ.');
     }
-    return { productId: item.productId, quantity: item.quantity };
+    return { productId: item.productId, quantity: item.quantity, ...(item.expectedUnitPrice === undefined ? {} : { expectedUnitPrice: item.expectedUnitPrice }) };
   });
   const total = row.total_amount === null ? null : Number(row.total_amount);
+  const paymentMethod = row.payment_method == null ? null : { CASH: 'cash', TRANSFER: 'transfer' }[row.payment_method];
+  if (row.payment_method != null && !paymentMethod) throw new HttpError(503, 'INVALID_ORDER_DATA', 'Phương thức thanh toán của đơn sản phẩm không hợp lệ.');
   const createdAt = iso(row.created_at), updatedAt = iso(row.updated_at);
   if (!createdAt || !updatedAt || (total !== null && (!Number.isFinite(total) || total < 0 || total > 9999999999.99))
     || (status === 'pending' && (total === null || Math.round(total * 100) !== items.reduce((sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity, 0)))) {
@@ -232,13 +254,14 @@ function productOrderDto(row, itemRows = []) {
     customerId: String(row.customer_id), status,
     items, contact,
     total, createdAt, updatedAt,
+    payment: paymentMethod ? { method: paymentMethod, status: status !== 'pending' ? 'not_started' : paymentMethod === 'cash' ? 'unpaid' : 'pending', simulated: true } : null,
     ...(row.error_code ? { errorCode: row.error_code } : {}),
   };
 }
 
 async function loadProductOrder(client, customerId, orderId) {
   const [rows] = await client.execute(
-    `SELECT id, customer_id, request_key, items_request, contact_snapshot, status, total_amount, error_code, created_at, updated_at
+    `SELECT product_orders.*
      FROM product_orders WHERE customer_id = ? AND id = ?`,
     [customerId, orderId],
   );
@@ -251,13 +274,18 @@ async function loadProductOrder(client, customerId, orderId) {
   return productOrderDto(rows[0], items);
 }
 
-function productRequestHash(contact, items) {
+function productRequestHash(contact, items, paymentMethod) {
   const normalized = [...items].sort((a, b) => BigInt(a.productId) < BigInt(b.productId) ? -1 : 1);
-  return createHash('sha256').update(JSON.stringify({ contact, items: normalized })).digest('hex');
+  return createHash('sha256').update(JSON.stringify({ contact, items: normalized, ...(paymentMethod === undefined ? {} : { paymentMethod }) })).digest('hex');
 }
 
 export function createRepository(pool) {
   let productSchemaReady;
+  let paymentSchemaReady;
+  const requireProductPaymentSchema = async () => {
+    if (!paymentSchemaReady) paymentSchemaReady = await checkProductPaymentSchema(pool);
+    if (!paymentSchemaReady) throw new HttpError(503, 'PRODUCT_PAYMENT_SCHEMA_NOT_READY', 'Chưa cấu hình thanh toán mô phỏng cho đơn sản phẩm. Cần migration 004 đã được owner duyệt.');
+  };
   let bookingRequestSchemaReady;
   const requireBookingRequestSchema = async () => {
     if (!bookingRequestSchemaReady) {
@@ -287,13 +315,224 @@ export function createRepository(pool) {
     }
   };
   return {
-    async list(customerId, { page, limit }) {
-      const [count] = await pool.execute('SELECT COUNT(*) AS total FROM bookings WHERE customer_id = ?', [customerId]);
-      const [rows] = await pool.query(`${selectBooking} WHERE customer_id = ? ORDER BY id DESC LIMIT ? OFFSET ?`,
-        [customerId, limit, (page - 1) * limit]);
+    async listStaffJobs(employeeId, { page, pageSize, status, fromUtc, toUtc, q = '', sort = 'schedule-asc' }) {
+      const assignmentQuery = `(
+        SELECT id, booking_id, status,
+               ROW_NUMBER() OVER (
+                 PARTITION BY booking_id
+                 ORDER BY CASE WHEN status = 'IN_PROGRESS' THEN 0 WHEN status IN ('COMPLETED', 'DONE') THEN 1 ELSE 2 END,
+                          assigned_at DESC, id DESC
+               ) AS rn
+        FROM assignments
+        WHERE employee_id = ? AND status NOT IN ('CANCELLED', 'REJECTED')
+      )`;
+      const conditions = ['staff_assignment.rn = 1'];
+      const values = [employeeId];
+      if (fromUtc) { conditions.push('b.scheduled_start >= ?'); values.push(fromUtc); }
+      if (toUtc) { conditions.push('b.scheduled_start < ?'); values.push(toUtc); }
+      if (q) {
+        const escaped = `%${q.replace(/[!%_]/g, (character) => `!${character}`)}%`;
+        conditions.push(`(CONCAT('DH', LPAD(CAST(b.id AS CHAR), GREATEST(6, CHAR_LENGTH(CAST(b.id AS CHAR))), '0')) LIKE ? ESCAPE '!'
+          OR EXISTS (SELECT 1 FROM booking_items bi WHERE bi.booking_id = b.id AND bi.service_name_snapshot LIKE ? ESCAPE '!'))`);
+        values.push(escaped, escaped);
+      }
+      if (status === 'in_progress') conditions.push("(b.status = 'IN_PROGRESS' OR staff_assignment.status = 'IN_PROGRESS')");
+      else if (status === 'waiting') conditions.push("staff_assignment.status = 'ASSIGNED'");
+      else if (status === 'accepted') conditions.push("staff_assignment.status = 'ACCEPTED'");
+      else if (status === 'done') conditions.push("staff_assignment.status IN ('COMPLETED', 'DONE')");
+      else if (status) { conditions.push('b.status = ?'); values.push(status.toUpperCase()); }
+      const from = ` FROM bookings b JOIN ${assignmentQuery} AS staff_assignment ON staff_assignment.booking_id = b.id`;
+      const where = ` WHERE ${conditions.join(' AND ')}`;
+      const sortSql = { 'schedule-asc': 'b.scheduled_start ASC, b.id ASC', 'schedule-desc': 'b.scheduled_start DESC, b.id DESC' }[sort];
+      if (!sortSql) throw new HttpError(400, 'INVALID_INPUT', 'Cách sắp xếp công việc không hợp lệ.');
+      const [counts] = await pool.execute(`SELECT COUNT(DISTINCT b.id) AS total${from}${where}`, values);
+      const [rows] = await pool.execute(
+        `SELECT b.id, b.customer_id, b.branch_id, b.address_snapshot, b.scheduled_start,
+                b.scheduled_end, b.status, b.total_amount, staff_assignment.status AS assignment_status
+         ${from}${where}
+         ORDER BY ${sortSql} LIMIT ? OFFSET ?`,
+        [...values, pageSize, (page - 1) * pageSize],
+      );
+      const orders = await hydrate(pool, rows);
+      return {
+        items: orders.map((order, index) => {
+          const jobStatus = assignmentStatuses[rows[index].assignment_status];
+          if (!jobStatus) throw new HttpError(503, 'UNSUPPORTED_ASSIGNMENT_STATUS', 'Trạng thái phân công chưa được hỗ trợ.');
+          return { ...order, jobStatus };
+        }),
+        total: Number(counts[0]?.total ?? 0), page, pageSize,
+      };
+    },
+    getById: (bookingId) => loadById(pool, bookingId),
+    async applyStaffTransition({ operationId, assignmentId, employeeId, bookingId, nextStatus }) {
+      const target = ({ accepted: 'ACCEPTED', in_progress: 'IN_PROGRESS', done: 'COMPLETED' })[nextStatus];
+      const from = ({ ACCEPTED: 'ASSIGNED', IN_PROGRESS: 'ACCEPTED', COMPLETED: 'IN_PROGRESS' })[target];
+      if (!target || !from) throw new HttpError(400, 'INVALID_INPUT', 'Trạng thái công việc không hợp lệ.');
+      const connection = await pool.getConnection();
+      let transaction = false;
+      try {
+        await connection.beginTransaction();
+        transaction = true;
+        const [operations] = await connection.execute(
+          `SELECT assignment_id AS assignmentId, employee_id AS employeeId, booking_id AS bookingId,
+                  from_status AS fromStatus, to_status AS toStatus, phase,
+                  result_snapshot AS resultSnapshot
+           FROM staff_assignment_transition_operations WHERE operation_id = ? FOR UPDATE`,
+          [operationId],
+        );
+        const operation = operations[0];
+        if (!operation || String(operation.assignmentId) !== String(assignmentId)
+          || String(operation.employeeId) !== String(employeeId) || String(operation.bookingId) !== String(bookingId)
+          || operation.fromStatus !== from || operation.toStatus !== target) {
+          throw new HttpError(409, 'TRANSITION_OPERATION_NOT_FOUND', 'Không tìm thấy thao tác chuyển trạng thái hợp lệ.');
+        }
+        if (operation.phase === 'COMPLETED') {
+          const snapshot = typeof operation.resultSnapshot === 'string' ? JSON.parse(operation.resultSnapshot) : operation.resultSnapshot;
+          await connection.commit();
+          transaction = false;
+          return snapshot;
+        }
+        if (operation.phase !== 'PENDING') throw new HttpError(409, 'TRANSITION_NOT_PENDING', 'Thao tác chuyển trạng thái không còn chờ xử lý.');
+        const [bookings] = await connection.execute(
+          'SELECT id, status FROM bookings WHERE id = ? FOR UPDATE',
+          [bookingId],
+        );
+        const booking = bookings[0];
+        if (!booking) throw new HttpError(404, 'ORDER_NOT_FOUND', 'Không tìm thấy đơn dịch vụ.');
+        const [employees] = await connection.execute('SELECT user_id FROM employees WHERE id = ?', [employeeId]);
+        if (!employees[0]) throw new HttpError(404, 'STAFF_ACCOUNT_NOT_FOUND', 'Không tìm thấy hồ sơ nhân viên.');
+        const [assignments] = await connection.execute(
+          `SELECT status FROM assignments
+           WHERE id = ? AND booking_id = ? AND employee_id = ? FOR UPDATE`,
+          [assignmentId, bookingId, employeeId],
+        );
+        if (!assignments[0] || assignments[0].status !== from) {
+          throw new HttpError(409, 'INVALID_JOB_TRANSITION', 'Trạng thái công việc đã thay đổi.');
+        }
+        const [history] = await connection.execute(
+          `SELECT note FROM booking_status_history WHERE booking_id = ? ORDER BY created_at, id`,
+          [bookingId],
+        );
+        let orderStatus = statuses[booking.status];
+        if (!orderStatus) throw new HttpError(503, 'UNSUPPORTED_ORDER_STATUS', 'Trạng thái đơn chưa được hỗ trợ.');
+        if (booking.status === 'CANCELLED') {
+          throw new HttpError(409, 'ORDER_CANCELLED', 'Đơn đã bị hủy; không thể cập nhật công việc.');
+        }
+        if (target === 'IN_PROGRESS') {
+          if (pendingCancellation(history)) {
+            throw new HttpError(409, 'CANCELLATION_PENDING', 'Đơn có yêu cầu hủy đang chờ xử lý.');
+          }
+          if (booking.status !== 'CONFIRMED') {
+            throw new HttpError(409, 'ORDER_NOT_READY', 'Chỉ đơn đã xác nhận mới có thể bắt đầu thực hiện.');
+          }
+          await connection.execute("UPDATE bookings SET status = 'IN_PROGRESS' WHERE id = ?", [bookingId]);
+          await connection.execute(
+            `INSERT INTO booking_status_history (booking_id, changed_by, status, note)
+             VALUES (?, ?, 'IN_PROGRESS', '')`,
+            [bookingId, employees[0].user_id],
+          );
+          orderStatus = 'in_progress';
+        } else if (target === 'COMPLETED') {
+          if (booking.status !== 'IN_PROGRESS') {
+            throw new HttpError(409, 'ORDER_NOT_IN_PROGRESS', 'Đơn không ở trạng thái đang thực hiện.');
+          }
+          const [remaining] = await connection.execute(
+            `SELECT COUNT(*) AS total FROM assignments
+             WHERE booking_id = ? AND id <> ? AND status NOT IN ('COMPLETED', 'DONE', 'CANCELLED', 'REJECTED')`,
+            [bookingId, assignmentId],
+          );
+          if (Number(remaining[0]?.total) === 0) {
+            await connection.execute("UPDATE bookings SET status = 'COMPLETED' WHERE id = ?", [bookingId]);
+            await connection.execute(
+              `INSERT INTO booking_status_history (booking_id, changed_by, status, note)
+               VALUES (?, ?, 'COMPLETED', '')`,
+              [bookingId, employees[0].user_id],
+            );
+            orderStatus = 'completed';
+          }
+        }
+        const result = { bookingId: String(bookingId), orderStatus };
+        await connection.execute(
+          `UPDATE staff_assignment_transition_operations
+           SET phase = 'COMPLETED', result_snapshot = ?
+           WHERE operation_id = ? AND phase = 'PENDING'`,
+          [JSON.stringify(result), operationId],
+        );
+        await connection.commit();
+        transaction = false;
+        return result;
+      } catch (error) {
+        if (transaction) await connection.rollback().catch(() => {});
+        throw error;
+      } finally {
+        connection.release();
+      }
+    },
+    async serviceOrderReport({ from, to, status, fromUtc, toUtc }) {
+      const conditions = [];
+      const values = [];
+      if (fromUtc) { conditions.push('created.created_at >= ?'); values.push(fromUtc); }
+      if (toUtc) { conditions.push('created.created_at < ?'); values.push(toUtc); }
+      if (status) { conditions.push('bookings.status = ?'); values.push(status.toUpperCase()); }
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+      const [rows] = await pool.execute(
+        `SELECT bookings.status AS status, COUNT(*) AS total
+         FROM bookings
+         INNER JOIN (
+           SELECT booking_id, MIN(created_at) AS created_at
+           FROM booking_status_history
+           GROUP BY booking_id
+         ) AS created ON created.booking_id = bookings.id
+         ${where}
+         GROUP BY bookings.status`,
+        values,
+      );
+      const statusCounts = { pending: 0, confirmed: 0, in_progress: 0, completed: 0, cancelled: 0 };
+      let total = 0;
+      for (const row of rows) {
+        const key = statuses[row.status];
+        const count = Number(row.total);
+        if (!key || !Number.isSafeInteger(count) || count < 0) {
+          throw new HttpError(503, 'UNSUPPORTED_ORDER_STATUS', 'Không thể tổng hợp trạng thái đơn dịch vụ.');
+        }
+        statusCounts[key] = count;
+        total += count;
+      }
+      if (!Number.isSafeInteger(total)) throw new HttpError(503, 'REPORT_LIMIT_EXCEEDED', 'Số lượng đơn vượt giới hạn báo cáo.');
+      return { from, to, generatedAt: new Date().toISOString(), total, statusCounts };
+    },
+    async list(customerId, { page, limit, q = '', serviceId, status, fromUtc, toUtc, sort = 'newest' }) {
+      const conditions = ['customer_id = ?'];
+      const values = [customerId];
+      if (q) {
+        const escaped = `%${q.replace(/[!%_]/g, (character) => `!${character}`)}%`;
+        conditions.push(`(CONCAT('DH', LPAD(CAST(bookings.id AS CHAR), GREATEST(6, CHAR_LENGTH(CAST(bookings.id AS CHAR))), '0')) LIKE ? ESCAPE '!'
+          OR EXISTS (SELECT 1 FROM booking_items bi WHERE bi.booking_id = bookings.id AND bi.service_name_snapshot LIKE ? ESCAPE '!'))`);
+        values.push(escaped, escaped);
+      }
+      if (serviceId) {
+        conditions.push('EXISTS (SELECT 1 FROM booking_items bi WHERE bi.booking_id = bookings.id AND bi.service_id = ?)');
+        values.push(serviceId);
+      }
+      if (status) { conditions.push('status = ?'); values.push(status.toUpperCase()); }
+      if (fromUtc) { conditions.push('scheduled_start >= ?'); values.push(fromUtc); }
+      if (toUtc) { conditions.push('scheduled_start < ?'); values.push(toUtc); }
+      const sortSql = { newest: 'id DESC', oldest: 'id ASC', 'schedule-asc': 'scheduled_start ASC, id ASC', 'schedule-desc': 'scheduled_start DESC, id DESC' }[sort];
+      if (!sortSql) throw new HttpError(400, 'INVALID_INPUT', 'Cách sắp xếp không hợp lệ.');
+      const where = ` WHERE ${conditions.join(' AND ')}`;
+      const [count] = await pool.execute(`SELECT COUNT(*) AS total FROM bookings${where}`, values);
+      const [rows] = await pool.query(`${selectBooking}${where} ORDER BY ${sortSql} LIMIT ? OFFSET ?`,
+        [...values, limit, (page - 1) * limit]);
       return { items: await hydrate(pool, rows), total: Number(count[0].total), page, limit };
     },
     get: (customerId, bookingId) => loadOne(pool, customerId, bookingId),
+    async completedServiceBookings(serviceId, { page, limit }) {
+      const where = ` WHERE status = 'COMPLETED' AND EXISTS
+        (SELECT 1 FROM booking_items bi WHERE bi.booking_id = bookings.id AND bi.service_id = ?)`;
+      const [count] = await pool.execute(`SELECT COUNT(*) AS total FROM bookings${where}`, [serviceId]);
+      const [rows] = await pool.query(`SELECT id FROM bookings${where} ORDER BY id ASC LIMIT ? OFFSET ?`, [serviceId, limit, (page - 1) * limit]);
+      return { items: rows.map((row) => ({ id: String(row.id) })), total: Number(count[0].total), page, limit };
+    },
     async getByRequestKey(customerId, input) {
       if (!input.requestKey) return null;
       await requireBookingRequestSchema();
@@ -392,7 +631,8 @@ export function createRepository(pool) {
     },
     async createProductOrder(customerId, input) {
       await requireProductOrderSchema();
-      const requestHash = productRequestHash(input.contact, input.items);
+      if (input.paymentMethod !== undefined) await requireProductPaymentSchema();
+      const requestHash = productRequestHash(input.contact, input.items, input.paymentMethod);
       const connection = await pool.getConnection();
       const lock = { locked: false, uncertain: false };
       let transaction = false;
@@ -414,10 +654,14 @@ export function createRepository(pool) {
           transaction = false;
           return order;
         }
+        if (input.items.some((item) => item.expectedUnitPrice === undefined)) {
+          throw new HttpError(400, 'PRICE_CONFIRMATION_REQUIRED', 'Vui lòng xem đơn giá và xác nhận lại trước khi tạo đơn sản phẩm.');
+        }
+        if (!['cash', 'transfer'].includes(input.paymentMethod)) throw new HttpError(400, 'PAYMENT_METHOD_REQUIRED', 'Chọn phương thức thanh toán trước khi tạo đơn sản phẩm.');
         const [result] = await connection.execute(
-          `INSERT INTO product_orders (customer_id, request_key, request_hash, items_request, contact_snapshot, status)
-           VALUES (?, ?, ?, ?, ?, 'PROCESSING')`,
-          [customerId, input.requestKey, requestHash, JSON.stringify(input.items), JSON.stringify(input.contact)],
+          `INSERT INTO product_orders (customer_id, request_key, request_hash, items_request, contact_snapshot, status, payment_method)
+           VALUES (?, ?, ?, ?, ?, 'PROCESSING', ?)`,
+          [customerId, input.requestKey, requestHash, JSON.stringify(input.items), JSON.stringify(input.contact), input.paymentMethod.toUpperCase()],
         );
         const order = await loadProductOrder(connection, customerId, result.insertId);
         if (!order) throw new HttpError(503, 'INVALID_ORDER_DATA', 'Không thể xác nhận đơn mua sản phẩm vừa tạo.');
@@ -447,7 +691,7 @@ export function createRepository(pool) {
       await requireProductOrderSchema();
       const [count] = await pool.execute('SELECT COUNT(*) AS total FROM product_orders WHERE customer_id = ?', [customerId]);
       const [rows] = await pool.query(
-        `SELECT id, customer_id, request_key, items_request, contact_snapshot, status, total_amount, error_code, created_at, updated_at
+        `SELECT product_orders.*
          FROM product_orders WHERE customer_id = ? ORDER BY id DESC LIMIT ? OFFSET ?`,
         [customerId, limit, (page - 1) * limit],
       );
@@ -491,7 +735,7 @@ export function createRepository(pool) {
         await connection.beginTransaction();
         transaction = true;
         const [rows] = await connection.execute(
-          `SELECT id, customer_id, request_key, items_request, contact_snapshot, status, total_amount, error_code, created_at, updated_at
+          `SELECT product_orders.*
            FROM product_orders WHERE customer_id = ? AND id = ? FOR UPDATE`,
           [customerId, orderId],
         );
@@ -518,6 +762,7 @@ export function createRepository(pool) {
           const item = snapshots[index];
           const priceCents = Math.round(Number(item.unitPrice) * 100);
           if (String(item.productId) !== String(expected[index].productId) || item.quantity !== expected[index].quantity
+            || (expected[index].expectedUnitPrice !== undefined && priceCents !== Math.round(expected[index].expectedUnitPrice * 100))
             || typeof item.code !== 'string' || typeof item.name !== 'string' || typeof item.unit !== 'string'
             || !Number.isSafeInteger(priceCents) || priceCents < 0
             || Math.abs(Number(item.unitPrice) * 100 - priceCents) > 0.001) {
@@ -584,11 +829,11 @@ export function createRepository(pool) {
         await connection.beginTransaction();
         transaction = true;
         const [rows] = await connection.execute(
-          `SELECT id, status FROM product_orders WHERE customer_id = ? AND id = ? FOR UPDATE`,
+          `SELECT id, status, error_code FROM product_orders WHERE customer_id = ? AND id = ? FOR UPDATE`,
           [customerId, orderId],
         );
         if (!rows[0]) throw new HttpError(404, 'PRODUCT_ORDER_NOT_FOUND', 'Không tìm thấy đơn mua sản phẩm.');
-        if (rows[0].status === 'FAILED') {
+        if (rows[0].status === 'FAILED' && !['PRICE_CHANGED', 'PRICE_CONFIRMATION_REQUIRED'].includes(rows[0].error_code)) {
           await connection.execute(
             `UPDATE product_orders SET status = 'PROCESSING', error_code = NULL WHERE id = ? AND customer_id = ?`,
             [orderId, customerId],

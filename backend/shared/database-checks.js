@@ -23,7 +23,7 @@ export async function checkCustomerBookingIdempotencySchema(pool) {
     ['bookings', 'customer_request_key', 'customer_request_hash'],
   );
   const [indexes] = await pool.execute(
-    `SELECT index_name, non_unique, GROUP_CONCAT(column_name ORDER BY seq_in_index SEPARATOR ',') AS columns_in_order
+    `SELECT index_name AS indexName, non_unique AS nonUnique, GROUP_CONCAT(column_name ORDER BY seq_in_index SEPARATOR ',') AS columnsInOrder
      FROM information_schema.statistics
      WHERE table_schema=DATABASE() AND table_name=? AND index_name=?
      GROUP BY index_name, non_unique`,
@@ -40,8 +40,8 @@ export async function checkCustomerBookingIdempotencySchema(pool) {
   );
   return Number(columns[0]?.present) === 2
     && indexes.length === 1
-    && Number(indexes[0].non_unique) === 0
-    && indexes[0].columns_in_order === 'customer_id,customer_request_key'
+    && Number(indexes[0].nonUnique) === 0
+    && indexes[0].columnsInOrder === 'customer_id,customer_request_key'
     && constraints.length === 1
     && normalizeCheckClause(constraints[0].checkClause) === bookingRequestCheckClause;
 }

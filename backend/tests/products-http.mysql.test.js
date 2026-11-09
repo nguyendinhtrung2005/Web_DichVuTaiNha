@@ -48,7 +48,7 @@ test('Services/products via real HTTP services and approved MySQL fixtures', { s
     const account = fixture.account('Products'), other = fixture.account('OtherProducts');
     let cookie, otherCookie, userId, otherId;
     const contact = { name: fixture.marker + ' Purchase contact', phone: account.phone, note: 'Synthetic test; no shipment/payment.' };
-    const purchase = (productId = fixture.productId, quantity = 1, requestKey = randomUUID()) => ({ requestKey, items: [{ productId, quantity }], contact });
+    const purchase = (productId = fixture.productId, quantity = 1, requestKey = randomUUID()) => ({ requestKey, items: [{ productId, quantity, expectedUnitPrice: productId === fixture.lastStockProductId ? 7000 : 42000 }], contact, paymentMethod: 'cash' });
     const stock = async (productId) => {
       const [rows] = await pool.execute('SELECT quantity,reserved_quantity FROM product_inventory WHERE product_id=?', [productId]);
       return { quantity: Number(rows[0].quantity), reserved: Number(rows[0].reserved_quantity) };
@@ -190,7 +190,7 @@ test('Services/products via real HTTP services and approved MySQL fixtures', { s
         assert.equal(result.body.data.total, null);
       }
       const mixed = purchase();
-      mixed.items.push({ productId: fixture.outOfStockProductId, quantity: 1 });
+      mixed.items.push({ productId: fixture.outOfStockProductId, quantity: 1, expectedUnitPrice: 42000 });
       const result = await remember(await request('POST', '/product-orders', mixed, cookie));
       assert.equal(result.body.data.status, 'failed');
       assert.equal((await stock(fixture.productId)).reserved, before.reserved);
@@ -252,15 +252,41 @@ test('Services/products via real HTTP services and approved MySQL fixtures', { s
     await t.test('service booking remains separate and does not add optional products', async () => {
       const before = await stock(fixture.productId);
       const result = await request('POST', '/orders', {
-        serviceId: fixture.roomServiceId, quantity: 1,
+        serviceId: fixture.roomServiceId, quantity: 1, expectedUnitPrice: 125000,
         contact: { name: account.name, phone: account.phone, address: fixture.marker + ' service booking address', houseType: 'can-ho', area: 30, rooms: 1, floors: 1, hasPets: false },
-        scheduledAt: new Date(Date.now() + 3 * 86400000).toISOString(), specialRequest: 'Service only, no optional product.',
+        scheduledAt: new Date(new Date(Date.now() + 3 * 86400000).setUTCHours(2, 0, 0, 0)).toISOString(), specialRequest: 'Service only, no optional product.',
       }, cookie);
       assert.equal(result.status, 201);
       await fixture.recordOrder(result.body.data.id);
       assert.equal(result.body.data.price, 125000);
       assert.equal('productId' in result.body.data, false);
       assert.equal((await stock(fixture.productId)).reserved, before.reserved);
+    });
+    await t.test('checkout records both simulated payment choices atomically and never trusts client payment status or amount', async () => {
+      await fixture.setAvailableStock(fixture.productId, 4);
+      for (const paymentMethod of ['cash', 'transfer']) {
+        const input = { ...purchase(), paymentMethod };
+        const result = await remember(await request('POST', '/product-orders', input, cookie));
+        assert.equal(result.body.data.status, 'pending');
+        assert.deepEqual(result.body.data.payment, { method: paymentMethod, status: paymentMethod === 'cash' ? 'unpaid' : 'pending', simulated: true });
+        const reloaded = await request('GET', '/product-orders/' + result.body.data.id, undefined, cookie);
+        assert.deepEqual(reloaded.body.data.payment, result.body.data.payment);
+        assert.equal((await remember(await request('POST', '/product-orders', input, cookie))).body.data.id, result.body.data.id);
+        const changed = await request('POST', '/product-orders', { ...input, paymentMethod: paymentMethod === 'cash' ? 'transfer' : 'cash' }, cookie);
+        assert.equal(changed.status, 409);
+        assert.equal(changed.body.error.code, 'REQUEST_KEY_REUSED');
+        const [rows] = await pool.execute('SELECT payment_method FROM product_orders WHERE id=? AND customer_id=?', [result.body.data.id, userId]);
+        assert.equal(rows[0].payment_method, paymentMethod.toUpperCase());
+      }
+      const before = await ownedCount('product_orders');
+      for (const patch of [{ paymentMethod: undefined }, { paymentMethod: 'card' }, { paymentMethod: null }, { payment: { status: 'paid' } }, { amount: 1 }, { status: 'PAID' }]) {
+        const rejected = await request('POST', '/product-orders', { ...purchase(), ...patch }, cookie);
+        assert.equal(rejected.status, 400);
+      }
+      assert.equal(await ownedCount('product_orders'), before);
+      const failing = await remember(await request('POST', '/product-orders', { ...purchase(), paymentMethod: 'transfer', items: [{ productId: fixture.productId, quantity: 1, expectedUnitPrice: 1 }] }, cookie));
+      assert.equal(failing.body.data.status, 'failed');
+      assert.equal(failing.body.data.payment.status, 'not_started');
     });
   } finally {
     if (stack) await stack.close();

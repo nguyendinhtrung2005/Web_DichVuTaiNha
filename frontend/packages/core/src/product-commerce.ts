@@ -1,17 +1,18 @@
 "use client"
 
 import { ApiError, apiRequest } from "./api-client"
-import { allCustomerPages, customerRequestError } from "./customer-api-store"
-import type { Product, ProductCartItem, ProductOrder } from "./types"
+import { allCustomerPages, captureCustomerSession, isCustomerSessionCurrent, customerRequestError } from "./customer-api-store"
+import type { Product, ProductCartItem, ProductOrder, PaymentMethod } from "./types"
 
 export type ProductContact = ProductOrder["contact"]
 export type PendingProductPurchase = {
   customerId: string
   requestKey: string
-  items: ProductCartItem[]
+  items: (ProductCartItem & { expectedUnitPrice: number })[]
   contact: ProductContact
+  paymentMethod?: PaymentMethod
 }
-type PrivatePendingPurchase = PendingProductPurchase & { signature: string; lineTokens: Record<string, number>; generation: number }
+type PrivatePendingPurchase = PendingProductPurchase & { signature: string; lineTokens: Record<string, number>; generation: number; orderId?: string }
 export type ProductPurchaseStatus = { pending: PendingProductPurchase | null; busy: boolean }
 const emptyCart: ProductCartItem[] = []
 const emptyPurchase: ProductPurchaseStatus = { pending: null, busy: false }
@@ -27,7 +28,7 @@ const listeners = new Set<() => void>()
 const purchaseListeners = new Set<() => void>()
 const emitCart = () => listeners.forEach((listener) => listener())
 function emitPurchase() {
-  purchaseStatus = { pending: pendingRequest ? { customerId: pendingRequest.customerId, requestKey: pendingRequest.requestKey, items: pendingRequest.items, contact: pendingRequest.contact } : null, busy: Boolean(inFlight) }
+  purchaseStatus = { pending: pendingRequest ? { customerId: pendingRequest.customerId, requestKey: pendingRequest.requestKey, items: pendingRequest.items, contact: pendingRequest.contact, paymentMethod: pendingRequest.paymentMethod } : null, busy: Boolean(inFlight) }
   purchaseListeners.forEach((listener) => listener())
 }
 export const getProductCartSnapshot = () => cart
@@ -102,6 +103,10 @@ function validateOrder(order: ProductOrder): ProductOrder {
   if (!order || typeof order.id !== "string" || typeof order.customerId !== "string" || !["processing", "pending", "failed"].includes(order.status) || !Array.isArray(order.items)) {
     throw new ApiError("API trả kết quả đơn sản phẩm không hợp lệ.", 502, "INVALID_RESPONSE")
   }
+  if (order.payment && (!['cash', 'transfer'].includes(order.payment.method) || order.payment.simulated !== true
+    || order.payment.status !== (order.status !== 'pending' ? 'not_started' : order.payment.method === 'cash' ? 'unpaid' : 'pending'))) {
+    throw new ApiError("API trả trạng thái thanh toán mô phỏng không hợp lệ.", 502, "INVALID_RESPONSE")
+  }
   return order
 }
 export async function getProduct(id: string, signal?: AbortSignal) {
@@ -116,34 +121,54 @@ export async function getProducts(filters: { q?: string; category?: string; serv
   return items.map(validateProduct)
 }
 export async function getProductOrders() {
-  try { return (await allCustomerPages<ProductOrder>("/product-orders")).map(validateOrder) }
-  catch (error) { customerRequestError(error); throw error }
+  return productSessionRequest(async () => (await allCustomerPages<ProductOrder>("/product-orders")).map(validateOrder))
 }
 export async function getProductOrder(id: string) {
-  try { return validateOrder(await apiRequest<ProductOrder>("/product-orders/" + encodeURIComponent(id))) }
-  catch (error) { customerRequestError(error); throw error }
+  const order = await productSessionRequest(async () => validateOrder(await apiRequest<ProductOrder>("/product-orders/" + encodeURIComponent(id))))
+  settleKnownPurchase(order)
+  return order
 }
 export async function retryProductOrder(id: string) {
-  try { return validateOrder(await apiRequest<ProductOrder>("/product-orders/" + encodeURIComponent(id) + "/retry", { method: "POST", body: "{}" })) }
-  catch (error) { customerRequestError(error); throw error }
+  const order = await productSessionRequest(async () => validateOrder(await apiRequest<ProductOrder>("/product-orders/" + encodeURIComponent(id) + "/retry", { method: "POST", body: "{}" })))
+  settleKnownPurchase(order)
+  return order
+}
+function settleKnownPurchase(order: ProductOrder) {
+  const request = pendingRequest
+  if (!request || request.orderId !== order.id || owner !== order.customerId || generation !== request.generation) return
+  if (order.status === "processing") return
+  pendingRequest = null
+  if (order.status === "pending") removeConfirmedItems(request)
+  emitPurchase()
+}
+async function productSessionRequest<T>(load: () => Promise<T>): Promise<T> {
+  const scope = captureCustomerSession()
+  try {
+    const result = await load()
+    if (!isCustomerSessionCurrent(scope)) throw new ApiError("Phiên đã thay đổi. Vui lòng tải lại đơn trong tài khoản hiện tại.", 409, "SESSION_CHANGED")
+    return result
+  } catch (error) { if (isCustomerSessionCurrent(scope)) customerRequestError(error, scope); throw error }
 }
 function submitPurchase(request: PrivatePendingPurchase): Promise<ProductOrder> {
   if (inFlight) return inFlight
+  const scope = captureCustomerSession()
   const task = (async () => {
     try {
       const order = validateOrder(await apiRequest<ProductOrder>("/product-orders", {
         method: "POST",
-        body: JSON.stringify({ requestKey: request.requestKey, items: request.items, contact: request.contact }),
+        body: JSON.stringify({ requestKey: request.requestKey, items: request.items, contact: request.contact, paymentMethod: request.paymentMethod }),
       }))
-      if (generation !== request.generation || owner !== request.customerId) throw new ApiError("Tài khoản đã thay đổi. Vui lòng kiểm tra đơn trong đúng tài khoản.", 401, "SESSION_CHANGED")
+      if (generation !== request.generation || owner !== request.customerId || !isCustomerSessionCurrent(scope)) throw new ApiError("Tài khoản đã thay đổi. Vui lòng kiểm tra đơn trong đúng tài khoản.", 409, "SESSION_CHANGED")
       if (order.customerId !== request.customerId) throw new ApiError("API trả đơn không thuộc tài khoản hiện tại.", 502, "INVALID_RESPONSE")
-      if (pendingRequest === request) pendingRequest = null
-      if (order.status === "pending" || order.status === "processing") removeConfirmedItems(request)
+      // Keep selections and the exact recovery request until inventory/price is known.
+      // A later PRICE_CHANGED must not strand the shopper with an empty cart.
+      request.orderId = order.id
+      settleKnownPurchase(order)
       return order
     } catch (error) {
       if (generation === request.generation && owner === request.customerId) {
-        if (error instanceof ApiError && [400, 401, 403, 422].includes(error.status) && pendingRequest === request) pendingRequest = null
-        customerRequestError(error)
+        if (error instanceof ApiError && ([400, 401, 403, 422].includes(error.status) || error.code === "PRICE_CHANGED") && pendingRequest === request) pendingRequest = null
+        customerRequestError(error, scope)
       }
       throw error
     } finally {
@@ -155,18 +180,23 @@ function submitPurchase(request: PrivatePendingPurchase): Promise<ProductOrder> 
   emitPurchase()
   return task
 }
-export async function createProductOrder(contact: ProductContact, customerId: string): Promise<ProductOrder> {
+export async function createProductOrder(contact: ProductContact, customerId: string, confirmedPrices: Readonly<Record<string, number>>, paymentMethod: PaymentMethod = "cash"): Promise<ProductOrder> {
   if (!customerId || owner !== customerId) throw new ApiError("Vui lòng đăng nhập lại trước khi đặt sản phẩm.", 401, "UNAUTHENTICATED")
   if (!cart.length) throw new ApiError("Giỏ hàng đang trống.", 400, "EMPTY_CART")
-  const items = cart.map(({ productId, quantity }) => ({ productId, quantity })).sort((left, right) => left.productId.localeCompare(right.productId))
-  const signature = JSON.stringify({ items, contact })
+  if (!["cash", "transfer"].includes(paymentMethod)) throw new ApiError("Vui lòng chọn phương thức thanh toán.", 400, "PAYMENT_METHOD_REQUIRED")
+  const items = cart.map(({ productId, quantity }) => {
+    const expectedUnitPrice = confirmedPrices?.[productId]
+    if (!Number.isFinite(expectedUnitPrice) || expectedUnitPrice < 0 || expectedUnitPrice > 9999999999.99 || Math.abs(expectedUnitPrice * 100 - Math.round(expectedUnitPrice * 100)) > 0.000001) throw new ApiError("Vui lòng tải đơn giá và xác nhận lại giỏ hàng.", 400, "PRICE_CONFIRMATION_REQUIRED")
+    return { productId, quantity, expectedUnitPrice }
+  }).sort((left, right) => left.productId.localeCompare(right.productId))
+  const signature = JSON.stringify({ items, contact, paymentMethod })
   if (pendingRequest) {
     if (pendingRequest.signature !== signature) throw new ApiError("Yêu cầu trước chưa xác nhận được. Dùng nút kiểm tra yêu cầu đã gửi bên trên trước khi tạo đơn mới.", 409, "ORDER_RECOVERY_REQUIRED")
     return submitPurchase(pendingRequest)
   }
   if (inFlight) throw new ApiError("Yêu cầu trước đang kết thúc. Vui lòng thử lại sau.", 409, "ORDER_BUSY")
   pendingRequest = {
-    customerId, requestKey: crypto.randomUUID(), items, contact: { ...contact }, signature,
+    customerId, requestKey: crypto.randomUUID(), items, contact: { ...contact }, paymentMethod, signature,
     lineTokens: Object.fromEntries(items.map((item) => [item.productId, lineTokens.get(item.productId)!])),
     generation,
   }

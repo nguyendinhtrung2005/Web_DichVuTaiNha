@@ -1,8 +1,14 @@
 # CleanHome Customer API
 
-Customer now calls real Node.js services through the API Gateway. Business services use MySQL pools and internal HTTP calls with caller credentials; the Gateway never accesses the database. The task adds Customer APIs and only two read-only Staff dependency endpoints. Staff/Admin websites keep their existing independent demos.
+Bảng đối chiếu 8 Use Case, file thay đổi, API và kết quả kiểm thử ngày 07/11/2026: [Customer Use Case verification](docs/customer-use-case-verification.md).
+
+Customer uses real Node.js services through the API Gateway. Staff/Admin login uses backend portal authentication, the Admin service-order status report reads MySQL, and the Staff job list/detail use assigned bookings from the backend. Staff status transitions are implemented with a shared operation journal but fail closed until migration 005 is manually applied. Other Admin screens and Staff dashboard/calendar/profile still use demo state. Product purchases remain separate from the service-order report. Business services use MySQL pools and internal HTTP calls with caller credentials; the Gateway never accesses the database. See [the approved local integration contract](docs/admin-staff-order-integration-draft.md) for scope and remaining verification.
 
 ## Chạy Customer local
+
+Các sửa logic đặt lại dịch vụ, phiên, lỗi đăng ký, retry và validation được ghi tại [báo cáo sửa logic Customer](docs/customer-logic-fixes.md). Lượt sửa này không cần migration/seed hoặc cấu hình runtime mới.
+
+Cập nhật 06/11/2026: migration 003 và bộ dữ liệu `[DEMO]` đã được duyệt/áp dụng riêng trên MySQL local. Chi nhánh mặc định đã cấu hình trong `.env` riêng; cần khởi động lại backend để nhận cấu hình. Không chạy lại seed để nạp tồn. Xem [kế hoạch dữ liệu minh họa](docs/customer-local-demo.md) và [báo cáo kiểm chứng Customer](docs/customer-ux-verification.md).
 
 Yêu cầu Node.js 22.9+ (đã kiểm chứng trên Node 24.21), MySQL 8.0+, dependency frontend/backend đã cài.
 
@@ -14,7 +20,7 @@ Terminal backend, tại thư mục backend:
     npm.cmd run check:db
     npm.cmd run start:customer
 
-Giữ nguyên DB credentials trong file riêng .env. Điền CUSTOMER_DEFAULT_BRANCH_ID bằng ID chi nhánh ACTIVE do owner Staff cung cấp; không đoán ID. Database trống sẽ trả catalog rỗng thật, và đặt lịch chưa thực hiện được khi chưa có dịch vụ/chi nhánh. Dữ liệu fixture kiểm thử được dọn sau mỗi lần chạy, không để lại làm seed demo. Staff/Admin demo không cung cấp dữ liệu vào MySQL.
+Giữ nguyên DB credentials trong file riêng .env. Điền CUSTOMER_DEFAULT_BRANCH_ID bằng ID chi nhánh ACTIVE do owner Staff cung cấp; không đoán ID. Đặt `STAFF_ORIGIN` và `ADMIN_ORIGIN` khớp origin trình duyệt tương ứng. Database trống sẽ trả catalog rỗng thật, và đặt lịch chưa thực hiện được khi chưa có dịch vụ/chi nhánh. Dữ liệu fixture kiểm thử được dọn sau mỗi lần chạy, không để lại làm seed demo.
 
 Terminal frontend, tại thư mục frontend:
 
@@ -23,9 +29,21 @@ Terminal frontend, tại thư mục frontend:
 
 Mở http://localhost:3001. NEXT_PUBLIC_API_URL dùng http://localhost:4000/api/v1; CUSTOMER_ORIGIN phải khớp origin trình duyệt. Giữ localhost thống nhất cho frontend/gateway. Biến NEXT_PUBLIC không chứa secret và được Next.js đóng vào bản build.
 
+Để chạy Portal, mở thêm terminal trong `frontend` và chạy `npm.cmd run dev:staff` hoặc `npm.cmd run dev:admin` (cổng 3002/3003). `STAFF_ORIGIN`/`ADMIN_ORIGIN` trong backend phải trùng origin thực tế.
+
+Portal Admin yêu cầu một tài khoản `ADMIN` ACTIVE có sẵn trong MySQL local. Script `node --env-file-if-exists=.env scripts/create-local-admin.js` chỉ là provisioning thủ công: script xác nhận database, yêu cầu nhập mật khẩu ẩn và từ chối host ngoài loopback/production. Chưa chạy script trong task này; chỉ chạy sau khi người quản lý xác nhận đúng database đích.
+
 Launcher local mở Auth 4001, User 4002, Catalog 4003, Order 4004, Staff 4005, Payment 4006, Review 4007, Gateway 4000; các cổng đều cấu hình qua *_PORT. Không khởi động thêm instance trùng cổng. Lỗi cổng/DB phải được sửa trước khi chạy lại.
 
+Backend dùng Node trực tiếp, không tự nạp lại file khi sửa mã. Nếu đặt dịch vụ báo `INVALID_INPUT` với `expectedUnitPrice`, hoặc mua sản phẩm báo trường `paymentMethod` không được hỗ trợ, kiểm tra backend cũ còn chạy: dừng đúng terminal backend bằng Ctrl+C rồi chạy lại `npm.cmd run start:customer`. Auth restart làm hết phiên local; tải lại trang và đăng nhập lại. `check:db`/`check:products` PASS chỉ xác nhận DB/schema, không chứng minh tiến trình đang giữ cổng 4000 đã nạp mã mới. Test dùng stack/cổng riêng cũng không thay thế kiểm tra website đang chạy.
+
+Sau khi đã có quyền dùng fixture trên DB local, có thể chạy `$env:ALLOW_CUSTOMER_DB_TEST='1'` rồi `node --env-file-if-exists=.env tests/customer-live-smoke.mjs` để kiểm tra đúng gateway đang chạy tại localhost:4000; thêm `--browser` để kiểm tra Customer tại localhost:3001 bằng Chrome. Script tạo fixture riêng, dọn đúng marker/ID, không seed/reset dữ liệu web và không in mật khẩu/cookie. Không khởi động thêm backend khi các cổng đang chạy đúng phiên bản.
+
 ## API và phiên
+
+Customer chọn phương thức thanh toán mô phỏng ngay trong bước kiểm tra đặt dịch vụ và form mua sản phẩm. Dịch vụ dùng API Payment hiện có, lỗi sau tạo lịch sẽ thử lại đúng key/booking; sản phẩm gửi thêm `paymentMethod` vào POST `/product-orders` và cần migration 004. Migration này đã được duyệt/áp dụng riêng trên DB local; môi trường khác cần duyệt riêng. Xem [luồng thanh toán trong checkout](docs/customer-checkout-payment.md). Không có chuyển tiền thật hoặc PAID giả; đơn cũ không bị tự gán phương thức.
+
+Contract bổ sung xác nhận giá đã được chủ nhiệm xác nhận owner duyệt: đặt lịch gửi `expectedUnitPrice`, mua sản phẩm gửi trường này trong từng item. Giá khác server yêu cầu khách xem và xác nhận lại; API không lấy giá client để tính tiền. Booking mới chỉ nhận các giờ bắt đầu trên giao diện (giờ Việt Nam); dữ liệu/replay cũ được giữ tương thích. Xem [hoàn thiện luồng Customer](docs/customer-flow-corrections.md) để biết DTO, retry và giới hạn liên vai trò. Cần khởi động lại backend và frontend/build lại cùng phiên bản khi dùng thay đổi này; client cũ thiếu giá xác nhận không được tạo đơn mới. Không cần migration hoặc biến môi trường mới.
 
 Contract endpoint, DTO và giới hạn: [docs/customer-api-contract.md](docs/customer-api-contract.md). Public prefix /api/v1. Auth nhận identifier là số điện thoại hoặc email; đăng ký email tùy chọn. Người dùng chỉ truy cập dữ liệu của mình; input role/userId/status/price bị từ chối. JSON errors nhất quán, không trả stack/SQL/credential.
 
@@ -39,7 +57,7 @@ Contract Dịch vụ/Sản phẩm đã được xác nhận cho triển khai v�
 
 ## Migration được kiểm soát
 
-Giữ nguyên databases/schema.sql. Migration additive databases/migrations/001_users_email.sql thêm users.email nullable và uq_users_email. Migration 002 bổ sung metadata dịch vụ, liên kết sản phẩm và bảng ghi nhận đơn/giữ tồn kho. Hai migration này đã được duyệt và áp dụng lên đúng MySQL local 127.0.0.1:3306 / dich_vu_ve_sinh; metadata đã xác minh. Migration 003 bổ sung idempotency key cho booking và hiện mới có trong source, chưa áp dụng. Mỗi môi trường cần owner database duyệt riêng, preflight/backup và áp dụng một lần. Không có startup migration/seed hoặc rollback phá hủy tự động. Chạy npm.cmd run check:db và npm.cmd run check:products để kiểm tra schema chỉ đọc. Xem [migration guide](../databases/migrations/README.md).
+Giữ nguyên databases/schema.sql. Migration additive databases/migrations/001_users_email.sql thêm users.email nullable và uq_users_email. Migration 002 bổ sung metadata dịch vụ, liên kết sản phẩm và bảng ghi nhận đơn/giữ tồn kho. Hai migration này đã được duyệt và áp dụng lên đúng MySQL local 127.0.0.1:3306 / dich_vu_ve_sinh; metadata đã xác minh. Migration 003 bổ sung idempotency key cho booking đã được duyệt riêng và áp dụng lên cùng database local ngày 06/11/2026; check:db đã PASS. Mỗi môi trường cần owner database duyệt riêng, preflight/backup và áp dụng một lần. Không có startup migration/seed hoặc rollback phá hủy tự động. Chạy npm.cmd run check:db và npm.cmd run check:products để kiểm tra schema chỉ đọc. Xem [migration guide](../databases/migrations/README.md).
 
 ## Kiểm thử
 
@@ -95,4 +113,4 @@ The check opens a pool for Auth, User, Catalog, Order, Staff, Payment, and Revie
 
 Each business service can import its pool from its own `src/db.js`. The API Gateway has no database pool.
 
-The service `src/app.js` files now implement the Customer routes described above. API ownership and provider/consumer review are still required before merging into the team's integration branch.
+The service `src/app.js` files implement Customer routes, the Admin service-order report, and Staff job APIs described above. The Staff transition journal migration is prepared but not applied; it does not change the live database. Staff mutations remain unavailable until that migration is applied. Staff dashboard/calendar/profile, Admin screens beyond the report, live HTTP/MySQL verification, and provider/consumer review remain outstanding before calling the full integration complete.

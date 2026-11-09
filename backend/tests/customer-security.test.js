@@ -24,6 +24,13 @@ test('RS256 accepts correctly signed claims and never emits private keys in JWKS
   assert.ok(!('d' in keys.jwks.keys[0]) && !('p' in keys.jwks.keys[0]), 'JWKS must contain public material only.');
 });
 
+test('role tokens require an explicit audience for portal roles', () => {
+  const token = issueToken(keys, config, '18', 'staff-session-id', now, 'EMPLOYEE');
+  unauthorized(() => verifyToken(token, keys.jwks, config));
+  assert.equal(verifyToken(token, keys.jwks, config, ['EMPLOYEE']).role, 'EMPLOYEE');
+  unauthorized(() => verifyToken(token, keys.jwks, config, ['ADMIN']));
+});
+
 for (const [name, patch] of [
   ['issuer', { iss: 'untrusted-issuer' }],
   ['audience', { aud: 'other-app' }],
@@ -95,7 +102,7 @@ test('HTTP enforces Origin/JSON/body limits and redacts unexpected exceptions', 
     assert.equal(response.status, 403);
     response = await fetch(`${url}/api/v1/echo`, { method: 'POST', headers: { origin: config.origin, 'Content-Type': 'application/json' }, body: JSON.stringify({ content: 'x'.repeat(65536) }) });
     assert.equal(response.status, 413);
-    response = await fetch(`${url}/api/v1/echo`, { method: 'OPTIONS', headers: { origin: config.origin } });
+    response = await fetch(`${url}/api/v1/echo`, { method: 'OPTIONS', headers: { origin: config.origin, 'access-control-request-method': 'POST' } });
     assert.equal(response.status, 204);
     assert.equal(response.headers.get('Access-Control-Allow-Origin'), config.origin);
     response = await fetch(`${url}/api/v1/failure`);

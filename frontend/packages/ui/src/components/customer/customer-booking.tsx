@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react"
-import Image from "next/image"
+import { CustomerImage as Image } from "./customer-image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, ClipboardListIcon, Clock3Icon, HouseIcon, LoaderCircleIcon, PencilIcon, RefreshCwIcon, SparklesIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,14 @@ import { Field, useData } from "../../common"
 import { HOUSE_TYPE_LABEL, TIME_SLOTS } from "@/lib/config"
 import { formatCurrency } from "@/lib/format"
 import { estimateDuration, estimatePrice } from "@/lib/mock-data"
-import type { HouseType, Order, Service, User } from "@/lib/types"
+import type { HouseType, Order, Service, User, PaymentMethod } from "@/lib/types"
 import { CLEANING_TYPE_LABEL, cleaningTypeOf, serviceRequiresHouseDetails } from "@/lib/service-taxonomy"
 import { saveBookingRequest, type BookingRequest } from "./booking-service"
+import { openBookingDraft } from "./booking-draft"
+import { CheckoutPayment } from "./checkout-payment"
+import { customerSnapshot, refreshCustomerService } from "@/lib/customer-api-store"
 import { bookingDateTime, firstInvalidBookingStep, localDateValue, validateBookingStep, type BookingErrors, type BookingValues } from "./booking-validation"
+import { bookingDraftRoute, bookingLoginHref, resolveBookingRoute } from "./booking-routing"
 
 const STEPS = ["Dịch vụ", "Thông tin nhà ở", "Ngày giờ", "Kiểm tra yêu cầu"]
 const controlClass = "min-h-12 w-full min-w-0 rounded-xl border border-input bg-white px-3 py-2 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-destructive/20 md:text-sm"
@@ -29,21 +33,28 @@ function BookingMessage({ title, description, error = false, href = "/dich-vu", 
 
 export function CustomerBooking({ id }: { id?: string }) {
   const { s, user } = useData()
+  const params = useSearchParams()
+  const rebookIds = params.getAll("rebook")
+  const rebookId = rebookIds.length ? rebookIds.length === 1 ? rebookIds[0] : "" : undefined
   if (!s) return <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6" role="status" aria-label="Đang tải đặt dịch vụ"><PageSkeleton /></div>
   if (!Array.isArray(s.services)) return <BookingMessage title="Chưa thể tải dịch vụ" description="Vui lòng tải lại trang để thử lại." error />
-  if (!user) return <BookingMessage title="Đăng nhập để tiếp tục" description="Đăng nhập tài khoản khách hàng để lưu yêu cầu của bạn." href={`/dang-nhap${id ? `?next=${encodeURIComponent(`/dat-dich-vu/${id}`)}` : ""}`} action="Đăng nhập" />
+  if (!user) return <BookingMessage title="Đăng nhập để tiếp tục" description="Đăng nhập tài khoản khách hàng để lưu yêu cầu của bạn." href={bookingLoginHref(id, rebookId)} action="Đăng nhập" />
+  const selection = resolveBookingRoute({ serviceId: id, rebookId, services: s.services, orders: Array.isArray(s.orders) ? s.orders : [], customerId: user.id })
+  if (selection.invalidRebook) return <BookingMessage title="Không thể đặt lại đơn này" description="Đơn không khả dụng để đặt lại hoặc không khớp với dịch vụ trong đường dẫn. Vui lòng mở đơn của bạn và chọn đặt lại từ đó." href="/don-cua-toi" action="Xem đơn dịch vụ" />
+  if (rebookId !== undefined && !selection.initialService) return <BookingMessage title="Dịch vụ đang tạm ngừng" description="Dịch vụ của đơn cũ hiện không còn khả dụng để đặt lại. Bạn có thể xem những dịch vụ đang cung cấp." />
   if (!s.services.some((service) => service.status === "active")) return <BookingMessage title="Hiện chưa có dịch vụ để đặt" description="Vui lòng quay lại sau để xem các dịch vụ đang cung cấp của CleanHome." />
-  return <BookingForm id={id} services={s.services} orders={Array.isArray(s.orders) ? s.orders : []} user={user} />
+  const draftRoute = bookingDraftRoute(id, rebookId)
+  return <BookingForm key={draftRoute} id={id} services={s.services} initialService={selection.initialService} previous={selection.previous} draftRoute={draftRoute} user={user} />
 }
 
-function BookingForm({ id, services, orders, user }: { id?: string; services: Service[]; orders: Order[]; user: User }) {
+function BookingForm({ id, services, initialService, previous, draftRoute, user }: { id?: string; services: Service[]; initialService?: Service; previous?: Order; draftRoute: string; user: User }) {
   const router = useRouter()
+  const [draftScope] = useState(() => openBookingDraft(user.id, draftRoute))
+  const [restored] = useState(() => draftScope.read())
   const generatedId = useId()
   const active = services.filter((item) => item.status === "active")
-  const previous = id ? orders.find((order) => order.id === id && order.customerId === user.id) : undefined
-  const requestedId = previous?.serviceId || id
-  const initialService = requestedId ? services.find((item) => item.id === requestedId && item.status === "active") : active[0]
-  const [values, setValues] = useState<BookingValues>(() => ({
+  const requestedId = id
+  const [values, setValues] = useState<BookingValues>(() => restored?.values ?? ({
     serviceId: initialService?.id || "",
     quantity: String(previous?.quantity ?? initialService?.defaultQuantity ?? ""),
     name: previous?.contact.name || user.name || "",
@@ -56,14 +67,18 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
     hasPets: previous?.contact.hasPets || false,
     date: "", time: "", specialRequest: previous?.specialRequest || "",
   }))
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(restored?.step ?? 0)
   const [errors, setErrors] = useState<BookingErrors>({})
   const [submitError, setSubmitError] = useState("")
-  const [uncertainSubmission, setUncertainSubmission] = useState(false)
+  const [uncertainSubmission, setUncertainSubmission] = useState(restored?.uncertain ?? false)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(restored?.attempt?.paymentMethod ?? restored?.paymentMethod ?? "cash")
+  const [paymentPending, setPaymentPending] = useState(restored?.paymentPending ?? false)
   const [saving, setSaving] = useState(false)
   const [failedImage, setFailedImage] = useState<string | null>(null)
   const submitLock = useRef(false)
-  const bookingAttempt = useRef<BookingRequest | null>(null)
+  const bookingAttempt = useRef<BookingRequest | null>(restored?.attempt ?? null)
+  const finished = useRef(false)
+  const mounted = useRef(false)
   const interacted = useRef(false)
   const formRef = useRef<HTMLFormElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -78,6 +93,10 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
   const fieldId = (name: keyof BookingValues) => `${generatedId}-${name}`
 
   useEffect(() => { if (interacted.current) headingRef.current?.focus() }, [step])
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+  useEffect(() => {
+    if (!finished.current) draftScope.save({ values, step, attempt: bookingAttempt.current, uncertain: uncertainSubmission, paymentMethod, paymentPending })
+  }, [draftScope, values, step, uncertainSubmission, paymentMethod, paymentPending])
 
   const change = <K extends keyof BookingValues>(key: K, value: BookingValues[K]) => {
     setValues((old) => ({ ...old, [key]: value }))
@@ -85,6 +104,7 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
     setSubmitError("")
     bookingAttempt.current = null
     setUncertainSubmission(false)
+    setPaymentPending(false)
   }
   const goToStep = (next: number) => { interacted.current = true; setStep(next); setSubmitError("") }
   const focusError = () => requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
@@ -115,26 +135,50 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
         request = {
           requestKey: crypto.randomUUID(),
           serviceId: currentService.id,
+          expectedUnitPrice: currentService.price,
           quantity: Number(values.quantity),
           contact: { name: values.name.trim(), phone: values.phone.trim(), address: values.address.trim(), houseType: values.houseType, ...(values.area.trim() ? { area: Number(values.area) } : {}), ...(values.rooms.trim() ? { rooms: Number(values.rooms) } : {}), ...(values.floors.trim() ? { floors: Number(values.floors) } : {}), hasPets: values.hasPets },
           scheduledAt: time.toISOString(),
           specialRequest: values.specialRequest.trim(),
+          paymentMethod,
         }
       }
+      if (!request.paymentMethod) request = { ...request, paymentMethod }
       bookingAttempt.current = request
+      // Persist the exact key/payload before sending, including if this form unmounts.
+      draftScope.save({ values, step, attempt: request, uncertain: true, paymentMethod, paymentPending })
       const result = await saveBookingRequest(request)
       if (!result.ok) {
+        const paymentStillPending = Boolean(result.paymentPending || paymentPending)
+        const mustRetry = result.uncertain || paymentStillPending
+        draftScope.save({ values, step, attempt: mustRetry ? request : null, uncertain: mustRetry, paymentMethod, paymentPending: paymentStillPending })
+        if (!mounted.current || !draftScope.isCurrent()) return
         setSubmitError(result.error)
-        setUncertainSubmission(result.uncertain)
-        if (!result.uncertain) bookingAttempt.current = null
+        setUncertainSubmission(mustRetry)
+        setPaymentPending(paymentStillPending)
+        if (!mustRetry) bookingAttempt.current = null
+        if (result.code === "PRICE_CHANGED") {
+          await refreshCustomerService(request.serviceId)
+          if (mounted.current && draftScope.isCurrent()) {
+            setStep(3)
+            setSubmitError("Đơn giá đã thay đổi. Hãy xem giá mới trong phần kiểm tra yêu cầu và bấm lưu lại nếu bạn đồng ý. Chưa tạo lịch mới.")
+          }
+        }
         return
       }
       saved = true
+      finished.current = true
+      draftScope.clear()
+      const sessionOwner = customerSnapshot()?.session?.userId
+      if (!draftScope.isCurrent() || (sessionOwner && sessionOwner !== user.id) || (!mounted.current && sessionOwner)) return
       bookingAttempt.current = null
       setUncertainSubmission(false)
-      toast.success("Đã gửi yêu cầu đặt dịch vụ")
+      if (result.warning) toast.warning(result.warning)
+      else toast.success("Đã gửi yêu cầu đặt dịch vụ và lưu phương thức thanh toán mô phỏng")
       router.push(`/don/${result.order.id}`)
     } catch {
+      draftScope.save({ values, step, attempt: bookingAttempt.current, uncertain: true, paymentMethod, paymentPending })
+      if (!mounted.current || !draftScope.isCurrent()) return
       setSubmitError("Chưa xác nhận được kết quả. Hãy gửi lại đúng yêu cầu này để hệ thống kiểm tra, tránh tạo đơn trùng.")
       setUncertainSubmission(true)
     } finally {
@@ -150,6 +194,9 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
         <h1 id="customer-booking-heading" className="m-0 text-3xl leading-tight font-bold tracking-tight sm:text-4xl">Một lịch hẹn, nhẹ việc nhà</h1>
         <p className="m-0 mt-4 text-base leading-7 text-muted-foreground">Chọn dịch vụ, điền thông tin và đề xuất thời gian phù hợp với bạn. Kiểm tra yêu cầu trước khi lưu.</p>
       </header>
+
+      {restored && <p role="status" className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6">Đã khôi phục thông tin bạn đang nhập trong tab này. Thông tin không được giữ khi tải lại hoặc đóng tab.</p>}
+      {uncertainSubmission && <p role="status" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6">{paymentPending ? "Lịch dịch vụ đã được tạo. Bước lưu phương thức thanh toán chưa được xác nhận; gửi lại đúng yêu cầu để tiếp tục trên lịch này, không tạo lịch mới." : "Yêu cầu trước chưa xác nhận được kết quả. Dùng nút “Gửi lại để xác nhận” để kiểm tra đúng yêu cầu đó, tránh tạo lịch trùng."}</p>}
 
       <nav aria-label="Các bước đặt dịch vụ" className="mb-8 rounded-2xl border border-border bg-slate-50 p-2 sm:p-3">
         <ol className="m-0 grid list-none grid-cols-4 gap-1 p-0 sm:gap-3">
@@ -170,14 +217,14 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
                   <Field label="Dịch vụ" error={errors.serviceId} hint="Xem lại phạm vi công việc trước khi chọn số lượng."><select id={fieldId("serviceId")} className={controlClass} required value={values.serviceId} onChange={(event) => { const next = active.find((item) => item.id === event.target.value); change("serviceId", event.target.value); change("quantity", String(next?.defaultQuantity ?? "")) }}><option value="" disabled>Chọn dịch vụ</option>{active.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
                   {currentService && <>
                     <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4"><h3 className="m-0 text-base leading-6 font-semibold">{currentService.name}</h3><p className="m-0 mt-2 text-sm leading-6 text-muted-foreground">{currentService.shortDesc}</p><Link href={`/dich-vu/${currentService.slug}`} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">Xem chi tiết dịch vụ<ArrowRightIcon aria-hidden="true" className="size-4" /></Link></div>
-                    <Field label={`${currentService.quantityLabel} (${currentService.unit})`} error={errors.quantity} hint={`Tối thiểu ${currentService.minimumQuantityKnown === false ? "1" : currentService.minQuantity} ${currentService.unit}${currentService.minimumQuantityKnown === false ? " (mức kỹ thuật; danh mục chưa cung cấp số tối thiểu)" : ""}. ${currentService.pricingModeKnown === false ? "Giá cơ sở tham khảo" : currentService.pricingMode === "fixed" ? "Đơn giá cố định" : "Đơn giá tham khảo"} ${formatCurrency(currentService.price)} / ${currentService.unit}.`}><Input id={fieldId("quantity")} className="min-h-12 rounded-xl" type="number" inputMode="decimal" step="any" min={currentService.minQuantity} required value={values.quantity} onChange={(event) => change("quantity", event.target.value)} /></Field>
+                    <Field label={`${currentService.quantityLabel} (${currentService.unit})`} error={errors.quantity} hint={`Tối thiểu ${currentService.minimumQuantityKnown === false ? "1" : currentService.minQuantity} ${currentService.unit}${currentService.minimumQuantityKnown === false ? " (mức kỹ thuật; danh mục chưa cung cấp số tối thiểu)" : ""}. ${currentService.pricingModeKnown === false ? "Giá cơ sở tham khảo" : currentService.pricingMode === "fixed" ? "Đơn giá cố định" : "Đơn giá tham khảo"} ${formatCurrency(currentService.price)} / ${currentService.unit}.`}><Input id={fieldId("quantity")} className="min-h-12 rounded-xl" type="number" inputMode="decimal" step="0.01" max={100000} min={currentService.minQuantity} required value={values.quantity} onChange={(event) => change("quantity", event.target.value)} /></Field>
                   </>}
                 </>}
 
                 {step === 1 && <>
                   <p className="m-0 text-sm leading-6 text-muted-foreground">{currentService && cleaningTypeOf(currentService) ? CLEANING_TYPE_LABEL[cleaningTypeOf(currentService)!] + ": " : ""}{requireHouseDetails ? "Cho biết diện tích, số phòng và số tầng để chuẩn bị công việc phù hợp." : "Số lượng dịch vụ đã chọn ở bước trước. Diện tích, số phòng và số tầng là thông tin bổ sung không bắt buộc."}</p>
                   <div className="grid min-w-0 gap-5 sm:grid-cols-2">
-                    <Field label="Họ tên liên hệ" error={errors.name}><Input id={fieldId("name")} className="min-h-12 rounded-xl" required autoComplete="name" maxLength={120} value={values.name} onChange={(event) => change("name", event.target.value)} /></Field>
+                    <Field label="Họ tên liên hệ" error={errors.name}><Input id={fieldId("name")} className="min-h-12 rounded-xl" required autoComplete="name" maxLength={100} value={values.name} onChange={(event) => change("name", event.target.value)} /></Field>
                     <Field label="Số điện thoại" error={errors.phone}><Input id={fieldId("phone")} className="min-h-12 rounded-xl" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} required value={values.phone} onChange={(event) => change("phone", event.target.value)} /></Field>
                   </div>
                   <Field label="Địa chỉ thực hiện" error={errors.address} hint="Ghi số nhà, đường, phường/xã và quận/huyện; thêm tên tòa nhà hoặc căn hộ nếu có."><Textarea id={fieldId("address")} className="min-h-24 rounded-xl" required autoComplete="street-address" maxLength={300} value={values.address} onChange={(event) => change("address", event.target.value)} /></Field>
@@ -200,9 +247,10 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
                   <div className="space-y-5">
                     <ReviewBlock title="Dịch vụ và số lượng" onEdit={() => goToStep(0)}><p className="m-0 font-medium text-foreground">{currentService?.name}</p><p className="m-0 mt-2 text-sm text-muted-foreground">{values.quantity} {currentService?.unit} × {formatCurrency(currentService?.price || 0)} / {currentService?.unit}</p></ReviewBlock>
                     <ReviewBlock title="Thông tin thực hiện" onEdit={() => goToStep(1)}><p className="m-0 break-words font-medium text-foreground">{values.name} · {values.phone}</p><p className="m-0 mt-2 break-words text-sm leading-6 text-muted-foreground">{values.address}</p><p className="m-0 mt-2 text-sm leading-6 text-muted-foreground">{[HOUSE_TYPE_LABEL[values.houseType], values.area ? values.area + " m²" : "", values.rooms ? values.rooms + " phòng" : "", values.floors ? values.floors + " tầng" : "", values.hasPets ? "Có thú cưng" : ""].filter(Boolean).join(" · ")}</p></ReviewBlock>
-                    <ReviewBlock title="Thời gian đề xuất và ghi chú" onEdit={() => goToStep(2)}><p className="m-0 font-medium text-foreground">{scheduled ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "full", timeStyle: "short" }).format(scheduled) : "Chưa chọn thời gian"}</p><p className="m-0 mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{values.specialRequest || "Không có ghi chú thêm."}</p></ReviewBlock>
+                    <ReviewBlock title="Thời gian đề xuất và ghi chú" onEdit={() => goToStep(2)}><p className="m-0 font-medium text-foreground">{scheduled ? new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", dateStyle: "full", timeStyle: "short" }).format(scheduled) : "Chưa chọn thời gian"}</p><p className="m-0 mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{values.specialRequest || "Không có ghi chú thêm."}</p></ReviewBlock>
                   </div>
-                  <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm leading-6 text-foreground"><ClipboardListIcon aria-hidden="true" className="mb-2 size-5 text-primary" />Yêu cầu sẽ được gửi tới hệ thống. Lịch hẹn cần được xác nhận.</div>
+                  <CheckoutPayment value={paymentMethod} onChange={setPaymentMethod} disabled={saving || uncertainSubmission} />
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm leading-6 text-foreground"><ClipboardListIcon aria-hidden="true" className="mb-2 size-5 text-primary" />Bấm lưu để gửi yêu cầu và ghi nhận phương thức thanh toán mô phỏng. Lịch hẹn cần được xác nhận; hệ thống chưa nhận tiền.</div>
                 </>}
               </fieldset>
               {submitError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-destructive">{submitError}</div>}
@@ -221,7 +269,7 @@ function BookingForm({ id, services, orders, user }: { id?: string; services: Se
               {currentService ? <>
                 <div className="relative aspect-[4/3] rounded-xl bg-muted"><Image src={failedImage === image ? "/placeholder.svg" : image} alt={currentService.name} fill sizes="(min-width: 1024px) 288px, (min-width: 640px) calc(100vw - 96px), calc(100vw - 72px)" className="rounded-xl object-cover" onError={() => setFailedImage(image)} /></div>
                 <h3 className="m-0 text-base leading-6 font-semibold">{currentService.name}</h3>
-                <dl className="m-0 space-y-3 text-sm"><SummaryRow title="Số lượng" value={validQuantity ? `${values.quantity} ${currentService.unit}` : "Chưa chọn hợp lệ"} /><SummaryRow title="Đơn giá" value={`${formatCurrency(currentService.price)} / ${currentService.unit}`} />{validQuantity && <SummaryRow title="Thời lượng dự kiến" value={`${estimateDuration(currentService, quantity)} phút`} />}{scheduled && <SummaryRow title="Thời gian đề xuất" value={new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(scheduled)} />}</dl>
+                <dl className="m-0 space-y-3 text-sm"><SummaryRow title="Số lượng" value={validQuantity ? `${values.quantity} ${currentService.unit}` : "Chưa chọn hợp lệ"} /><SummaryRow title="Đơn giá" value={`${formatCurrency(currentService.price)} / ${currentService.unit}`} />{validQuantity && <SummaryRow title="Thời lượng dự kiến" value={`${estimateDuration(currentService, quantity)} phút`} />}{scheduled && <SummaryRow title="Thời gian đề xuất" value={new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", dateStyle: "short", timeStyle: "short" }).format(scheduled)} />}</dl>
                 <div className="rounded-xl bg-blue-50 p-4"><p className="m-0 text-sm text-muted-foreground">{currentService.pricingModeKnown === false ? "Tổng tham khảo (cách tính chưa cấu hình)" : currentService.pricingMode === "fixed" ? "Tổng giá cố định" : "Tổng giá tham khảo"}</p><p className="m-0 mt-2 break-words text-2xl leading-8 font-bold text-primary tabular-nums">{validQuantity ? formatCurrency(estimatePrice(currentService, quantity)) : "—"}</p><p className="m-0 mt-2 text-xs leading-5 text-muted-foreground">{currentService.pricingModeKnown === false ? "Giá cơ sở và cách tính chưa được cung cấp đầy đủ; CleanHome cần xác nhận giá cuối cùng." : currentService.pricingMode === "fixed" ? "Tính theo số lượng × đơn giá cố định." : currentService.pricingMode === "survey" ? "Giá cuối cùng cần khảo sát và được xác nhận trước khi thực hiện." : "Tính theo số lượng × đơn giá tham khảo; giá cuối cùng cần được xác nhận."}</p></div>
               </> : <div className="rounded-xl bg-slate-50 p-5 text-sm leading-6 text-muted-foreground"><HouseIcon aria-hidden="true" className="mb-3 size-6 text-primary" />Chọn một dịch vụ đang cung cấp để xem số lượng và giá dự kiến.</div>}
               <p className="m-0 flex items-start gap-2 text-xs leading-5 text-muted-foreground"><Clock3Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" /><span>Ngày giờ là đề xuất của bạn, chưa phải lịch hẹn đã xác nhận.</span></p>

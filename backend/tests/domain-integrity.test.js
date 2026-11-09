@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRepository as createOrderRepository } from '../order-service/src/repository.js';
+import { createRepository as createOrderRepository, bookingRequestHash } from '../order-service/src/repository.js';
 import { createRepository as createPaymentRepository } from '../payment-service/src/repository.js';
 import { createRepository as createCatalogRepository } from '../service-service/src/repository.js';
 import { createRepository as createReviewRepository } from '../review-service/src/repository.js';
@@ -13,9 +13,9 @@ import { closeServer, createHttpApp, HttpError, listen, reply } from '../shared/
 const service = { id: '1', name: 'Synthetic test service', unit: 'giờ', price: 125000, minQuantity: 1, baseMinutes: 0, minutesPerUnit: 120, status: 'active' };
 function input() {
   return {
-    serviceId: '1', quantity: 1,
+    serviceId: '1', quantity: 1, expectedUnitPrice: 125000,
     contact: { name: 'Synthetic customer', phone: '0391234567', address: 'Synthetic test address', houseType: 'can-ho', hasPets: false },
-    scheduledAt: new Date(Date.now() + 86400000).toISOString(), specialRequest: '',
+    scheduledAt: new Date(new Date(Date.now() + 86400000).setUTCHours(2, 0, 0, 0)).toISOString(), specialRequest: '',
   };
 }
 
@@ -78,14 +78,17 @@ test('Customer database readiness requires request columns, the exact unique ind
   const valid = await checkCustomerBookingIdempotencySchema({
     async execute(sql) {
       if (sql.includes('information_schema.columns')) return [[{ present: '2' }]];
-      if (sql.includes('information_schema.statistics')) return [[{ index_name: 'uq_booking_customer_request', non_unique: 0, columns_in_order: 'customer_id,customer_request_key' }]];
+      if (sql.includes('information_schema.statistics')) {
+        assert.match(sql, /non_unique AS nonUnique/);
+        return [[{ indexName: 'uq_booking_customer_request', nonUnique: 0, columnsInOrder: 'customer_id,customer_request_key' }]];
+      }
       return [[{ checkClause: '((customer_request_key IS NULL AND customer_request_hash IS NULL) OR (customer_request_key IS NOT NULL AND customer_request_hash IS NOT NULL))' }]];
     },
   });
   const invalid = await checkCustomerBookingIdempotencySchema({
     async execute(sql) {
       if (sql.includes('information_schema.columns')) return [[{ present: '2' }]];
-      if (sql.includes('information_schema.statistics')) return [[{ index_name: 'uq_booking_customer_request', non_unique: 0, columns_in_order: 'customer_id,customer_request_key,created_at' }]];
+      if (sql.includes('information_schema.statistics')) return [[{ indexName: 'uq_booking_customer_request', nonUnique: 0, columnsInOrder: 'customer_id,customer_request_key,created_at' }]];
       return [[{ checkClause: 'customer_request_key IS NULL OR customer_request_hash IS NULL' }]];
     },
   });
@@ -94,7 +97,7 @@ test('Customer database readiness requires request columns, the exact unique ind
   const invalidConstraint = await checkCustomerBookingIdempotencySchema({
     async execute(sql) {
       if (sql.includes('information_schema.columns')) return [[{ present: '2' }]];
-      if (sql.includes('information_schema.statistics')) return [[{ index_name: 'uq_booking_customer_request', non_unique: 0, columns_in_order: 'customer_id,customer_request_key' }]];
+      if (sql.includes('information_schema.statistics')) return [[{ indexName: 'uq_booking_customer_request', nonUnique: 0, columnsInOrder: 'customer_id,customer_request_key' }]];
       return [[{ checkClause: 'customer_request_key IS NULL OR customer_request_hash IS NULL' }]];
     },
   });
@@ -251,8 +254,9 @@ test('Order HTTP validates calendar/input and fails closed on out-of-sync assign
     { method: 'GET', path: '/api/v1/auth/jwks', handler: () => reply(keys.jwks) },
     { method: 'POST', path: '/internal/v1/introspect', auth: 'internal', callers: ['order'], handler: () => reply({ sub: '1', role: 'CUSTOMER' }) },
   ] }));
+  let offeredService = service;
   await start('catalog', createHttpApp({ name: 'test-catalog', config, routes: [
-    { method: 'GET', path: '/internal/v1/services/:id', auth: 'internal', callers: ['order'], handler: () => reply(service) },
+    { method: 'GET', path: '/internal/v1/services/:id', auth: 'internal', callers: ['order'], handler: () => reply(offeredService) },
   ] }));
   let assignment = { employeeId: '2', status: 'IN_PROGRESS' };
   let unavailable = false;
@@ -263,7 +267,7 @@ test('Order HTTP validates calendar/input and fails closed on out-of-sync assign
     } },
     { method: 'GET', path: '/internal/v1/branches/:id', auth: 'internal', callers: ['order'], handler: () => reply({ id: '1', status: 'ACTIVE' }) },
   ] }));
-  let cancelled = 0, created = 0;
+  let cancelled = 0, created = 0, lastCreateInput, lastCreateService;
   const bookingRequests = new Map();
   let current = { id: '4', customerId: '1', status: 'pending' };
   const repository = {
@@ -272,15 +276,17 @@ test('Order HTTP validates calendar/input and fails closed on out-of-sync assign
       const { requestKey, ...payload } = request;
       const previous = bookingRequests.get(customerId + ':' + requestKey);
       if (!previous) return null;
-      if (previous.signature !== JSON.stringify(payload)) throw new HttpError(409, 'REQUEST_KEY_REUSED', 'Synthetic mismatched idempotency key');
+      if (previous.signature !== bookingRequestHash(payload)) throw new HttpError(409, 'REQUEST_KEY_REUSED', 'Synthetic mismatched idempotency key');
       return previous.order;
     },
-    async create(customerId, request) {
+    async create(customerId, request, catalogService) {
+      lastCreateInput = request;
+      lastCreateService = catalogService;
       created += 1;
       const order = { id: String(100 + created), customerId, status: 'pending' };
       if (request.requestKey) {
         const { requestKey, ...payload } = request;
-        bookingRequests.set(customerId + ':' + requestKey, { signature: JSON.stringify(payload), order });
+        bookingRequests.set(customerId + ':' + requestKey, { signature: bookingRequestHash(payload), order });
       }
       return order;
     },
@@ -301,7 +307,7 @@ test('Order HTTP validates calendar/input and fails closed on out-of-sync assign
     for (const patch of [
       { scheduledAt: '2099-02-31T10:00:00Z' },
       { scheduledAt: input().scheduledAt.slice(0, -1) },
-      { quantity: 1.001 }, { quantity: 100001 }, { quantity: '1' }, { requestKey: 'not-a-uuid' },
+      { quantity: 0 }, { quantity: 0.001 }, { quantity: 1.001 }, { quantity: 100001 }, { quantity: '1' }, { requestKey: 'not-a-uuid' },
       { contact: null }, { contact: { ...input().contact, userId: '2' } }, { price: 1 },
     ]) assert.equal((await send('/api/v1/orders', { ...input(), ...patch })).status, 400);
     assert.equal(created, 0);
@@ -317,6 +323,79 @@ test('Order HTTP validates calendar/input and fails closed on out-of-sync assign
     assert.equal(mismatch.status, 409);
     assert.equal(mismatch.body.error.code, 'REQUEST_KEY_REUSED');
     assert.equal(created, 1);
+  });
+  await t.test('a known booking key replays after its schedule; new past requests and changed payloads still fail', async () => {
+    const request = { ...input(), scheduledAt: new Date(Date.now() - 60000).toISOString(), requestKey: '8ac2b220-95c7-4a2d-b184-322b1f76d9b8' };
+    const { requestKey, ...payload } = request;
+    const saved = { id: 'past-booking', customerId: '1', status: 'pending' };
+    bookingRequests.set('1:' + requestKey, { signature: bookingRequestHash(payload), order: saved });
+    const before = created;
+    const originalBranch = config.defaultBranchId;
+    config.defaultBranchId = '';
+    try {
+      const replay = await send('/api/v1/orders', request);
+      assert.equal(replay.status, 200);
+      assert.equal(replay.body.data.id, saved.id);
+      const changed = await send('/api/v1/orders', { ...request, specialRequest: 'Different old request' });
+      assert.equal(changed.status, 409);
+      assert.equal(changed.body.error.code, 'REQUEST_KEY_REUSED');
+      const malformed = await send('/api/v1/orders', { ...request, scheduledAt: '2026-02-31T10:00:00Z' });
+      assert.equal(malformed.status, 400, 'Replay does not bypass structural calendar validation.');
+      for (const requestKey of [undefined, '9ac2b220-95c7-4a2d-b184-322b1f76d9b8']) {
+        const rejected = await send('/api/v1/orders', { ...request, requestKey });
+        assert.equal(rejected.status, 400);
+        assert.ok(rejected.body.error.fields.scheduledAt);
+      }
+      assert.equal((await send('/api/v1/orders', request, false)).status, 401);
+      assert.equal(created, before);
+    } finally { config.defaultBranchId = originalBranch; }
+  });
+  await t.test('fractional Catalog minimums and booking quantities agree while precision and minimum checks remain enforced', async () => {
+    const before = created;
+    try {
+      offeredService = { ...service, minQuantity: 0.5 };
+      const valid = await send('/api/v1/orders', { ...input(), quantity: 0.5 });
+      assert.equal(valid.status, 201);
+      assert.equal(lastCreateInput.quantity, 0.5);
+      assert.equal(lastCreateService.minQuantity, 0.5);
+      const belowMinimum = await send('/api/v1/orders', { ...input(), quantity: 0.49 });
+      assert.equal(belowMinimum.status, 400);
+      const precision = await send('/api/v1/orders', { ...input(), quantity: 0.501 });
+      assert.equal(precision.status, 400);
+      offeredService = { ...service, minQuantity: 0.01 };
+      assert.equal((await send('/api/v1/orders', { ...input(), quantity: 0.01 })).status, 201);
+      offeredService = { ...service, minQuantity: 0.005 };
+      const invalidCatalog = await send('/api/v1/orders', { ...input(), quantity: 1 });
+      assert.equal(invalidCatalog.status, 503);
+      assert.equal(invalidCatalog.body.error.code, 'INVALID_CATALOG_DATA');
+      assert.equal(created, before + 2);
+    } finally { offeredService = service; }
+  });
+  await t.test('rental and family cleaning enforce house details server-side; care and maintenance allow omitted details', async () => {
+    const before = created;
+    try {
+      for (const cleaningType of ['phong-tro', 'nha-gia-dinh']) {
+        offeredService = { ...service, group: 've-sinh', cleaningType };
+        for (const field of ['area', 'rooms', 'floors']) {
+          const body = input();
+          body.contact = { ...body.contact, area: 25, rooms: 1, floors: 1 };
+          delete body.contact[field];
+          const result = await send('/api/v1/orders', body);
+          assert.equal(result.status, 400);
+          assert.ok(result.body.error.fields['contact.' + field]);
+        }
+        assert.equal(created, before);
+      }
+      for (const group of ['cham-soc', 'bao-duong']) {
+        offeredService = { ...service, group };
+        assert.equal((await send('/api/v1/orders', input())).status, 201);
+      }
+      offeredService = { ...service, group: 've-sinh', cleaningType: 'phong-tro' };
+      const complete = input();
+      complete.contact = { ...complete.contact, area: 0.01, rooms: 1, floors: 1 };
+      assert.equal((await send('/api/v1/orders', complete)).status, 201);
+      assert.equal(created, before + 3);
+    } finally { offeredService = service; }
   });
   await t.test('in-progress assignment blocks cancellation even while booking remains pending/confirmed', async () => {
     for (const status of ['pending', 'confirmed']) {

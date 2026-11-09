@@ -42,6 +42,15 @@ function compile(path) {
 }
 export function createHttpApp({ name, config, routes, authenticate }) {
   const compiled = routes.map((route) => ({ ...route, ...compile(route.path) }));
+  const allowedOrigins = config.allowedOrigins || [config.origin];
+  const defaultOriginScopes = { customer: ['customer'], staff: ['staff'], admin: ['admin'], portal: ['staff', 'admin'] };
+  const routeOrigins = (route) => {
+    if (route.auth === 'internal') return [];
+    const scopedOrigins = route.origins
+      ? route.origins.map((scope) => config.origins?.[scope]).filter(Boolean)
+      : defaultOriginScopes[route.auth]?.map((scope) => config.origins?.[scope]).filter(Boolean) || [];
+    return scopedOrigins.length ? scopedOrigins : allowedOrigins;
+  };
   return async (req, res) => {
     const requestId = randomUUID();
     res.setHeader('X-Request-Id', requestId);
@@ -49,10 +58,6 @@ export function createHttpApp({ name, config, routes, authenticate }) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Vary', 'Origin');
     const origin = req.headers.origin;
-    if (origin === config.origin) {
-      res.setHeader('Access-Control-Allow-Origin', config.origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
     const send = (status, payload, headers = {}) => {
       if (res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers });
@@ -61,24 +66,37 @@ export function createHttpApp({ name, config, routes, authenticate }) {
     try {
       const url = new URL(req.url, 'http://localhost');
       if (req.method === 'GET' && url.pathname === '/health') {
+        if (allowedOrigins.includes(origin)) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Access-Control-Allow-Credentials', 'true');
+        }
         send(200, { data: { service: name, status: 'up' } }); return;
       }
       if (req.method === 'OPTIONS') {
-        if (origin !== config.origin) throw new HttpError(403, 'ORIGIN_FORBIDDEN', 'Nguồn truy cập không được phép.');
+        const requestedMethod = req.headers['access-control-request-method'];
+        const route = compiled.find((candidate) => candidate.method === requestedMethod && candidate.expression.test(url.pathname));
+        if (!route || !routeOrigins(route).includes(origin)) throw new HttpError(403, 'ORIGIN_FORBIDDEN', 'Nguồn truy cập không được phép.');
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.writeHead(204, {
-          'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
+          'Access-Control-Allow-Methods': `${requestedMethod},OPTIONS`,
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Max-Age': '600',
         }); res.end(); return;
       }
       const route = compiled.find((candidate) => candidate.method === req.method && candidate.expression.test(url.pathname));
       if (!route) throw new HttpError(404, 'NOT_FOUND', 'Không tìm thấy API.');
+      const origins = routeOrigins(route);
+      if (origin && !origins.includes(origin)) throw new HttpError(403, 'ORIGIN_FORBIDDEN', 'Nguồn truy cập không được phép.');
+      if (origins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+      }
       if (route.auth === 'internal') requireInternal(req, config, route.callers);
-      else if (origin && origin !== config.origin) throw new HttpError(403, 'ORIGIN_FORBIDDEN', 'Nguồn truy cập không được phép.');
-      if (route.auth !== 'internal' && !['GET', 'HEAD'].includes(req.method) && origin !== config.origin) {
+      if (route.auth !== 'internal' && !['GET', 'HEAD'].includes(req.method) && !origins.includes(origin)) {
         throw new HttpError(403, 'ORIGIN_REQUIRED', 'Nguồn truy cập không hợp lệ.');
       }
-      const principal = route.auth === 'customer' ? await authenticate(req) : undefined;
+      const principal = route.auth && route.auth !== 'internal' ? await authenticate(req, route.auth) : undefined;
       const match = route.expression.exec(url.pathname);
       const params = Object.fromEntries(route.names.map((key, index) => {
         try { return [key, decodeURIComponent(match[index + 1])]; }

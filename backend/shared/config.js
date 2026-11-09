@@ -12,9 +12,17 @@ export function createConfig(env = process.env, { generateLocalSecrets = false }
     else throw new Error('Thiếu cấu hình INTERNAL_' + name.toUpperCase() + '_TOKEN (ít nhất 32 ký tự).');
   }
   const origin = env.CUSTOMER_ORIGIN || 'http://localhost:3001';
-  if (new URL(origin).origin !== origin) throw new Error('CUSTOMER_ORIGIN phải là origin đầy đủ, không có đường dẫn.');
+  const origins = {
+    customer: origin,
+    staff: env.STAFF_ORIGIN || 'http://localhost:3002',
+    admin: env.ADMIN_ORIGIN || 'http://localhost:3003',
+  };
+  const allowedOrigins = [...new Set(Object.values(origins))];
+  if (allowedOrigins.some((value) => new URL(value).origin !== value)) {
+    throw new Error('CUSTOMER_ORIGIN, STAFF_ORIGIN và ADMIN_ORIGIN phải là origin đầy đủ, không có đường dẫn.');
+  }
   return {
-    origin, tokens, production,
+    origin, origins, allowedOrigins, tokens, production,
     urls: Object.fromEntries(serviceNames.map((name) => [name, env[name.toUpperCase() + '_URL'] || 'http://127.0.0.1:' + (env[name.toUpperCase() + '_PORT'] || defaultPorts[name])])),
     issuer: env.JWT_ISSUER || 'cleanhome-auth',
     audience: env.JWT_AUDIENCE || 'cleanhome-customer',

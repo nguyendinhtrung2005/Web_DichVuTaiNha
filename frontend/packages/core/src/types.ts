@@ -57,6 +57,7 @@ export interface ProductCartItem {
 
 export interface ProductOrderItem {
   productId: string
+  expectedUnitPrice?: number
   code?: string
   name?: string
   unit?: string
@@ -75,6 +76,7 @@ export interface ProductOrder {
   createdAt: string
   updatedAt: string
   errorCode?: string
+  payment?: { method: PaymentMethod; status: "not_started" | "unpaid" | "pending"; simulated: true } | null
 }
 
 export interface User {
@@ -151,6 +153,24 @@ export interface Order {
   cancelRequest?: CancelRequest
   history: HistoryEntry[]
   staffNotes: StaffNote[]
+  createdAt: string
+}
+
+export interface StaffJob {
+  id: string
+  code: string
+  serviceId: string
+  serviceName: string
+  unit: string
+  quantity: number
+  contact: Pick<OrderContact, "name" | "phone" | "address">
+  scheduledAt: string
+  durationMinutes: number
+  specialRequest: string
+  orderStatus: OrderStatus
+  jobStatus: JobStatus
+  cancelPending: boolean
+  history: HistoryEntry[]
   createdAt: string
 }
 

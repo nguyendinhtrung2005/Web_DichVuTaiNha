@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
+import { CustomerImage as Image } from "./customer-image"
 import Link from "next/link"
 import {
   ArrowLeftIcon,
@@ -22,7 +22,8 @@ import { ServiceCard } from "@/components/customer/service-card"
 import { formatCurrency } from "@/lib/format"
 import type { Service } from "@/lib/types"
 import { ProductSuggestions } from "@/components/customer/product-pages"
-import { CLEANING_TYPE_LABEL, cleaningTypeOf, serviceGroupOf, serviceGroupLabel } from "@/lib/service-taxonomy"
+import { ServiceRatingSummary } from "./service-rating-summary"
+import { CLEANING_TYPE_LABEL, cleaningTypeOf, serviceGroupOf, serviceGroupLabel, serviceRequiresHouseDetails } from "@/lib/service-taxonomy"
 
 const PREPARATION = [
   {
@@ -130,6 +131,7 @@ export function ServiceDetail({
         <p className="m-0 mt-4 text-base leading-7 text-muted-foreground md:text-lg md:leading-8">{service.shortDesc}</p>
         <div className="mt-6 flex flex-col items-start gap-4 lg:hidden">
           <p className="m-0 text-sm text-muted-foreground">{priceTitle}: <span className="font-semibold text-primary">{formatCurrency(service.price)}</span> / {service.unit}</p>
+          <p className="m-0 text-sm leading-6 text-muted-foreground">{priceNote}</p>
           {isActive ? <Button size="lg" className="w-full sm:w-auto" render={<Link href={`/dat-dich-vu/${service.id}`} />} nativeButton={false}>Đặt dịch vụ ngay<ArrowRightIcon data-icon="inline-end" aria-hidden="true" /></Button> : <p role="status" className="m-0 text-sm text-muted-foreground">Dịch vụ đang tạm ngừng cung cấp.</p>}
         </div>
       </header>
@@ -183,6 +185,7 @@ export function ServiceDetail({
             </div>
           )}
           {!hasIncluded && !hasExcluded && <p className="m-0 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Thông tin bao gồm và không bao gồm chưa được cung cấp cho dịch vụ này.</p>}
+          <ServiceRatingSummary serviceId={service.id} />
         </div>
 
         <aside aria-label="Giá và đặt dịch vụ" className="min-w-0 space-y-6 lg:sticky lg:top-28">
@@ -226,7 +229,7 @@ export function ServiceDetail({
                   <Icon aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <h3 className="m-0 text-sm leading-6 font-medium">{title}</h3>
-                    <p className="m-0 mt-1 text-sm leading-6 text-muted-foreground">{text}</p>
+                    <p className="m-0 mt-1 text-sm leading-6 text-muted-foreground">{title === "Thông tin nhà ở" && !serviceRequiresHouseDetails(service) ? "Loại địa điểm thực hiện. Diện tích, số phòng và số tầng là thông tin bổ sung không bắt buộc." : text}</p>
                   </div>
                 </li>
               ))}

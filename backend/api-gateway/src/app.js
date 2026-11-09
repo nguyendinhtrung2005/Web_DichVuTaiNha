@@ -3,15 +3,20 @@ export function createApp({ config }) {
   const declarations = [
     ['POST', '/auth/register', 'auth'], ['POST', '/auth/login', 'auth'], ['POST', '/auth/logout', 'auth'],
     ['GET', '/auth/session', 'auth'], ['GET', '/auth/jwks', 'auth'],
+    ['POST', '/portal-auth/login', 'auth'], ['GET', '/portal-auth/session', 'auth'],
     ['GET', '/users/me', 'user'], ['PATCH', '/users/me', 'user'],
     ['GET', '/catalog/categories', 'catalog'], ['GET', '/catalog/services', 'catalog'], ['GET', '/catalog/services/:id', 'catalog'],
     ['GET', '/catalog/product-categories', 'catalog'], ['GET', '/catalog/products', 'catalog'], ['GET', '/catalog/products/:id', 'catalog'],
     ['GET', '/orders', 'order'], ['POST', '/orders', 'order'], ['GET', '/orders/:id', 'order'],
+    ['GET', '/admin/reports/service-orders', 'order'],
+    ['GET', '/staff/jobs', 'staff'], ['GET', '/staff/jobs/:id', 'staff'],
+    ['POST', '/staff/jobs/:id/transitions', 'staff'],
     ['POST', '/orders/:id/cancellation-requests', 'order'],
     ['GET', '/product-orders', 'order'], ['POST', '/product-orders', 'order'], ['GET', '/product-orders/:id', 'order'],
     ['POST', '/product-orders/:id/retry', 'order'],
     ['GET', '/payments', 'payment'], ['POST', '/orders/:id/payment-simulation', 'payment'],
     ['GET', '/reviews', 'review'], ['POST', '/orders/:id/reviews', 'review'],
+    ['GET', '/reviews/service-summary', 'review'],
   ];
   return createHttpApp({ name: 'gateway', config, routes: declarations.map(([method, path, target]) => ({
     method, path: '/api/v1' + path,

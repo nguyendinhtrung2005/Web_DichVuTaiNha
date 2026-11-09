@@ -1,13 +1,14 @@
 "use client"
 
-import { useId, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useState } from "react"
 import { SearchIcon, SlidersHorizontalIcon, SparklesIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ServiceCard } from "@/components/customer/service-card"
 import { SERVICE_GROUP_LABEL } from "@/lib/config"
-import { CLEANING_TYPE_LABEL, SERVICE_GROUPS, filterCustomerServices } from "@/lib/service-taxonomy"
+import { CLEANING_TYPE_LABEL, SERVICE_GROUPS } from "@/lib/service-taxonomy"
+import { searchCustomerServices } from "@/lib/customer-service-search"
 import type { Service } from "@/lib/types"
 
 const selectClassName = "min-h-12 w-full min-w-0 rounded-xl border border-input bg-white px-3 py-2 text-base text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60 md:text-sm"
@@ -18,10 +19,29 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
   const [category, setCategory] = useState("")
   const [cleaningType, setCleaningType] = useState("")
   const [sort, setSort] = useState("")
+  const [retry, setRetry] = useState(0)
   const activeServices = useMemo(() => services.filter((service) => service.status === "active"), [services])
+  const searchKey = JSON.stringify([query, category, cleaningType])
+  const [search, setSearch] = useState<{ key: string; items: Service[]; error?: string }>(() => ({ key: searchKey, items: activeServices }))
+  useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+    if (!query.trim() && !category && !cleaningType) {
+      setSearch({ key: searchKey, items: activeServices })
+      return
+    }
+    const timer = setTimeout(() => {
+      void searchCustomerServices({ query, group: category, cleaningType }, controller.signal).then(
+        (items) => { if (!cancelled) setSearch({ key: searchKey, items }) },
+        (error: unknown) => { if (!cancelled) setSearch({ key: searchKey, items: [], error: error instanceof Error ? error.message : "Chưa thể tìm dịch vụ. Vui lòng thử lại." }) },
+      )
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer); controller.abort() }
+  }, [query, category, cleaningType, searchKey, activeServices, retry])
+  const searching = search.key !== searchKey
   const result = useMemo(() => {
-    return filterCustomerServices(activeServices, { query, group: category, cleaningType }).sort((a, b) => sort === "up" ? a.price - b.price : sort === "down" ? b.price - a.price : 0)
-  }, [activeServices, category, cleaningType, query, sort])
+    return [...search.items].sort((a, b) => sort === "up" ? a.price - b.price : sort === "down" ? b.price - a.price : 0)
+  }, [search.items, sort])
   const hasFilters = Boolean(query || category || cleaningType || sort)
   const resetFilters = () => { setQuery(""); setCategory(""); setCleaningType(""); setSort("") }
 
@@ -38,12 +58,12 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
 
       <Card className="mb-8 rounded-2xl bg-slate-50/80 shadow-none ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
         <CardContent>
-          <form role="search" aria-label="Tìm và lọc dịch vụ" className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr]" onSubmit={(event) => event.preventDefault()}>
+          <form role="search" aria-label="Tìm và lọc dịch vụ" className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_1fr_1fr_1fr]" onSubmit={(event) => { event.preventDefault(); setSearch({ key: "", items: [] }); setRetry((value) => value + 1) }}>
             <div className="min-w-0">
               <label htmlFor={`${id}-query`} className="mb-2 block text-sm font-semibold">Tìm dịch vụ</label>
               <div className="relative">
                 <SearchIcon aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground" />
-                <Input id={`${id}-query`} name="query" type="search" placeholder="Tên hoặc nhu cầu dọn dẹp..." value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-12 rounded-xl bg-white pr-12 pl-10 [&::-webkit-search-cancel-button]:appearance-none" aria-controls={`${id}-results`} autoComplete="off" />
+                <Input id={`${id}-query`} name="query" type="search" maxLength={120} placeholder="Tên hoặc nhu cầu dọn dẹp..." value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-12 rounded-xl bg-white pr-12 pl-10 [&::-webkit-search-cancel-button]:appearance-none" aria-controls={`${id}-results`} autoComplete="off" />
                 {query && <span className="absolute top-1/2 right-0.5 -translate-y-1/2"><Button type="button" size="icon" variant="ghost" aria-label="Xóa từ khóa tìm kiếm" onClick={() => { setQuery(""); document.getElementById(`${id}-query`)?.focus() }}><XIcon aria-hidden="true" className="size-4" /></Button></span>}
               </div>
             </div>
@@ -68,17 +88,18 @@ export function ServiceCatalog({ services }: { services: Service[] }) {
                 <option value="down">Giá giảm dần</option>
               </select>
             </div>
+            <Button type="submit" className="sm:col-span-2 xl:col-span-4">Tìm kiếm<SearchIcon aria-hidden="true" className="size-4" /></Button>
           </form>
         </CardContent>
       </Card>
 
       <div className="mb-5 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="m-0 text-sm text-muted-foreground" role="status" aria-live="polite" aria-atomic="true">{result.length ? <>Tìm thấy <strong className="font-semibold text-foreground">{result.length}</strong> dịch vụ{hasFilters ? " phù hợp" : " đang cung cấp"}</> : "Không có dịch vụ để hiển thị"}</p>
+        <p className="m-0 text-sm text-muted-foreground" role="status" aria-live="polite" aria-atomic="true">{searching ? "Đang tìm dịch vụ..." : search.error ? "Chưa thể tải kết quả tìm kiếm" : result.length ? <>Tìm thấy <strong className="font-semibold text-foreground">{result.length}</strong> dịch vụ{hasFilters ? " phù hợp" : " đang cung cấp"}</> : "Không có dịch vụ để hiển thị"}</p>
         {hasFilters && <Button type="button" variant="ghost" className="text-primary" onClick={resetFilters}><XIcon aria-hidden="true" className="size-4" />Xóa bộ lọc</Button>}
       </div>
 
-      <div id={`${id}-results`}>
-        {result.length > 0 ? (
+      <div id={`${id}-results`} aria-busy={searching}>
+        {searching ? <p role="status" className="rounded-2xl border border-border p-6 text-sm text-muted-foreground">Đang tải kết quả từ hệ thống...</p> : search.error ? <div role="alert" className="rounded-2xl border border-border p-6"><h2 className="m-0 text-xl font-semibold">Chưa thể tìm dịch vụ</h2><p className="my-4 text-sm leading-7 text-muted-foreground">{search.error}</p><Button variant="outline" onClick={() => { setSearch({ key: "", items: [] }); setRetry((value) => value + 1) }}>Thử lại</Button></div> : result.length > 0 ? (
           <div className="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {result.map((service) => <ServiceCard key={service.id} service={service} showBooking headingLevel="h2" />)}
           </div>

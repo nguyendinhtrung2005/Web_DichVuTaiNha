@@ -27,12 +27,20 @@ export function createInternalClient(config, caller) {
 }
 export function createAuthenticator(config, caller) {
   const request = createInternalClient(config, caller);
-  return async (req) => {
+  return async (req, expectedRole = 'customer') => {
     const token = readSessionCookie(req, config.cookieName);
     const jwks = await request('auth', '/api/v1/auth/jwks');
-    const claims = verifyToken(token, jwks, config);
+    const claims = verifyToken(token, jwks, config, ['CUSTOMER', 'EMPLOYEE', 'ADMIN']);
     const principal = await request('auth', '/internal/v1/introspect', { method: 'POST', body: { token } });
-    if (principal.sub !== claims.sub || principal.role !== 'CUSTOMER') throw new HttpError(401, 'UNAUTHENTICATED', 'Vui lòng đăng nhập lại.');
+    const expectedRoles = {
+      customer: ['CUSTOMER'],
+      staff: ['EMPLOYEE'],
+      admin: ['ADMIN'],
+      portal: ['EMPLOYEE', 'ADMIN'],
+    }[expectedRole];
+    if (!expectedRoles || principal.sub !== claims.sub || principal.role !== claims.role || !expectedRoles.includes(principal.role)) {
+      throw new HttpError(403, 'ROLE_FORBIDDEN', 'Tài khoản không có quyền truy cập khu vực này.');
+    }
     return principal;
   };
 }

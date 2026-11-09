@@ -1,4 +1,5 @@
 import { createMysqlPool } from '../shared/mysql-pool.js';
+import { checkProductPaymentSchema } from '../order-service/src/product-payment-schema.js';
 
 let pool;
 try {
@@ -18,6 +19,11 @@ try {
     process.exitCode = 1;
   } else {
     process.stdout.write('Products schema: PASS; nullable service metadata and four InnoDB commerce tables.\n');
+    if (await checkProductPaymentSchema(pool)) process.stdout.write('Product checkout payment schema: PASS; nullable method and CASH/TRANSFER check (migration 004).\n');
+    else {
+      process.stderr.write('Product checkout payment schema: FAIL; migration 004 absent or incomplete. No DDL was run.\n');
+      process.exitCode = 1;
+    }
   }
 } catch (error) {
   const code = /^[A-Z0-9_]+$/.test(error?.code || '') ? ' (' + error.code + ')' : '';

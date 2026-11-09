@@ -14,7 +14,8 @@ const NAVIGATION = [
   { href: "/", route: "", label: "Trang chủ" },
   { href: "/dich-vu", route: "dich-vu", label: "Dịch vụ" },
   { href: "/san-pham", route: "san-pham", label: "Sản phẩm" },
-  { href: "/don-cua-toi", route: "don-cua-toi", label: "Đơn của tôi" },
+  { href: "/don-cua-toi", route: "don-cua-toi", label: "Lịch dịch vụ" },
+  { href: "/don-san-pham", route: "don-san-pham", label: "Đơn sản phẩm" },
   { href: "/lich-su", route: "lich-su", label: "Lịch sử" },
   { href: "/ho-so", route: "ho-so", label: "Hồ sơ" },
 ]
@@ -62,9 +63,9 @@ export function SiteHeader({ route, user, onLogout }: { route: string; user: Use
   }, [menuOpen])
 
   const navigationLinks = (mobile = false) => navigation.map((item) => (
-    <Link key={item.href} href={item.href} aria-current={route === item.route ? "page" : undefined}
+    <Link key={item.href} href={item.href} aria-current={(route === item.route || (route === "don" && item.route === "don-cua-toi")) ? "page" : undefined}
       onClick={() => setMenuOpen(false)}
-      className={`${mobile ? "flex min-h-12 items-center px-4" : "inline-flex min-h-11 items-center px-3"} rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none ${route === item.route ? "bg-blue-50 text-primary" : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"}`}>
+      className={`${mobile ? "flex min-h-12 items-center px-4" : "inline-flex min-h-11 items-center px-2"} rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none ${(route === item.route || (route === "don" && item.route === "don-cua-toi")) ? "bg-blue-50 text-primary" : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"}`}>
       {item.label}
     </Link>
   ))

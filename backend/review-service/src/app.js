@@ -1,6 +1,7 @@
 import { createHttpApp, HttpError, reply } from '../../shared/http.js';
 import { id, invalid, number, object, pagination, text } from '../../shared/validation.js';
 import { createAuthenticator, createInternalClient } from '../../shared/service-client.js';
+import { serviceReviewSummary } from './service-summary.js';
 
 async function ownedOrders(request, customerId) {
   const orders = new Map();
@@ -22,13 +23,15 @@ export function createApp({ repository, config }) {
   return createHttpApp({
     name: 'review', config, authenticate: createAuthenticator(config, 'review'),
     routes: [
+      { method: 'GET', path: '/api/v1/reviews/service-summary', handler: async ({ url }) =>
+        reply(await serviceReviewSummary(request, repository, id(url.searchParams.get('serviceId'), 'serviceId'))) },
       { method: 'GET', path: '/api/v1/reviews', auth: 'customer', handler: async ({ principal, url }) =>
         reply(await repository.list(await ownedOrders(request, principal.sub), pagination(url))) },
       { method: 'POST', path: '/api/v1/orders/:id/reviews', auth: 'customer', handler: async ({ principal, params, body }) => {
         object(body, ['rating', 'comment']);
         const rating = number(body.rating, 'rating', 1, 5);
         if (!Number.isInteger(rating)) throw invalid('rating', 'Điểm đánh giá phải là số nguyên từ 1 đến 5.');
-        const comment = text(body.comment, 'comment', 0, 2000);
+        const comment = text(body.comment, 'comment', 1, 2000);
         const bookingId = id(params.id);
         const order = await request('order', `/internal/v1/orders/${bookingId}?customerId=${principal.sub}`);
         if (!order || String(order.id) !== bookingId || String(order.customerId) !== principal.sub) {

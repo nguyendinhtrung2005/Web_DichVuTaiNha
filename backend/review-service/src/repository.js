@@ -16,6 +16,19 @@ function reviewDto(row, order) {
 
 export function createRepository(pool) {
   return {
+    async summarizeBookings(bookingIds) {
+      if (!bookingIds.length) return { count: 0, ratingSum: 0 };
+      const [rows] = await pool.execute(
+        `SELECT COUNT(*) AS count, COALESCE(SUM(rating), 0) AS ratingSum, MIN(rating) AS minRating, MAX(rating) AS maxRating
+         FROM reviews WHERE booking_id IN (${bookingIds.map(() => '?').join(',')})`, bookingIds,
+      );
+      const count = Number(rows[0]?.count), ratingSum = Number(rows[0]?.ratingSum);
+      if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(ratingSum) || ratingSum < count || ratingSum > count * 5
+        || (count > 0 && (Number(rows[0].minRating) < 1 || Number(rows[0].maxRating) > 5))) {
+        throw new HttpError(503, 'INVALID_REVIEW_DATA', 'Chưa thể tổng hợp điểm đánh giá.');
+      }
+      return { count, ratingSum };
+    },
     async list(orders, { page, limit }) {
       const byId = new Map(orders.map((order) => [String(order.id), order]));
       if (!byId.size) return { items: [], total: 0, page, limit };

@@ -16,7 +16,7 @@
     "typecheck:customer": "npm run typecheck --workspace=@cleanhome/customer",
     "typecheck:staff": "npm run typecheck --workspace=@cleanhome/staff",
     "typecheck:admin": "npm run typecheck --workspace=@cleanhome/admin",
-    "test:commerce": "node --test --test-isolation=none tests/product-commerce.unit.test.mjs",
+    "test:commerce": "node --test --test-isolation=none tests/*.unit.test.mjs",
     "build": "npm run build:customer && npm run build:staff && npm run build:admin",
     "typecheck": "npm run typecheck:customer && npm run typecheck:staff && npm run typecheck:admin"
   },

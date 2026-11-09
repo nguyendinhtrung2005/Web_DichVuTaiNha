@@ -16,6 +16,8 @@ Tại frontend:
 
 Mở http://localhost:3001. NEXT_PUBLIC_API_URL trỏ tới Gateway /api/v1; CUSTOMER_ORIGIN phải khớp origin trình duyệt. CUSTOMER_DEFAULT_BRANCH_ID cần chi nhánh ACTIVE cho đặt lịch dịch vụ; mua sản phẩm không yêu cầu branch hoặc lịch dịch vụ.
 
+Cập nhật 06/11/2026: migration 003 đã được duyệt và áp dụng trên database local; dữ liệu `[DEMO]` gồm 4 dịch vụ, 2 sản phẩm và 1 chi nhánh được duyệt/nạp riêng. Xem `backend/docs/customer-local-demo.md`. Khởi động lại backend để nạp cấu hình chi nhánh mới. Nguồn API vẫn là MySQL thật; không tự seed khi start và không dùng mock để che lỗi.
+
 Migration 002 đã được user duyệt riêng và áp dụng lên MySQL local 127.0.0.1:3306 / dich_vu_ve_sinh. Môi trường khác cần owner duyệt riêng. Không chạy schema.sql hoặc migration tự động khi khởi động. API không tự sinh catalog hay dùng mock khi DB lỗi; dữ liệu thật do owner Catalog/Staff cung cấp. Fixture kiểm thử được dọn sau khi chạy.
 
 ## Xem và đặt dịch vụ
@@ -35,6 +37,8 @@ ID/slug/category cũ và snapshot đơn được giữ nguyên. Taxonomy cũ đ�
 /thanh-toan-san-pham yêu cầu đăng nhập và thông tin liên hệ, không có ngày/giờ dịch vụ. Địa chỉ tùy chọn chỉ để trao đổi về đơn, không phải đăng ký vận chuyển. /don-san-pham hiển thị đơn sản phẩm riêng.
 
 PROCESSING nghĩa là cần xác minh kết quả; PENDING nghĩa là đã ghi nhận và giữ hàng; FAILED là chưa hoàn tất. Không trạng thái nào ở đây xác nhận thanh toán hoặc giao hàng thật. Khi mạng/commit chưa rõ, dùng thao tác khôi phục cùng yêu cầu hoặc kiểm tra lại đơn, không gửi đơn mới để che lỗi. Bản nháp khôi phục tạm trong bộ nhớ được gắn với tài khoản và không ghi browser storage.
+
+Menu và trang đơn có lối chuyển rõ giữa “Lịch dịch vụ” và “Đơn sản phẩm”. Chi tiết lịch dịch vụ hiển thị tiến độ/bước tiếp theo theo trạng thái API thật; yêu cầu hủy chờ duyệt không được hiển thị là đã hủy. Form đặt lịch giữ thông tin và request key trong bộ nhớ tab khi chuyển trang hoặc cùng tài khoản đăng nhập lại sau hết phiên. Đăng xuất chủ động, đổi tài khoản, đặt thành công hoặc tải lại toàn bộ trang sẽ xóa bản nháp tương ứng.
 
 ## Giới hạn quản trị
 

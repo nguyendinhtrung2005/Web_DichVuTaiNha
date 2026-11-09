@@ -1,6 +1,6 @@
 "use client"
 
-import Image from "next/image"
+import { CustomerImage as Image } from "./customer-image"
 import Link from "next/link"
 import {
   ArrowRightIcon,
@@ -241,7 +241,7 @@ const FAQS = [
   },
   {
     question: "Tôi xem lại hoặc đặt lại dịch vụ ở đâu?",
-    answer: "Sau khi đăng nhập, mở Đơn của tôi để xem trạng thái và chi tiết yêu cầu. Các đơn đã hoàn thành xuất hiện trong Lịch sử. Tại chi tiết đơn đã hoàn thành, bạn có thể chọn Đặt lại và kiểm tra thông tin cho lịch hẹn mới.",
+    answer: "Sau khi đăng nhập, mở Lịch dịch vụ để xem lịch hẹn, trạng thái và chi tiết yêu cầu. Các dịch vụ đã hoàn thành xuất hiện trong Lịch sử. Đơn mua hàng được xem riêng tại Đơn sản phẩm. Tại chi tiết dịch vụ đã hoàn thành, bạn có thể chọn Đặt lại và kiểm tra thông tin cho lịch hẹn mới.",
   },
 ]
 

@@ -47,6 +47,16 @@ export async function createProductFixtures(pool, { env = process.env } = {}) {
   };
   const context = {
     ...parent, baseline, productRegistryPath: registryPath,
+    async setProductPrice(productId, price) {
+      if (!registry.ids.products.includes(String(productId)) || !Number.isFinite(price) || price < 0) throw new Error('Only recorded fixture prices may be changed.');
+      const [result] = await pool.execute('UPDATE products SET price=? WHERE id=? AND LEFT(name,CHAR_LENGTH(?))=?', [price, productId, parent.marker + ' ', parent.marker + ' ']);
+      if (result.affectedRows !== 1) throw new Error('Fixture product marker mismatch.');
+    },
+    async setServicePrice(serviceId, price) {
+      if (![context.serviceId, context.roomServiceId, context.houseServiceId].includes(String(serviceId)) || !Number.isFinite(price) || price < 0) throw new Error('Only recorded fixture service prices may be changed.');
+      const [result] = await pool.execute('UPDATE services SET base_price=? WHERE id=? AND LEFT(name,CHAR_LENGTH(?))=?', [price, serviceId, parent.marker + ' ', parent.marker + ' ']);
+      if (result.affectedRows !== 1) throw new Error('Fixture service marker mismatch.');
+    },
     async recordProductOrder(id) { return recordProduct('product_orders', id); },
     async setAvailableStock(productId, available) {
       if (!registry.ids.products.includes(String(productId)) || !Number.isInteger(available) || available < 0) throw new Error('Only recorded fixture inventory may be changed.');

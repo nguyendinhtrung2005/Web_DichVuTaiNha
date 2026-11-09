@@ -120,17 +120,32 @@ export class CdpPage {
     await this.waitFor('document.readyState === "complete"', 'Page did not finish loading.');
   }
   async fill(label, value) {
-    const expression = `(() => {
-      const label = [...document.querySelectorAll('label')].find(item => item.textContent.trim() === ${JSON.stringify(label)});
+    const expression = `(async () => {
+      const label = [...document.querySelectorAll('label')].find(item => {
+        const copy = item.cloneNode(true);
+        copy.querySelectorAll('input,select,textarea,button').forEach(control => control.remove());
+        return copy.textContent.trim() === ${JSON.stringify(label)};
+      });
       const control = label?.control || (label?.htmlFor && document.getElementById(label.htmlFor));
       if (!control || control.disabled) return false;
+      control.focus();
+      if (control instanceof HTMLTextAreaElement || (control instanceof HTMLInputElement && control.type !== 'date')) return {native:true};
       const prototype = control instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : control instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
       Object.getOwnPropertyDescriptor(prototype, 'value').set.call(control, ${JSON.stringify(String(value))});
       control.dispatchEvent(new Event('input', {bubbles:true}));
       control.dispatchEvent(new Event('change', {bubbles:true}));
-      return true;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return {native:false};
     })()`;
-    await this.waitFor(expression, `Editable control is unavailable: ${label}`);
+    const control = await this.waitFor(expression, `Editable control is unavailable: ${label}`);
+    if (control.native) {
+      await this.send('Input.dispatchKeyEvent', {type:'keyDown', key:'a', code:'KeyA', windowsVirtualKeyCode:65, modifiers:2});
+      await this.send('Input.dispatchKeyEvent', {type:'keyUp', key:'a', code:'KeyA', windowsVirtualKeyCode:65, modifiers:2});
+      await this.send('Input.dispatchKeyEvent', {type:'keyDown', key:'Backspace', code:'Backspace', windowsVirtualKeyCode:8});
+      await this.send('Input.dispatchKeyEvent', {type:'keyUp', key:'Backspace', code:'Backspace', windowsVirtualKeyCode:8});
+      if (String(value)) await this.send('Input.insertText', {text:String(value)});
+      await this.evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
+    }
   }
   async click(text, { aria = false } = {}) {
     const expression = `(() => {

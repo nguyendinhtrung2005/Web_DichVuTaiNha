@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useLayoutEffect, useRef, useState, type FormEvent } from "react"
-import Image from "next/image"
+import { CustomerImage as Image } from "./customer-image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, ClipboardListIcon, InfoIcon, LoaderCircleIcon, SparklesIcon } from "lucide-react"
@@ -16,6 +16,7 @@ import { loginCustomer, registerCustomer } from "./account-service"
 import { validateLogin, validateRegistration, type AccountErrors, type RegistrationValues } from "./account-validation"
 import { IS_UNIFIED_APP } from "@/lib/env"
 import { safeReturnTo } from "@/components/shared/route-policy"
+import { customerSnapshot, isCustomerSessionCurrent } from "@/lib/customer-api-store"
 
 export function CustomerAuth({ register, returnTo, switchHref }: { register: boolean; returnTo: string; switchHref: string }) {
   const router = useRouter()
@@ -71,8 +72,14 @@ export function CustomerAuth({ register, returnTo, switchHref }: { register: boo
         setSubmitError(result.error)
         return
       }
+      if (result.warning) toast.warning(result.warning)
+      else toast.success(register ? "Đã tạo tài khoản" : "Đăng nhập thành công")
+      if (!isCustomerSessionCurrent(result.scope)) {
+        if (!customerSnapshot()?.session) router.replace('/dang-nhap?next=' + encodeURIComponent(returnTo))
+        else setSubmitError('Phiên đã thay đổi. Vui lòng sử dụng tài khoản hiện tại hoặc đăng nhập lại.')
+        return
+      }
       completed = true
-      toast.success(register ? "Đã tạo tài khoản" : "Đăng nhập thành công")
       router.replace(IS_UNIFIED_APP ? safeReturnTo(result.user.role, returnTo) : returnTo)
     } catch {
       focusIntent.current = "error"

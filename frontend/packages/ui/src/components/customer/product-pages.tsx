@@ -1,5 +1,8 @@
 "use client"
 
+import { CheckoutPayment } from "./checkout-payment"
+import { CustomerImage } from "./customer-image"
+
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type FormEvent } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -7,9 +10,8 @@ import { toast } from "sonner"
 import { ArrowLeftIcon, ArrowRightIcon, RefreshCwIcon, ShoppingCartIcon, Trash2Icon } from "lucide-react"
 import { addProductToCart, createProductOrder, getProductCartSnapshot, getProduct, getProducts, getProductOrder, getProductOrders, retryProductOrder, getProductPurchaseSnapshot, getServerProductPurchaseSnapshot, subscribeProductPurchase, retryPendingProductOrder, removeProductFromCart, subscribeProductCart, updateProductCartQuantity } from "@/lib/product-commerce"
 import { ApiError, apiRequest } from "@/lib/api-client"
-import { customerRequestError } from "@/lib/customer-api-store"
 import { formatCurrency } from "@/lib/format"
-import type { Product, ProductCartItem, ProductOrder, ProductOrderItem } from "@/lib/types"
+import type { Product, ProductCartItem, ProductOrder, ProductOrderItem, PaymentMethod } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -25,6 +27,8 @@ const PRODUCT_ORDER_STATUS = {
 } as const
 function productOrderFailureMessage(code: string) {
   const messages: Record<string, string> = {
+    PRICE_CHANGED: "Đơn giá đã thay đổi. Hãy xem giá mới trong giỏ và xác nhận yêu cầu mua mới nếu bạn đồng ý. Chưa giữ hàng hoặc thanh toán.",
+    PRICE_CONFIRMATION_REQUIRED: "Cần xem đơn giá hiện tại và xác nhận yêu cầu mua mới. Chưa giữ hàng hoặc thanh toán.",
     OUT_OF_STOCK: "Sản phẩm không còn đủ số lượng. Hãy kiểm tra tồn kho, giảm số lượng hoặc xóa mặt hàng hết hàng trước khi đặt lại.",
     PRODUCT_UNAVAILABLE: "Một sản phẩm đã ngừng bán hoặc không còn trong danh mục. Hãy cập nhật giỏ hàng trước khi tiếp tục.",
     RESERVATION_RELEASED: "Lần giữ hàng của đơn này đã được giải phóng. Bạn có thể xem lại sản phẩm và chủ động tạo yêu cầu mua mới.",
@@ -35,7 +39,8 @@ function productOrderFailureMessage(code: string) {
   }
   return messages[code] || "Chưa thể ghi nhận đơn mua sản phẩm. Hãy kiểm tra lại trạng thái đơn hoặc liên hệ hỗ trợ trước khi tạo yêu cầu mới."
 }
-const terminalProductFailure = (code?: string) => ["RESERVATION_RELEASED", "RESERVATION_KEY_REUSED", "ORDER_LIMIT_EXCEEDED", "INVALID_INPUT"].includes(code || "")
+const priceFailure = (code?: string) => ["PRICE_CHANGED", "PRICE_CONFIRMATION_REQUIRED"].includes(code || "")
+const terminalProductFailure = (code?: string) => priceFailure(code) || ["RESERVATION_RELEASED", "RESERVATION_KEY_REUSED", "ORDER_LIMIT_EXCEEDED", "INVALID_INPUT"].includes(code || "")
 
 function messageOf(error: unknown) {
   return error instanceof Error ? error.message : "Không thể tải dữ liệu. Vui lòng thử lại."
@@ -113,10 +118,10 @@ function PendingPurchaseNotice({ onResolved }: { onResolved?: (order: ProductOrd
   }}>{purchase.busy ? "Đang xác nhận yêu cầu…" : "Kiểm tra yêu cầu đã gửi"}</Button>{error && <p role="alert" className="mt-3 text-sm text-rose-800">{error}</p>}</section>
 }
 
-function ProductImage({ product, className = "" }: { product: Product; className?: string }) {
+function ProductImage({ product, className = "", sizes = "(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw" }: { product: Product; className?: string; sizes?: string }) {
   const [failed, setFailed] = useState(false)
   const src = !failed && product.image ? product.image : "/placeholder.svg"
-  return <img src={src} alt={product.name} loading="lazy" onError={() => setFailed(true)} className={`h-full w-full object-cover ${className}`} />
+  return <CustomerImage src={src} alt={product.name} width={960} height={640} sizes={sizes} loading="lazy" onError={() => setFailed(true)} className={`h-full w-full object-cover ${className}`} />
 }
 
 function addOne(product: Product) {
@@ -231,7 +236,7 @@ function ProductDetail({ slug }: { slug: string }) {
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12">
       <Button variant="ghost" render={<Link href="/san-pham" />} nativeButton={false}><ArrowLeftIcon aria-hidden="true" />Danh sách sản phẩm</Button>
       <div className="mt-5 grid items-start gap-8 md:grid-cols-2">
-        <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted"><ProductImage product={product} /></div>
+        <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted"><ProductImage product={product} sizes="(min-width: 1024px) 576px, (min-width: 640px) 50vw, 100vw" /></div>
         <div className="space-y-5">
           <p className="m-0 text-sm text-muted-foreground">{product.categoryName} · Mã {product.code}</p>
           <h1 className="m-0 text-3xl font-bold">{product.name}</h1>
@@ -296,10 +301,21 @@ export function ProductCheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
   const [created, setCreated] = useState<ProductOrder | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash")
   const purchase = useSyncExternalStore(subscribeProductPurchase, getProductPurchaseSnapshot, getServerProductPurchaseSnapshot)
   useEffect(() => {
     setContact((value) => ({ ...value, name: value.name || user?.name || "", phone: value.phone || user?.phone || "", address: value.address || user?.address || "" }))
   }, [user])
+  const resolved = (order: ProductOrder) => {
+    if (order.payment) setPaymentMethod(order.payment.method)
+    if (order.status === "failed" && priceFailure(order.errorCode)) {
+      setCreated(null)
+      setSubmitError(productOrderFailureMessage(order.errorCode!))
+      reload()
+      return
+    }
+    setCreated(order)
+  }
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (submitting || !valid || !user) return
@@ -310,11 +326,11 @@ export function ProductCheckoutPage() {
         name: contact.name.trim(), phone: contact.phone.trim(),
         ...(contact.address.trim() ? { address: contact.address.trim() } : {}),
         ...(contact.note.trim() ? { note: contact.note.trim() } : {}),
-      }, user.id)
-      setCreated(order)
+      }, user.id, Object.fromEntries([...byId].map(([id, product]) => [id, product.price])), paymentMethod)
+      resolved(order)
       if (order.status === "pending") toast.success("Đơn mua sản phẩm đã được ghi nhận.")
       if (order.status === "failed") toast.error("Chưa tạo được đơn. Bạn có thể kiểm tra và thử lại.")
-    } catch (reason) { setSubmitError(messageOf(reason)) }
+    } catch (reason) { setSubmitError(messageOf(reason)); if (reason instanceof ApiError && priceFailure(reason.code)) reload() }
     finally { setSubmitting(false) }
   }
   if (!cart.length && !created && !purchase.pending) return <section className="mx-auto max-w-3xl px-4 py-16 text-center"><h1 className="text-2xl font-semibold">Không có sản phẩm để đặt mua</h1><Button render={<Link href="/san-pham" />} nativeButton={false}>Quay lại sản phẩm</Button></section>
@@ -324,6 +340,7 @@ export function ProductCheckoutPage() {
       <h1 className="m-0 mt-2 text-2xl font-bold">{created.status === "pending" ? "Đã ghi nhận đơn sản phẩm" : created.status === "processing" ? "Đang xác minh đơn sản phẩm" : "Chưa tạo được đơn sản phẩm"}</h1>
       <p className="m-0 mt-3 text-sm leading-6 text-muted-foreground">Mã đơn {created.code}. {created.status === "pending" ? "Đơn đang chờ xử lý; trạng thái này không xác nhận đã thanh toán hoặc vận chuyển." : created.status === "processing" ? "Hệ thống đang đối chiếu tồn kho. Không gửi lại yêu cầu mới; hãy kiểm tra trạng thái đơn." : "Đơn chưa được tạo thành công. Hãy xem thông tin lỗi hoặc thử lại cùng mã đơn."}</p>
       {created.errorCode && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{productOrderFailureMessage(created.errorCode)} <span className="block pt-2 text-xs">Mã lỗi: {created.errorCode}</span></p>}
+      <ProductPayment order={created} />
       <div className="mt-6 flex flex-wrap gap-3"><Button render={<Link href={`/don-san-pham/${created.id}`} />} nativeButton={false}>Xem đơn hàng</Button>{created.status === "failed" && !terminalProductFailure(created.errorCode) && <Button variant="outline" onClick={async () => {
         setSubmitting(true)
         try { const order = await retryProductOrder(created.id); setCreated(order) }
@@ -335,7 +352,7 @@ export function ProductCheckoutPage() {
   </section>
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <PendingPurchaseNotice onResolved={setCreated} />
+      <PendingPurchaseNotice onResolved={resolved} />
       <header className="mb-7"><h1 className="m-0 text-3xl font-bold">Xác nhận mua sản phẩm</h1><p className="m-0 mt-3 text-sm leading-6 text-muted-foreground">Không cần chọn ngày giờ dịch vụ. Thông tin liên hệ dùng để CleanHome trao đổi về đơn; hiện chưa tích hợp thanh toán hoặc vận chuyển thật.</p></header>
       {error && <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4"><p>{error}</p><Button variant="outline" onClick={() => reload()}>Tải lại tồn kho</Button></div>}
       {loading && <p role="status">Đang kiểm tra sản phẩm…</p>}
@@ -347,6 +364,7 @@ export function ProductCheckoutPage() {
             <label className="grid gap-2 text-sm font-medium">Địa chỉ (không bắt buộc)<Input value={contact.address} maxLength={2000} onChange={(event) => setContact({ ...contact, address: event.target.value })} /></label>
             <label className="grid gap-2 text-sm font-medium">Ghi chú (không bắt buộc)<textarea className="min-h-24 rounded-xl border border-input bg-white p-3" maxLength={1000} value={contact.note} onChange={(event) => setContact({ ...contact, note: event.target.value })} /></label>
           </CardContent></Card>
+          <CheckoutPayment value={purchase.pending?.paymentMethod ?? paymentMethod} onChange={setPaymentMethod} disabled={submitting || Boolean(purchase.pending)} />
           {submitError && <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800">{submitError}</p>}
           <Button size="lg" type="submit" disabled={!valid || submitting} className="w-full">{submitting ? "Đang gửi yêu cầu…" : "Xác nhận tạo đơn sản phẩm"}</Button>
         </form>
@@ -359,6 +377,10 @@ export function ProductCheckoutPage() {
   )
 }
 
+function ProductPayment({ order }: { order: ProductOrder }) {
+  return <p className="m-0 rounded-xl bg-slate-50 p-4 text-sm leading-6" role="status">{!order.payment ? "Đơn cũ chưa có lựa chọn thanh toán." : `${order.payment.method === "cash" ? "Tiền mặt" : "Chuyển khoản"} · ${order.payment.status === "not_started" ? "Chưa ghi nhận thanh toán vì đơn chưa được xác nhận" : order.payment.status === "unpaid" ? "Chưa thanh toán" : "Chờ xác nhận thanh toán"}. Thanh toán mô phỏng, chưa nhận tiền thật.`}</p>
+}
+
 function OrderItems({ items }: { items: ProductOrderItem[] }) {
   return <ul className="m-0 list-none space-y-2 p-0">{items.map((item) => <li key={item.productId} className="flex justify-between gap-3 text-sm"><span>{item.name || `Sản phẩm mã ${item.productId}`} × {item.quantity}{item.unit ? ` ${item.unit}` : ""}</span><span className="shrink-0">{item.unitPrice === undefined ? "Đang xác minh" : formatCurrency(item.unitPrice * item.quantity)}</span></li>)}</ul>
 }
@@ -368,12 +390,16 @@ export function ProductOrdersPage({ id }: { id?: string }) {
   const [selected, setSelected] = useState<ProductOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [notFound, setNotFound] = useState(false)
   const [revision, setRevision] = useState(0)
   const [busy, setBusy] = useState("")
   useEffect(() => {
     let active = true
     setLoading(true)
     setError("")
+    setNotFound(false)
+    setOrders([])
+    setSelected(null)
     const load = id
       ? getProductOrder(id).then((order) => ({ items: [order] }))
       : getProductOrders().then((items) => ({ items }))
@@ -382,7 +408,11 @@ export function ProductOrdersPage({ id }: { id?: string }) {
         setOrders(result.items)
         setSelected(id ? result.items[0] : null)
       }
-    }).catch((reason: unknown) => { if (active) setError(messageOf(reason)) })
+    }).catch((reason: unknown) => {
+      if (!active) return
+      if (id && reason instanceof ApiError && reason.status === 404) setNotFound(true)
+      else setError(messageOf(reason))
+    })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [id, revision])
@@ -398,9 +428,10 @@ export function ProductOrdersPage({ id }: { id?: string }) {
   const shown = id ? (selected ? [selected] : []) : orders
   return (
     <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <header className="mb-7"><p className="m-0 text-xs font-semibold tracking-wide text-primary uppercase">Đơn mua sản phẩm</p><h1 className="m-0 mt-2 text-3xl font-bold">{id ? "Chi tiết đơn sản phẩm" : "Đơn sản phẩm của tôi"}</h1><p className="m-0 mt-3 text-sm leading-6 text-muted-foreground">Đây là luồng riêng, không có lịch hẹn dịch vụ. Trạng thái đơn không xác nhận thanh toán hoặc vận chuyển.</p></header>
+      {id && <Button variant="ghost" className="mb-6" render={<Link href="/don-san-pham" />} nativeButton={false}><ArrowLeftIcon aria-hidden="true" />Đơn sản phẩm</Button>}
+      <header className="mb-7"><p className="m-0 text-xs font-semibold tracking-wide text-primary uppercase">CleanHome / Đơn sản phẩm</p><h1 className="m-0 mt-2 text-3xl font-bold">{id ? "Chi tiết đơn sản phẩm" : "Đơn sản phẩm của tôi"}</h1><p className="m-0 mt-3 text-sm leading-6 text-muted-foreground">Theo dõi sản phẩm đã đặt, số lượng, tổng tiền và lựa chọn thanh toán. Đơn đang chờ xử lý chưa xác nhận đã nhận tiền hoặc vận chuyển.</p></header>
       {error && <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 p-4"><p>{error}</p><Button variant="outline" onClick={() => setRevision((value) => value + 1)}>Thử lại</Button></div>}
-      {loading ? <p role="status">Đang tải đơn sản phẩm…</p> : shown.length ? <div className="space-y-4">{shown.map((order) => <Card key={order.id} className="rounded-2xl"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="m-0 text-xs text-muted-foreground">{order.code}</p><h2 className="m-0 mt-1 text-lg font-semibold">{PRODUCT_ORDER_STATUS[order.status]}</h2></div><span className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleString("vi-VN")}</span></div></CardHeader><CardContent className="space-y-4"><OrderItems items={order.items} />{order.total !== null && <p className="m-0 flex justify-between border-t border-border pt-4 font-semibold"><span>Tổng hàng</span><span>{formatCurrency(order.total)}</span></p>}{order.errorCode && <p role="alert" className="m-0 text-sm text-rose-700">{productOrderFailureMessage(order.errorCode)} <span className="block pt-2 text-xs">Mã lỗi: {order.errorCode}</span></p>}<div className="flex flex-wrap gap-3">{!id && <Button variant="outline" render={<Link href={`/don-san-pham/${order.id}`} />} nativeButton={false}>Xem chi tiết</Button>}{order.status !== "pending" && !terminalProductFailure(order.errorCode) && <Button variant="outline" onClick={() => retry(order)} disabled={busy === order.id}>{busy === order.id ? "Đang kiểm tra…" : order.status === "failed" ? "Thử lại đơn này" : "Kiểm tra lại trạng thái"}</Button>}</div></CardContent></Card>)}</div> : <div className="rounded-2xl border border-dashed border-border p-10 text-center"><h2 className="m-0 text-xl font-semibold">Chưa có đơn mua sản phẩm</h2><p className="my-3 text-sm text-muted-foreground">Bạn có thể xem và đặt mua sản phẩm riêng, không cần lịch dịch vụ.</p><Button render={<Link href="/san-pham" />} nativeButton={false}>Xem sản phẩm</Button></div>}
+      {loading ? <p role="status">Đang tải đơn sản phẩm…</p> : notFound ? <div role="status" className="rounded-2xl border border-dashed border-border p-8 text-center"><h2 className="m-0 text-xl font-semibold">Không tìm thấy đơn sản phẩm</h2><p className="my-4 text-sm leading-6 text-muted-foreground">Đơn không tồn tại hoặc bạn không có quyền xem.</p><Button variant="outline" render={<Link href="/don-san-pham" />} nativeButton={false}>Về danh sách đơn sản phẩm</Button></div> : error ? null : shown.length ? <div className="space-y-4">{shown.map((order) => <Card key={order.id} className="rounded-2xl"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="m-0 text-xs text-muted-foreground">{order.code}</p><h2 className="m-0 mt-1 text-lg font-semibold">{PRODUCT_ORDER_STATUS[order.status]}</h2></div><span className="text-sm text-muted-foreground">{new Date(order.createdAt).toLocaleString("vi-VN")}</span></div></CardHeader><CardContent className="space-y-4"><OrderItems items={order.items} /><ProductPayment order={order} />{order.total !== null && <p className="m-0 flex justify-between border-t border-border pt-4 font-semibold"><span>Tổng hàng</span><span>{formatCurrency(order.total)}</span></p>}{order.errorCode && <p role="alert" className="m-0 text-sm text-rose-700">{productOrderFailureMessage(order.errorCode)} <span className="block pt-2 text-xs">Mã lỗi: {order.errorCode}</span></p>}<div className="flex flex-wrap gap-3">{!id && <Button variant="outline" render={<Link href={`/don-san-pham/${order.id}`} />} nativeButton={false}>Xem chi tiết</Button>}{order.status !== "pending" && !terminalProductFailure(order.errorCode) && <Button variant="outline" onClick={() => retry(order)} disabled={busy === order.id}>{busy === order.id ? "Đang kiểm tra…" : order.status === "failed" ? "Thử lại đơn này" : "Kiểm tra lại trạng thái"}</Button>}</div></CardContent></Card>)}</div> : <div className="rounded-2xl border border-dashed border-border p-10 text-center"><h2 className="m-0 text-xl font-semibold">Chưa có đơn mua sản phẩm</h2><p className="my-3 text-sm text-muted-foreground">Bạn có thể xem và đặt mua sản phẩm riêng, không cần lịch dịch vụ.</p><Button render={<Link href="/san-pham" />} nativeButton={false}>Xem sản phẩm</Button></div>}
       <div className="mt-7"><Button variant="ghost" render={<Link href="/san-pham" />} nativeButton={false}><ArrowLeftIcon aria-hidden="true" />Tiếp tục xem sản phẩm</Button></div>
     </section>
   )

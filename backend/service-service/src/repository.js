@@ -62,7 +62,7 @@ function serviceDto(row) {
   const baseMinutes = config?.baseMinutes ?? 0;
   const quantityLabel = config?.quantityLabel ?? row.unit;
   const cleaningType = config?.cleaningType ?? legacyCleaningType(row.category_name, row.name, group);
-  const validQuantity = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 100000
+  const validQuantity = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0.01 && value <= 100000
     && Math.abs(value * 100 - Math.round(value * 100)) <= 0.000001;
   if (!validQuantity(minQuantity) || !validQuantity(defaultQuantity) || defaultQuantity < minQuantity
     || !Number.isInteger(baseMinutes) || baseMinutes < 0 || baseMinutes > 2147483647
@@ -326,6 +326,10 @@ export function createRepository(pool) {
           if (item.quantity > available) throw new HttpError(409, 'OUT_OF_STOCK', `Sản phẩm ${row.name} không đủ tồn kho.`);
           const cents = Math.round(product.price * 100);
           if (!Number.isSafeInteger(cents) || cents < 0) throw badCatalog();
+          if (item.expectedUnitPrice === undefined) throw new HttpError(400, 'PRICE_CONFIRMATION_REQUIRED', 'Cần xác nhận đơn giá trước khi giữ hàng.');
+          if (Math.round(item.expectedUnitPrice * 100) !== cents) {
+            throw new HttpError(409, 'PRICE_CHANGED', 'Đơn giá sản phẩm đã thay đổi. Vui lòng xem giá mới và xác nhận lại.');
+          }
           totalCents += cents * item.quantity;
           snapshots.push({
             productId: String(row.id), code: `SP${row.id}`, name: row.name, unit: row.unit,

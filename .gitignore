@@ -15,3 +15,4 @@ backend/.test-artifacts/
 frontend/.test-artifacts/
 frontend/test-results/
 frontend/playwright-report/
+frontend/apps/customer/.customer-browser-tsconfig.json
