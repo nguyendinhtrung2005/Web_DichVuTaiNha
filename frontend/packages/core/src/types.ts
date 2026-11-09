@@ -1,12 +1,22 @@
 export type Role = "customer" | "staff" | "admin"
 
 export type ServiceCategory = "dinh-ky" | "chuyen-sau" | "noi-that" | "thiet-bi"
+export type ServiceGroup = "ve-sinh" | "cham-soc" | "bao-duong"
+export type CleaningType = "phong-tro" | "nha-gia-dinh" | "khac"
+export type ServicePricingMode = "fixed" | "reference" | "survey"
 
 export interface Service {
   id: string
   slug: string
   name: string
   category: ServiceCategory
+  categoryName?: string
+  group?: ServiceGroup
+  groupName?: string
+  cleaningType?: CleaningType
+  pricingMode?: ServicePricingMode
+  pricingModeKnown?: boolean
+  minimumQuantityKnown?: boolean
   shortDesc: string
   description: string
   scope: string[]
@@ -21,6 +31,52 @@ export interface Service {
   baseMinutes: number
   image: string
   status: "active" | "inactive"
+}
+
+export interface Product {
+  id: string
+  code: string
+  slug: string
+  name: string
+  description: string
+  images: string[]
+  image: string
+  categoryId: string
+  categoryName: string
+  relatedServiceIds: string[]
+  price: number
+  unit: string
+  stock: number
+  status: "available" | "out_of_stock" | "inactive"
+}
+
+export interface ProductCartItem {
+  productId: string
+  quantity: number
+}
+
+export interface ProductOrderItem {
+  productId: string
+  expectedUnitPrice?: number
+  code?: string
+  name?: string
+  unit?: string
+  quantity: number
+  unitPrice?: number
+}
+
+export interface ProductOrder {
+  id: string
+  code: string
+  customerId: string
+  status: "processing" | "pending" | "failed"
+  items: ProductOrderItem[]
+  contact: { name: string; phone: string; address?: string; note?: string }
+  total: number | null
+  createdAt: string
+  updatedAt: string
+  errorCode?: string
+  payment?: { method: PaymentMethod; status: "not_started" | "unpaid" | "pending"; simulated: true } | null
 }
 
 export interface User {
@@ -41,7 +97,7 @@ export type OrderStatus = "pending" | "confirmed" | "in_progress" | "completed" 
 export type JobStatus = "waiting" | "accepted" | "in_progress" | "done"
 export type PaymentStatus = "unpaid" | "pending" | "paid"
 export type PaymentMethod = "cash" | "transfer"
-export type HouseType = "can-ho" | "nha-pho" | "biet-thu" | "van-phong"
+export type HouseType = "phong-tro" | "can-ho" | "nha-pho" | "biet-thu" | "van-phong"
 
 export interface OrderContact {
   name: string
@@ -76,10 +132,15 @@ export interface StaffNote {
 }
 
 export interface Order {
+  pricingMode?: ServicePricingMode
+  pricingModeKnown?: boolean
   id: string
   code: string
   customerId: string
   serviceId: string
+  serviceName?: string
+  unit?: string
+  items?: { id: string; serviceId: string; serviceName: string; quantity: number; unit: string; unitPrice: number }[]
   quantity: number
   contact: OrderContact
   scheduledAt: string
@@ -92,6 +153,24 @@ export interface Order {
   cancelRequest?: CancelRequest
   history: HistoryEntry[]
   staffNotes: StaffNote[]
+  createdAt: string
+}
+
+export interface StaffJob {
+  id: string
+  code: string
+  serviceId: string
+  serviceName: string
+  unit: string
+  quantity: number
+  contact: Pick<OrderContact, "name" | "phone" | "address">
+  scheduledAt: string
+  durationMinutes: number
+  specialRequest: string
+  orderStatus: OrderStatus
+  jobStatus: JobStatus
+  cancelPending: boolean
+  history: HistoryEntry[]
   createdAt: string
 }
 
