@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import { DEMO_INCOME_POLICY, calculateIncomeLine, summarizeIncomeLines } from '../../../../backend/staff-service/src/income-policy.js'
+import { StaffIncomeService } from '../../../../backend/staff-service/src/income-service.js'
+import { incomeQuery } from '../../../../backend/staff-service/src/validation.js'
 
 const require = createRequire(import.meta.url), ts = require('typescript'), React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
@@ -60,6 +62,32 @@ function payload(assignments = [done()]) {
   }
 }
 const render = props => renderToStaticMarkup(React.createElement(panel.StaffIncomePanel, { month: '2026-11', onMonth() {}, onRetry() {}, ...props }))
+
+test('potential repeated booking allocation is warned without merging, deducting or changing DEMO_V2 amounts', async () => {
+  const rows = [done(), done({ id: '2' })], before = JSON.stringify(rows)
+  const service = new StaffIncomeService({ env: { NODE_ENV: 'development', STAFF_INCOME_DEMO_ENABLED: 'true' }, repository: {
+    async findEmployeeByUserId() { return { id: '10', status: 'ACTIVE', userStatus: 'ACTIVE', userRole: 'EMPLOYEE' } },
+    async findIncomeAssignments(employeeId) { assert.equal(employeeId, '10'); return rows },
+  } })
+  const response = await service.estimate({ userId: '100' }, incomeQuery({ month: '2026-11' }))
+  assert.equal(response.policy.version, 'DEMO_V2'); assert.equal(response.counts.eligible, 2); assert.equal(response.estimateTotalVnd, 120000)
+  const estimate = model.parseStaffIncomeEstimate(response, '2026-11'); assert.ok(estimate)
+  assert.deepEqual(JSON.parse(JSON.stringify(model.repeatedIncomeBookings(estimate.assignments))), [{ bookingId: '9', assignmentIds: ['1', '2'] }])
+  const html = render({ estimate, loading: false, error: '' })
+  assert.match(html, /data-income-repeated-bookings/); assert.match(html, /Chưa đủ thông tin để xác định/)
+  assert.match(html, /data-staff-income-total="120000"/); assert.match(html, /data-staff-income-assignment-id="1"/); assert.match(html, /data-staff-income-assignment-id="2"/)
+  assert.match(html, /Chính sách minh họa · DEMO_V2/); assert.match(html, /Dự kiến/); assert.doesNotMatch(html, /data-staff-income-payout="PAID"/)
+  assert.equal(JSON.stringify(rows), before)
+  const performance = load('staff-performance-model.ts').summarizeStaffPerformance(rows.map(row => ({ assignmentId: row.id, orderId: row.bookingId, status: row.status, scheduledAt: row.scheduledStart, checkInAt: row.checkInAt, checkOutAt: row.checkOutAt })))
+  assert.equal(performance.done, 2, 'Current metric remains assignment-based; deducing one official job/bonus requires owner policy')
+})
+
+test('repeated booking detection ignores an exact same ID and never mixes separate bookings', () => {
+  assert.equal(model.repeatedIncomeBookings([done(), done()]).length, 0)
+  assert.equal(model.repeatedIncomeBookings([done(), done({ id: '2', bookingId: '10' })]).length, 0)
+  assert.equal(model.repeatedIncomeBookings([]).length, 0)
+  assert.equal(model.parseStaffIncomeEstimate(payload([done(), done()]), '2026-11'), null, 'Duplicate assignment IDs are already rejected by the API parser')
+})
 
 test('ready estimate renders the DEMO total, eligible count, unit price, month filter and payout status', () => {
   const estimate = model.parseStaffIncomeEstimate(payload([done(), done({ id: '3', checkInAt: '2026-11-06T02:00:00.000Z', checkOutAt: '2026-11-06T03:00:00.000Z' })]), '2026-11')

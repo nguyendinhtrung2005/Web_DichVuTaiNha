@@ -70,7 +70,7 @@ function StatusProgress({ status }: { status: keyof typeof labels }) {
 
 
 /** Every mutation is explicit. Mount, reload and refresh only GET the durable BFF context. */
-export function StaffJobStatus({ assignmentId, onChanged }: { assignmentId: string; onChanged: () => void }) {
+export function StaffJobStatus({ assignmentId, onChanged, teamStartBlockedReason = null, teamCompletionBlockedReason = null }: { assignmentId: string; onChanged: () => void; teamStartBlockedReason?: string | null; teamCompletionBlockedReason?: string | null }) {
   const auth = useStaffAuth()
   const [state, setState] = useState<StaffStatusState | null>(null)
   const [attempt, setAttempt] = useState<StaffStatusOperation | null>(null)
@@ -109,7 +109,10 @@ export function StaffJobStatus({ assignmentId, onChanged }: { assignmentId: stri
   const unresolved = operation && operation.phase !== "confirmed" ? operation : null
   const canRetry = Boolean(unresolved && state && state.blockedReason !== "ASSIGNMENT_CHANGED" && state.current.status !== "CANCELLED" && state.current.orderStatus !== "cancelled"
     && (state.canRetry || (attempt && state.operation?.idempotencyKey !== attempt.idempotencyKey)))
-  const allowed = !unresolved && !error ? state?.allowedStatus : null
+  const allowedByStatus = !unresolved && !error ? state?.allowedStatus : null
+  const teamBlockedReason = allowedByStatus === "IN_PROGRESS" ? teamStartBlockedReason : allowedByStatus === "DONE" ? teamCompletionBlockedReason : null
+  const teamBlocked = Boolean(teamBlockedReason)
+  const allowed = teamBlocked ? null : allowedByStatus
   const close = () => { if (mutex.current) return; setConfirmation(null); queueMicrotask(() => trigger.current?.focus({ preventScroll: true })) }
 
   async function check() {
@@ -188,7 +191,7 @@ export function StaffJobStatus({ assignmentId, onChanged }: { assignmentId: stri
         {operation.observedTarget && operation.phase !== "confirmed" && <p className="mt-2 mb-0">Trạng thái công việc đã tiến triển, nhưng chưa đủ để xác nhận thao tác này đã đồng bộ hoàn tất.</p>}
       </div>}
       {(error || notice) && <div ref={feedback} tabIndex={-1} role={error ? "alert" : "status"} className={`staff-status-feedback min-w-0 rounded-xl border px-4 py-3 text-sm leading-7 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${error ? "border-red-200 bg-red-50 text-red-800" : "border-blue-100 bg-blue-50 text-blue-950"}`}>{error || notice}</div>}
-      {!busy && state && !allowed && !unresolved && !error && <p className="m-0 text-sm leading-7 text-muted-foreground">{state.blockedReason === "ASSIGNMENT_CHANGED" ? "Phân công đã thay đổi. Vui lòng liên hệ người quản lý để đối chiếu." : state.blockedReason === "CANCELLATION_PENDING" ? "Đơn đang có yêu cầu hủy chờ xử lý." : state.blockedReason === "BOOKING_NOT_ACTIVE" ? "Đơn dịch vụ hiện chưa cho phép cập nhật công việc." : "Hiện không có bước tiếp theo để cập nhật."}</p>}
+      {!busy && state && !allowed && !unresolved && !error && <p className="m-0 text-sm leading-7 text-muted-foreground" data-team-start-blocked={teamBlocked || undefined}>{teamBlocked ? teamBlockedReason : state.blockedReason === "ASSIGNMENT_CHANGED" ? "Phân công đã thay đổi. Vui lòng liên hệ người quản lý để đối chiếu." : state.blockedReason === "CANCELLATION_PENDING" ? "Đơn đang có yêu cầu hủy chờ xử lý." : state.blockedReason === "BOOKING_NOT_ACTIVE" ? "Đơn dịch vụ hiện chưa cho phép cập nhật công việc." : "Hiện không có bước tiếp theo để cập nhật."}</p>}
       {unresolved && state?.blockedReason === "ASSIGNMENT_CHANGED" && <p className="m-0 text-sm leading-7 text-muted-foreground">Phân công đã thay đổi. Cần người quản lý đối chiếu thao tác trước khi tiếp tục.</p>}
       <div className="staff-status-actions flex min-w-0 flex-col gap-3">
         {allowed && <Button ref={trigger} type="button" className="h-auto min-h-11 w-full whitespace-normal px-4 py-2" disabled={busy !== null} onClick={() => { if (!mutex.current) setConfirmation({ target: allowed, retry: false }) }}>{STAFF_STATUS_ACTION[allowed].label}</Button>}

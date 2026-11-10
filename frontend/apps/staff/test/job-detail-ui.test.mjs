@@ -13,7 +13,7 @@ function sourceModule(name) {
   const filename = fileURLToPath(new URL(name, root))
   if (cache.has(filename)) return cache.get(filename)
   const output = ts.transpileModule(readFileSync(filename, 'utf8'), {
-    fileName: filename, compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
+    fileName: filename.endsWith('.mjs') ? filename + '.ts' : filename, compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText
   const module = { exports: {} }
   cache.set(filename, module.exports)
@@ -21,6 +21,7 @@ function sourceModule(name) {
     module, exports: module.exports, URLSearchParams, URL,
     require(name) {
       if (name === './staff-jobs-remote-model') return sourceModule('staff-jobs-remote-model.ts')
+      if (name === './staff-team-contract.mjs') return sourceModule('staff-team-contract.mjs')
       throw new Error('Unexpected dependency in pure Staff detail model')
     },
   }, { filename, timeout: 2000 })

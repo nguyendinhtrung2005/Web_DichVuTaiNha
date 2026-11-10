@@ -93,7 +93,7 @@ export function createStaffAreasHttp({ configFactory = loadStaffJobsConfig, auth
         const session = await auth.inspect(sid)
         if (session.user.id !== accountId) fail(409, 'STAFF_SESSION_CHANGED', 'Tài khoản đăng nhập đã thay đổi. Vui lòng tải lại khu vực và ca làm.')
       }
-      const result = await auth.withAccessToken(sid, async token => parse(await upstream(config, token, path, fetchImpl)))
+      const result = await auth.withAccessToken(sid, async token => parse(await upstream(config, token, path, fetchImpl)), { retryOnExpiredToken: true })
       return Response.json(result, { headers })
     } catch (error) {
       const known = error instanceof AuthBffError

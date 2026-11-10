@@ -12,6 +12,8 @@ import { StaffEmpty, StaffLoading, StaffPageHeader } from "./staff-shared"
 import { REMOTE_STAFF_STATUS_LABEL, formatStaffJobTime } from "./staff-jobs-remote-model"
 import { formatStaffSnapshotPrice, isStaffAssignmentId, parseStaffJobDetailPayload, staffContactPhoneHref, staffJobsReturnHref, type RemoteStaffJobDetail } from "./staff-job-detail-remote-model"
 import { StaffJobStatus } from "./staff-job-status"
+import { StaffJobTeam } from "./staff-job-team"
+import { staffTeamMutationBlockedReason } from "./staff-team-model"
 
 type StaffAuth = NonNullable<ReturnType<typeof useStaffAuth>>
 type DetailResult = { key: string; data: RemoteStaffJobDetail | null; error: string; notFound: boolean; loading: boolean }
@@ -112,7 +114,8 @@ function JobDetailView({ job, onChanged }: { job: RemoteStaffJobDetail; onChange
   const tone = ({ WAITING: "warning", ACCEPTED: "info", IN_PROGRESS: "primary", DONE: "success", CANCELLED: "danger" } as const)[job.status]
   return <div data-assignment-detail-id={job.assignmentId} className="staff-detail-view">
     <section className="staff-detail-summary" aria-label="Tóm tắt phân công"><div><p className="staff-eyebrow">Công việc được phân công</p><h2>Phân công #{job.assignmentId}</h2><p className="staff-detail-order-reference">Đơn dịch vụ #{job.orderId}</p></div><ToneBadge tone={tone}>{REMOTE_STAFF_STATUS_LABEL[job.status]}</ToneBadge></section>
-    <section className="staff-detail-status-area" aria-label="Trạng thái công việc"><StaffJobStatus assignmentId={job.assignmentId} onChanged={onChanged} /></section>
+    <StaffJobTeam team={job.team} teamError={job.teamError} personalStatus={job.status} bookingStatus={job.orderStatus} bookingId={job.orderId} services={job.services.map(service => service.name)} onRetry={onChanged} />
+    <section className="staff-detail-status-area" aria-label="Trạng thái công việc"><StaffJobStatus assignmentId={job.assignmentId} onChanged={onChanged} teamStartBlockedReason={staffTeamMutationBlockedReason(job.team, "IN_PROGRESS")} teamCompletionBlockedReason={staffTeamMutationBlockedReason(job.team, "DONE")} /></section>
     <div className="staff-detail-main">
       <Card className="staff-detail-card"><CardHeader><div className="staff-detail-section-heading"><CalendarDaysIcon aria-hidden="true" /><h2>Lịch hẹn và dịch vụ</h2></div><p className="staff-detail-section-description">Thời gian hiển thị theo giờ Việt Nam (UTC+7).</p></CardHeader><CardContent>
         <dl className="staff-detail-facts"><DetailItem label="Ngày và giờ thực hiện"><time dateTime={job.scheduledAt || undefined} className="staff-detail-time">{formatStaffJobTime(job.scheduledAt)}</time></DetailItem><DetailItem label="Kết thúc dự kiến">{job.expectedEndAt ? <time dateTime={job.expectedEndAt}>{formatStaffJobTime(job.expectedEndAt)}</time> : "Chưa có thông tin"}</DetailItem><DetailItem label="Thời lượng dự kiến">{job.durationMinutes === null ? "Chưa có thông tin" : job.durationMinutes + " phút"}</DetailItem></dl>

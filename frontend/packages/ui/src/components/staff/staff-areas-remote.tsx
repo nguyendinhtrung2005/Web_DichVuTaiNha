@@ -161,7 +161,7 @@ export function StaffAreasRemote({ accountId, mapsConfig = null }: { accountId: 
             {availabilityLoading ? <StaffLoading /> : availabilityError ? <div role="status"><p>Lịch khả dụng chưa đọc được. Bản đồ vẫn hiển thị dữ liệu chi nhánh đã tải.</p><Button variant="outline" onClick={() => setAvailabilityRetry(value => value + 1)}>Tải lại lịch khả dụng</Button></div>
               : availability && <StaffAvailabilityInteractions key={`${accountId}:${week.from}`} accountId={accountId} items={windows} week={week} branch={branch} truncated={availability.truncated} />}
           </section>
-          <p className="staff-areas-muted">Cần xem lịch hẹn được phân công thật? <Link href="/lich-lam-viec">Mở Lịch làm việc</Link>.</p>
+          <p className="staff-areas-muted">Xem các lịch hẹn của bạn tại <Link href="/lich-lam-viec">Lịch làm việc</Link>.</p>
         </>}
   </div>
 }

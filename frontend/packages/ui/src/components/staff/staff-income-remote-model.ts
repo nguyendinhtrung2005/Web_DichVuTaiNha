@@ -30,6 +30,16 @@ export type StaffIncomeEstimate = {
   timezone: "Asia/Ho_Chi_Minh"
 }
 
+/** Potential repeated allocation, not proof of duplicate work or permission to change an amount. */
+export function repeatedIncomeBookings(assignments: readonly StaffIncomeAssignment[]) {
+  const bookings = new Map<string, Set<string>>()
+  for (const assignment of assignments) {
+    const ids = bookings.get(assignment.bookingId) || new Set<string>()
+    ids.add(assignment.id); bookings.set(assignment.bookingId, ids)
+  }
+  return [...bookings].filter(([, ids]) => ids.size > 1).map(([bookingId, ids]) => ({ bookingId, assignmentIds: [...ids] }))
+}
+
 const STATUSES: StaffIncomeStatus[] = ["ASSIGNED", "ACCEPTED", "IN_PROGRESS", "DONE", "CANCELLED"]
 const REASONS: StaffIncomeReason[] = ["STATUS_NOT_DONE", "MISSING_CHECK_TIMES", "INVALID_CHECK_TIMES"]
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/

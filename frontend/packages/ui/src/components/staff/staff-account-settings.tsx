@@ -11,6 +11,7 @@ import { parseStaffBranch, type StaffBranch } from "./staff-areas-remote-model"
 import { useStaffDisplayPreferences } from "./staff-display-preferences"
 import { useStaffNotificationView } from "./staff-notification-view-preferences"
 import type { StaffSession } from "./staff-auth-session"
+import { StaffProfileEditor } from "./staff-profile-editor"
 
 type Display = NonNullable<ReturnType<typeof useStaffDisplayPreferences>>
 function Section({ id, title, description, icon, children, wide = false }: { id: string; title: string; description?: string; icon: ReactNode; children: ReactNode; wide?: boolean }) {
@@ -31,7 +32,7 @@ async function readBranch(accountId: string, signal: AbortSignal): Promise<Staff
 }
 function ProfileCard({ accountId, onSessionCheck }: { accountId: string; onSessionCheck: () => Promise<void> }) {
   const [branch, setBranch] = useState<StaffBranch | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState(""), [retry, setRetry] = useState(0), [edit, setEdit] = useState(false)
-  const trigger = useRef<HTMLButtonElement>(null), id = useId()
+  const trigger = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     const controller = new AbortController(); let timedOut = false
     const timer = window.setTimeout(() => { timedOut = true; controller.abort() }, 15000)
@@ -49,8 +50,8 @@ function ProfileCard({ accountId, onSessionCheck }: { accountId: string; onSessi
     <dl className="staff-account-profile-fields"><div><dt>Họ và tên</dt><dd data-account-field="name">Chưa được cung cấp</dd></div><div><dt>Số điện thoại</dt><dd data-account-field="phone">Chưa được cung cấp</dd></div><div><dt>Email</dt><dd data-account-field="email">Chưa được cung cấp</dd></div><div><dt>Chi nhánh</dt><dd data-staff-settings-branch={loading ? "loading" : error ? "error" : "ready"} data-staff-settings-branch-id={branch?.id}>{loading && !branch ? <span role="status" aria-busy="true">Đang tải chi nhánh...</span> : branch?.name || "Chưa được cung cấp"}</dd></div></dl>
     {error && <div className="staff-account-error" role="alert"><p>{error}</p><Button variant="outline" disabled={loading} data-staff-settings-retry onClick={() => setRetry(value => value + 1)}>Thử lại</Button></div>}
     <p className="staff-account-note">Chỉnh sửa thông tin chưa khả dụng. Liên hệ người quản lý nếu cần cập nhật hồ sơ.</p>
-    <Dialog open={edit} onOpenChange={setEdit}><DialogContent showCloseButton={false} finalFocus={trigger} className="staff-preference-surface staff-account-dialog" data-staff-settings-profile-dialog><DialogHeader><DialogTitle>Chỉnh sửa thông tin</DialogTitle><DialogDescription>Chức năng cập nhật hồ sơ chưa khả dụng. Thông tin hiện tại được giữ nguyên.</DialogDescription></DialogHeader>
-      <form onSubmit={event => event.preventDefault()}><fieldset disabled className="staff-account-form"><label htmlFor={`${id}-name`}>Họ và tên<input id={`${id}-name`} name="profile-name" value="" readOnly placeholder="Chưa được cung cấp" autoComplete="off" /></label><label htmlFor={`${id}-phone`}>Số điện thoại<input id={`${id}-phone`} name="profile-phone" value="" readOnly placeholder="Chưa được cung cấp" autoComplete="off" /></label><label htmlFor={`${id}-email`}>Email<input id={`${id}-email`} name="profile-email" type="email" value="" readOnly placeholder="Chưa được cung cấp" autoComplete="off" /></label></fieldset><div className="staff-account-actions"><DialogClose render={<Button variant="outline" />}>Hủy</DialogClose><Button disabled type="submit" data-staff-settings-profile-save>Lưu thay đổi</Button></div></form>
+    <Dialog open={edit} onOpenChange={setEdit}><DialogContent showCloseButton={false} finalFocus={trigger} className="staff-preference-surface staff-account-dialog" data-staff-settings-profile-dialog><DialogHeader><DialogTitle>Chỉnh sửa thông tin</DialogTitle><DialogDescription>Các thông tin chỉ có thể sửa khi tài khoản được cấp quyền cập nhật.</DialogDescription></DialogHeader>
+      <StaffProfileEditor accountId={accountId} onCancel={() => setEdit(false)} />
     </DialogContent></Dialog>
   </Section>
 }

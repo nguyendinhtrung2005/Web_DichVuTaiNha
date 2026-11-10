@@ -17,6 +17,8 @@ function render(environment, demoEnabled, auth) {
       if (id === './staff-auth-session') return { useStaffAuth: () => auth }
       if (id === './staff-display-preferences') return { useStaffDisplayPreferences: () => display }
       if (id === './staff-account-settings') return source('staff-account-settings.tsx')
+      if (id === './staff-profile-editor') return source('staff-profile-editor.tsx')
+      if (id === './staff-profile-edit-model') return source('staff-profile-edit-model.ts')
       if (id === './staff-areas-remote-model') return source('staff-areas-remote-model.ts')
       if (id === './staff-notification-view-preferences') return source('staff-notification-view-preferences.ts')
       if (id === './staff-settings-demo-adapter') return source('staff-settings-demo-adapter.ts')

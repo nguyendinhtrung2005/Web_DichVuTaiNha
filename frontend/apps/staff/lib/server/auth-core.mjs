@@ -624,9 +624,21 @@ export function createStaffAuth({ config, fetchImpl = fetch, now = Date.now }) {
     },
 
     // Server-only capability, never part of the public session DTO or browser response.
-    async withAccessToken(sid, operation) {
-      const record = await authorizedRecord(sid);
-      const result = await operation(record.token);
+    async withAccessToken(sid, operation, options) {
+      let record = await authorizedRecord(sid);
+      let result;
+      try { result = await operation(record.token); }
+      catch (error) {
+        // Fixed GET adapters opt in. A permission denial, a still-valid token,
+        // legacy session or an unapproved mutation must never be replayed.
+        if (options?.retryOnExpiredToken !== true || record.version !== 2 || record.accessExpiresAt > now()
+          || !(error instanceof AuthBffError) || error.status !== 401 || error.code !== 'SESSION_EXPIRED') throw error;
+        const renewed = await authorizedRecord(sid);
+        if (renewed.user.id !== record.user.id || renewed.token === record.token) throw expired();
+        record = renewed;
+        // At most one retry. The per-SID durable lock handles concurrent rotation.
+        result = await operation(record.token);
+      }
       const current = await store.read(sid);
       // A parallel tab can safely rotate the access token while this operation runs.
       // Logout/deletion/tombstones still invalidate the result.

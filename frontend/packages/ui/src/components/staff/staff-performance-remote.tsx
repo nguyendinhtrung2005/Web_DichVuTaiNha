@@ -52,17 +52,17 @@ export function StaffPerformanceSection({ range, checkSession, headingId = "staf
   return <section className="staff-achievements-real" data-staff-real-statistics data-staff-performance="real" aria-labelledby={headingId}>
     <div className="staff-achievements-section-title">
       <div>
-        <h2 id={headingId}>Thống kê phân công thật</h2>
+        <h2 id={headingId}>Thống kê công việc</h2>
         <p>Theo lịch hẹn {dateLabel(range.from)} – {dateLabel(range.to)} · Giờ Việt Nam (UTC+7).</p>
       </div>
       <Button variant="outline" render={<Link href={staffStatisticsHref(range)} />} nativeButton={false} aria-label="Mở trang Thống kê công việc">Mở Thống kê công việc</Button>
     </div>
-    {!state ? <div className="staff-achievements-real-grid" role="status" aria-busy="true" aria-label="Đang đọc chỉ số phân công thật">
-      <Card><CardContent><Skeleton className="h-8 w-20" /><p>Đang đọc số liệu thật...</p></CardContent></Card>
-      <Card><CardContent><Skeleton className="h-8 w-20" /><p>Đang đọc số liệu thật...</p></CardContent></Card>
+    {!state ? <div className="staff-achievements-real-grid" role="status" aria-busy="true" aria-label="Đang tải thống kê công việc">
+      <Card><CardContent><Skeleton className="h-8 w-20" /><p>Đang tải số liệu...</p></CardContent></Card>
+      <Card><CardContent><Skeleton className="h-8 w-20" /><p>Đang tải số liệu...</p></CardContent></Card>
     </div>
-      : "error" in state ? <div role="alert" className="staff-achievements-error"><p>{state.error}</p><Button variant="outline" onClick={() => setRetry(value => value + 1)} aria-label="Thử đọc lại chỉ số phân công thật">Thử lại</Button></div>
-        : !summary || summary.total === 0 ? <div role="status" className="staff-achievements-error"><p>Không có phân công nào trong khoảng lịch hẹn này, nên chưa tính được tỷ lệ. Không hiển thị 0% thay cho dữ liệu chưa có.</p><Button variant="outline" onClick={() => setRetry(value => value + 1)}>Đọc lại</Button></div>
+      : "error" in state ? <div role="alert" className="staff-achievements-error"><p>{state.error}</p><Button variant="outline" onClick={() => setRetry(value => value + 1)} aria-label="Tải lại thống kê công việc">Thử lại</Button></div>
+        : !summary || summary.total === 0 ? <div role="status" className="staff-achievements-error"><p>Chưa có công việc trong khoảng thời gian này.</p><Button variant="outline" onClick={() => setRetry(value => value + 1)}>Thử lại</Button></div>
           : <div className="staff-achievements-real-grid" aria-live="polite" data-performance-total={summary.total}>
             <Card><CardContent>
               <p className="staff-achievements-real-label">Tổng phân công trong kỳ</p>
@@ -88,18 +88,9 @@ export function StaffPerformanceSection({ range, checkSession, headingId = "staf
             </CardContent></Card>
           </div>}
     {summary && summary.total > 0 && (summary.doneMissingCheckOut > 0 || summary.activeMissingCheckIn > 0 || summary.invalidDuration > 0)
-      ? <p className="staff-achievements-muted" role="note">Chất lượng dữ liệu: {number.format(summary.doneMissingCheckOut)} phân công DONE thiếu check-out, {number.format(summary.activeMissingCheckIn)} phân công đã bắt đầu thiếu check-in, {number.format(summary.invalidDuration)} mốc thời gian không hợp lệ. Các dòng này không được tính là 0 phút và không được tính là đúng giờ.</p>
+      ? <p className="staff-achievements-muted" role="note">Chưa đủ thời gian để tính chỉ số cho một số công việc: {number.format(summary.doneMissingCheckOut)} thiếu giờ kết thúc, {number.format(summary.activeMissingCheckIn)} thiếu giờ bắt đầu, {number.format(summary.invalidDuration)} khoảng thời gian không hợp lệ.</p>
       : null}
     {summary && <StaffPerformanceBreakdown summary={summary} />}
-    <details className="staff-achievements-rules">
-      <summary>Công thức và giới hạn của các chỉ số</summary>
-      <ul>
-        {STAFF_PERFORMANCE_DEFINITIONS.map(item => <li key={item.key}><strong>{item.label}:</strong> {item.formula.replaceAll("checkInAt", "giờ bắt đầu").replaceAll("checkOutAt", "giờ kết thúc").replaceAll("scheduledAt", "giờ lịch hẹn").replaceAll("DONE", "hoàn thành").replaceAll("CANCELLED", "đã hủy")}.</li>)}
-        <li>Kỳ thống kê theo ngày bắt đầu lịch hẹn tại Việt Nam, không theo ngày hoàn tất.</li>
-        <li>Hoàn thành công việc không đồng nghĩa khách hàng đã nghiệm thu hoặc đã thanh toán.</li>
-        <li>Chỉ số vận hành, không phải KPI thưởng, không quy đổi thành lương và không dùng giá dịch vụ của booking.</li>
-      </ul>
-    </details>
     <p className="staff-achievements-muted"><InfoIcon aria-hidden="true" /> Số liệu công việc không tự quy đổi thành thưởng hoặc xếp hạng nhân sự.</p>
   </section>
 }

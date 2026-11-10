@@ -70,8 +70,8 @@ export function parseStaffMarkRead(value: unknown): StaffMarkRead | null {
 }
 
 export function parseStaffReadAll(value: unknown): StaffReadAll | null {
-  if (!record(value) || !record(value.data) || !integer(value.data.updated, 0) || value.data.unreadCount !== 0) return null
-  return { data: { updated: value.data.updated, unreadCount: 0 } }
+  if (!record(value) || !record(value.data) || !integer(value.data.updated, 0) || !integer(value.data.unreadCount, 0)) return null
+  return { data: { updated: value.data.updated, unreadCount: value.data.unreadCount } }
 }
 
 export function staffNotificationsQueryString(query: StaffNotificationsQuery): string {

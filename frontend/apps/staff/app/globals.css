@@ -463,7 +463,7 @@
 @media(prefers-reduced-motion:reduce) { .staff-jobs-table tbody tr { transition: none; } }
 
 /* Phase 2C: detail and status presentation; mutation and reconciliation logic unchanged. */
-.staff-detail-view { display: grid; min-width: 0; gap: 20px; grid-template-areas: "summary" "status" "content" "metadata"; }
+.staff-detail-view { display: grid; min-width: 0; gap: 20px; grid-template-areas: "summary" "team" "status" "content" "metadata"; }
 .staff-detail-summary { grid-area: summary; display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; border: 1px solid #dbeafe; border-radius: 20px; background: linear-gradient(115deg,var(--ch-blue-soft),var(--ch-surface)); }
 .staff-detail-summary > div { min-width: 0; }
 .staff-detail-summary h2 { margin: 8px 0; font-size: 20px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
@@ -527,7 +527,7 @@
   .staff-detail-facts-single { grid-template-columns: minmax(0,1fr); }
 }
 @media(min-width:1280px) {
-  .staff-detail-view { grid-template-columns: minmax(0,1fr) minmax(320px,.55fr); grid-template-areas: "summary summary" "content status" "content metadata"; grid-template-rows: auto auto 1fr; align-items: start; }
+  .staff-detail-view { grid-template-columns: minmax(0,1fr) minmax(320px,.55fr); grid-template-areas: "summary summary" "team team" "content status" "content metadata"; grid-template-rows: auto auto auto 1fr; align-items: start; }
 }
 
 /* Phase 2D: Staff schedule presentation; existing UTC+7/query/auth contract retained. */
@@ -1507,6 +1507,11 @@
 .staff-branch-marker:focus-visible { outline:3px solid #172554;outline-offset:4px;border-radius:8px; }
 .staff-income-insights { display:grid;gap:24px;min-width:0; }
 .staff-income-insights-filters,.staff-performance-range { display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;margin:18px 0; }
+.staff-income-statement-filters > label { display:grid;gap:8px;flex:1 1 180px;min-width:0;font-size:13px;color:var(--ch-muted); }
+.staff-income-statement-filters :is(input,select) { width:100%;max-width:100%;min-width:0;min-height:44px;box-sizing:border-box;border:1px solid var(--ch-border);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ch-ink);font:inherit;line-height:1.5; }
+.staff-income-statement-filters input::placeholder { color:var(--ch-muted);opacity:1; }
+.staff-income-statement-filters :is(input,select):focus-visible { outline:2px solid var(--ch-blue);outline-offset:2px;box-shadow:0 0 0 3px rgb(37 99 235 / 12%); }
+.staff-income-statement-filters > p { flex-basis:100%;margin:0;font-size:13px;line-height:1.7; }
 .staff-income-insights label,.staff-performance-range label { display:grid;gap:8px;font-size:12px;color:var(--ch-muted);min-width:0; }
 .staff-income-insights select,.staff-performance-range input,.staff-support-knowledge input,.staff-support-chat textarea { min-height:44px;width:100%;max-width:100%;border:1px solid var(--ch-border);border-radius:10px;background:white;color:var(--ch-ink);padding:10px 12px;font:inherit;box-sizing:border-box; }
 .staff-income-insights button,.staff-support-knowledge button,.staff-performance-range button { min-height:44px; }
@@ -1584,5 +1589,43 @@
 .staff-income-history-state { min-height:300px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px; }
 .staff-income-history-state h3 { margin:0;font-size:16px; }.staff-income-history-state p { margin:0; }
 .staff-income-chart-skeleton { width:100%;height:220px;border-radius:12px;background:repeating-linear-gradient(0deg,#f8fafc 0,#f8fafc 43px,#e2e8f0 44px,#f8fafc 45px); }
-.staff-income-insights [data-income-history-table] { min-width:880px; }
+/* Eight history columns must not inherit the six-column statement's fixed percentages. */
+.staff-income-insights [data-income-history-table] { min-width:1040px;table-layout:auto; }
+.staff-income-insights [data-income-history-table] :is(th,td) { width:auto;padding:12px 16px;vertical-align:middle;white-space:nowrap;overflow-wrap:normal;word-break:normal; }
+.staff-income-insights [data-income-history-table] :is(th,td):nth-child(2) { text-align:center; }
+.staff-income-insights [data-income-history-table] :is(th,td):nth-child(n+3):not(:last-child) { text-align:right;font-variant-numeric:tabular-nums; }
+.staff-income-insights [data-income-history-table] :is(th,td):last-child { width:88px;min-width:88px;text-align:center; }
+.staff-income-insights [data-income-history-table] [data-slot="button"] { min-width:64px;white-space:nowrap;overflow-wrap:normal; }
 @media(max-width:767px) { .staff-income-y-axis { flex-basis:66px; }.staff-income-y-axis > span { font-size:9px; }.staff-income-column-layout { gap:6px; }.staff-income-history-total strong { font-size:18px; }.staff-income-bucket-detail { padding:14px; } }
+
+/* Team observations remain separate from an Order-approved staffing policy. */
+.staff-team { grid-area:team;min-width:0;padding:24px;border:1px solid var(--ch-border);border-radius:20px;background:white; }
+.staff-team-heading,.staff-team-heading > div { display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-width:0; }
+.staff-team-heading { justify-content:space-between; }.staff-team-heading h2 { margin:0;font-size:18px;font-weight:650; }.staff-team-heading svg { width:22px;height:22px;color:var(--ch-blue); }.staff-team-heading > span { font-size:12px;color:var(--ch-muted);overflow-wrap:anywhere; }
+.staff-team-heading button { min-height:44px;height:auto;white-space:normal;font-size:12px; }
+.staff-team-reference { margin:14px 0 0;color:var(--ch-muted);font-size:12px;line-height:1.9;overflow-wrap:anywhere; }
+.staff-team-help { margin:14px 0 0;font-size:12px;line-height:1.9; }.staff-team-help a { display:inline-block;padding:8px 0;color:var(--ch-blue);text-decoration:underline;text-underline-offset:3px; }
+.staff-income-repeat-notice { padding:18px 20px;border:1px solid #fde68a;border-radius:16px;background:#fffbeb;color:#78350f;overflow-wrap:anywhere; }
+.staff-income-repeat-notice h2 { margin:0;font-size:15px;font-weight:650; }.staff-income-repeat-notice p,.staff-income-repeat-notice li { font-size:12px;line-height:1.9; }.staff-income-repeat-notice summary { min-height:44px;padding:10px 0;cursor:pointer;font-size:12px; }.staff-income-repeat-notice summary:focus-visible { outline:2px solid var(--ch-blue);outline-offset:3px; }
+.staff-team-statuses { display:flex;flex-wrap:wrap;gap:8px 24px;margin:16px 0;font-size:12px;line-height:1.9; }.staff-team-statuses p { margin:0;overflow-wrap:anywhere; }
+.staff-team-state { padding:14px 16px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;font-size:13px;line-height:1.9; }.staff-team-state p { margin:4px 0 0;color:var(--ch-muted); }
+.staff-team[data-team-state=admin-required] .staff-team-state { border-color:#fde68a;background:#fffbeb; }
+.staff-team-counts { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0 10px; }.staff-team-counts > div { min-width:0;border:1px solid #e5edf8;border-radius:12px;padding:14px;background:#f8fafc; }.staff-team-counts dt { color:var(--ch-muted);font-size:11px;line-height:1.8; }.staff-team-counts dd { margin:8px 0 0;font-size:20px;font-weight:650;overflow-wrap:anywhere; }.staff-team-counts > div:first-child dd { font-size:16px; }.staff-team-counts dd > span { color:var(--ch-muted);font-size:14px;font-weight:400; }
+.staff-team-muted,.staff-team-progress p { color:var(--ch-muted);font-size:11px;line-height:1.9; }
+.staff-team-progress { margin:18px 0; }.staff-team-progress label { display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:12px; }.staff-team-progress progress { display:block;width:100%;height:10px;margin-top:10px;border:0;border-radius:999px;overflow:hidden;background:#e2e8f0;accent-color:#2563eb; }.staff-team-progress progress::-webkit-progress-bar { background:#e2e8f0;border-radius:999px; }.staff-team-progress progress::-webkit-progress-value { background:#2563eb;border-radius:999px; }.staff-team-progress progress::-moz-progress-bar { background:#2563eb;border-radius:999px; }.staff-team-progress p { margin:8px 0 0; }
+.staff-team-policy-note { display:flex;gap:8px;font-size:12px;line-height:1.9; }.staff-team-policy-note svg { width:16px;height:16px;flex-shrink:0;margin-top:3px;color:var(--ch-blue); }
+.staff-team-members { border-top:1px solid #e5edf8;padding-top:10px;margin-top:16px;font-size:12px;line-height:1.9; }.staff-team-members summary { cursor:pointer;min-height:44px;padding:10px 0; }.staff-team-members ul { padding:0;list-style:none; }.staff-team-members li { display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #eef2f7; }.staff-team-members p { color:var(--ch-muted); }
+.staff-team-notice { font-size:13px;line-height:1.9; }.staff-team-notice button { min-height:44px;white-space:normal; }
+.staff-team :is(button,summary):focus-visible { outline:2px solid var(--ch-blue);outline-offset:3px; }
+@media(min-width:1024px) { .staff-team-counts { grid-template-columns:repeat(5,minmax(0,1fr)); } }
+@media(max-width:639px) { .staff-team { padding:18px; }.staff-team-counts { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }.staff-team-counts > div { padding:12px; }.staff-team-notice button { width:100%; } }
+
+.staff-jobs-date-filter { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) auto;gap:12px;align-items:end;margin-top:16px; }
+.staff-jobs-date-filter .ch-field,.staff-jobs-filter-grid .ch-field { min-width:0; }
+.staff-jobs-date-filter input,.staff-jobs-filter-grid select { width:100%;min-width:0;max-width:100%; }
+.staff-jobs-unavailable-filters { margin-top:14px;color:var(--ch-muted);font-size:13px;line-height:1.7; }
+.staff-jobs-unavailable-filters summary { cursor:pointer;padding:8px 0; }
+.staff-notification-detail-dialog { max-width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow-y:auto; }
+.staff-notification-detail-body { white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8; }
+.staff-notification-detail-actions { display:flex;flex-wrap:wrap;gap:12px; }
+@media(max-width:639px) { .staff-jobs-date-filter { grid-template-columns:minmax(0,1fr); }.staff-jobs-date-filter button { width:100%;min-height:44px; }.staff-notification-detail-actions>* { flex:1;min-height:44px; } }

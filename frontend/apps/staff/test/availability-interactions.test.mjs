@@ -75,7 +75,8 @@ test('SSR provides real buttons for days and windows, also for an empty week, wi
     assert.equal((html.match(/data-staff-availability-day-open=/g) || []).length, 7)
     assert.equal((html.match(/data-staff-availability-open=/g) || []).length, items.length)
     assert.match(html, /aria-haspopup="dialog"/)
-    assert.match(html, /Chuẩn bị đăng ký ca/)
+    assert.match(html, /Chọn ngày hoặc khung giờ/)
+    assert.doesNotMatch(html, /Chuẩn bị đăng ký|Chuẩn bị yêu cầu|chỉ có thể chuẩn bị|data-staff-availability-register|data-staff-availability-preview|data-staff-availability-submit/)
     assert.doesNotMatch(html, /đăng ký thành công|đã gửi yêu cầu|fetch\(|localStorage/i)
   }
 })

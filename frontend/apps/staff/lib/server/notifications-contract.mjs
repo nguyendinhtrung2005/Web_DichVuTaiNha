@@ -70,6 +70,6 @@ export function parseMarkRead(payload) {
 
 export function parseReadAll(payload) {
   if (!object(payload) || !object(payload.data) || !integer(payload.data.updated, 0)
-    || payload.data.unreadCount !== 0) invalid()
-  return { data: { updated: payload.data.updated, unreadCount: 0 } }
+    || !integer(payload.data.unreadCount, 0)) invalid()
+  return { data: { updated: payload.data.updated, unreadCount: payload.data.unreadCount } }
 }

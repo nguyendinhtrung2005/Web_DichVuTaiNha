@@ -104,6 +104,10 @@ test('renewal config is opt-in, validates BFF client credential and production i
   assert.equal(local.absoluteAgeSeconds, 604800);
   assert.equal(loadStaffAuthConfig({ STAFF_SESSION_ABSOLUTE_SECONDS: '' }).absoluteAgeSeconds, 604800);
   assert.equal(loadStaffAuthConfig({ STAFF_SESSION_ABSOLUTE_SECONDS: '0' }).absoluteAgeSeconds, 0);
+  const proposedQa = loadStaffAuthConfig({ STAFF_SESSION_IDLE_SECONDS: '2592000', STAFF_SESSION_ABSOLUTE_SECONDS: '0' });
+  assert.equal(proposedQa.idleTimeoutSeconds, 2592000);
+  assert.equal(proposedQa.absoluteAgeSeconds, 0);
+  assert.equal(proposedQa.renewalEnabled, false, 'A proposed TTL must never turn renewal on implicitly');
   const production = { NODE_ENV: 'production', AUTH_SERVICE_URL: 'https://auth.example.test', STAFF_APP_ORIGIN: 'https://staff.example.test',
     STAFF_SESSION_DIR: path.resolve('private-session-unit'), STAFF_SESSION_KEY_FILE: path.resolve('private-session-key-unit'),
     STAFF_SESSION_RENEWAL_ENABLED: 'true', AUTH_SERVICE_BFF_TOKEN: random() };
@@ -145,6 +149,34 @@ test('healthy inspections and minute renew checks do not rotate a fresh access t
   assert.equal(result.session.expiresAt, before);
   assert.equal(f.control.refreshes.length, 0);
   assert.ok(f.control.introspections >= 3);
+});
+
+test('expired-token read retry: one explicit read retry refreshes a token that expired during the first operation', async t => {
+  const f = await fixture(t), login = await f.login(); let calls = 0;
+  const result = await f.core().withAccessToken(login.sid, async () => {
+    if (++calls === 1) { f.clock.value += 61000; throw new AuthBffError(401, 'SESSION_EXPIRED', 'Unit expiry'); }
+    return 'read-recovered';
+  }, { retryOnExpiredToken: true });
+  assert.equal(result, 'read-recovered'); assert.equal(calls, 2); assert.equal(f.control.refreshes.length, 1);
+});
+
+test('expired-token read retry: parallel reads still rotate the same SID only once', async t => {
+  const f = await fixture(t), login = await f.login(), gate = deferred(); let waiting = 0;
+  const run = () => { let calls = 0; return f.core().withAccessToken(login.sid, async () => {
+    if (++calls === 1) { if (++waiting === 3) { f.clock.value += 61000; gate.resolve(); } await gate.promise; throw new AuthBffError(401, 'SESSION_EXPIRED', 'Unit expiry'); }
+    return calls;
+  }, { retryOnExpiredToken: true }); };
+  assert.deepEqual(await Promise.all([run(), run(), run()]), [2, 2, 2]); assert.equal(f.control.refreshes.length, 1);
+});
+
+test('expired-token read retry: no permission retry, fresh-token retry, implicit mutation retry or infinite loop', async t => {
+  for (const [status, advance, options, expected] of [[403, true, { retryOnExpiredToken: true }, 1], [401, false, { retryOnExpiredToken: true }, 1], [401, true, undefined, 1], [401, true, { retryOnExpiredToken: true }, 2]]) {
+    const f = await fixture(t), login = await f.login(); let calls = 0;
+    await assert.rejects(f.core().withAccessToken(login.sid, async () => {
+      calls++; if (advance) f.clock.value += 61000; throw new AuthBffError(status, status === 401 ? 'SESSION_EXPIRED' : 'ACCESS_DENIED', 'Unit denial');
+    }, options), matches(status));
+    assert.equal(calls, expected); assert.equal(f.control.refreshes.length, expected - 1);
+  }
 });
 
 test('cross-second Auth latency does not corrupt a renewable record or silently shift its idle deadline', async t => {

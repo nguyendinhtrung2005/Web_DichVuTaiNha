@@ -5,6 +5,7 @@ import { useStaffNotificationView } from "./staff-notification-view-preferences"
 import { BellIcon, BellRingIcon, CheckCheckIcon, CheckIcon, MailOpenIcon, RefreshCwIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StaffEmpty, StaffLoading, StaffPageHeader } from "./staff-shared"
 import {
   DEFAULT_STAFF_NOTIFICATIONS_QUERY, formatStaffNotificationTime, parseStaffMarkRead, parseStaffNotificationsPage,
@@ -91,17 +92,23 @@ function StaffNotificationsContent({ accountId, initialUnreadOnly }: { accountId
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const [retry, setRetry] = useState(0)
+  const [selected, setSelected] = useState<StaffNotification | null>(null)
+  const detailTrigger = useRef<HTMLButtonElement>(null)
+  const mutationBusy = useRef(false), mounted = useRef(true)
   const operation = useRef<AbortController | null>(null)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; operation.current?.abort() } }, [])
 
   useEffect(() => {
     const controller = new AbortController()
+    let active = true
+    const timer = window.setTimeout(() => controller.abort(), 15000)
     operation.current = controller
-    setLoading(true); setError(""); setNotice("")
+    setLoading(true); setReport(null); setError(""); setNotice("")
     void request(query, accountId, controller.signal)
       .then(value => { if (!controller.signal.aborted) setReport(value) })
-      .catch(reason => { if (!controller.signal.aborted) setError(requestMessage(reason)) })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
-    return () => controller.abort()
+      .catch(reason => { if (active) setError(requestMessage(reason)) })
+      .finally(() => { window.clearTimeout(timer); if (active) setLoading(false) })
+    return () => { active = false; controller.abort(); window.clearTimeout(timer) }
   }, [accountId, query, retry])
 
   function changeFilter(unreadOnly: boolean) {
@@ -109,42 +116,49 @@ function StaffNotificationsContent({ accountId, initialUnreadOnly }: { accountId
   }
 
   async function markOne(id: string) {
-    if (busy) return
+    if (mutationBusy.current) return
+    mutationBusy.current = true
     const controller = new AbortController(); operation.current = controller
+    const timer = window.setTimeout(() => controller.abort(), 15000)
     setBusy(true); setError(""); setNotice("")
     try {
       const body = await mutate(`/api/staff/notifications/${encodeURIComponent(id)}/read`, accountId, controller.signal)
       const parsed = parseStaffMarkRead(body)
       if (!parsed) throw new NotificationsRequestError(502, "STAFF_INVALID_RESPONSE")
       if (controller.signal.aborted) return
+      setSelected(current => current?.id === id ? parsed.data : current)
       setReport(current => current ? {
         ...current,
         unreadCount: parsed.unreadCount,
         data: current.data.map(item => item.id === id ? parsed.data : item),
       } : current)
       setNotice("Đã đánh dấu thông báo là đã đọc.")
-    } catch (reason) { if (!controller.signal.aborted) setError(requestMessage(reason)) }
-    finally { if (!controller.signal.aborted) setBusy(false) }
+      if (query.unreadOnly) setQuery(current => ({ ...current, page: 1 }))
+    } catch (reason) { if (mounted.current) setError(requestMessage(reason)) }
+    finally { window.clearTimeout(timer); mutationBusy.current = false; if (mounted.current) setBusy(false) }
   }
 
   async function markAll() {
-    if (busy || !report?.unreadCount) return
+    if (mutationBusy.current || !report?.unreadCount) return
+    mutationBusy.current = true
     const controller = new AbortController(); operation.current = controller
+    const timer = window.setTimeout(() => controller.abort(), 15000)
     setBusy(true); setError(""); setNotice("")
     try {
       const body = await mutate("/api/staff/notifications/read-all", accountId, controller.signal)
       const parsed = parseStaffReadAll(body)
       if (!parsed) throw new NotificationsRequestError(502, "STAFF_INVALID_RESPONSE")
       if (controller.signal.aborted) return
-      setNotice(parsed.data.updated > 0 ? `Đã đánh dấu ${parsed.data.updated} thông báo là đã đọc.` : "Không còn thông báo chưa đọc.")
+      setNotice(parsed.data.updated > 0 ? `Đã đánh dấu ${parsed.data.updated} thông báo là đã đọc.` : parsed.data.unreadCount > 0 ? "Có thông báo mới. Danh sách đang được cập nhật." : "Không còn thông báo chưa đọc.")
+      setQuery(current => ({ ...current, page: 1 }))
       setRetry(value => value + 1)
-    } catch (reason) { if (!controller.signal.aborted) setError(requestMessage(reason)) }
-    finally { if (!controller.signal.aborted) setBusy(false) }
+    } catch (reason) { if (mounted.current) setError(requestMessage(reason)) }
+    finally { window.clearTimeout(timer); mutationBusy.current = false; if (mounted.current) setBusy(false) }
   }
 
   const items: StaffNotification[] = report?.data || []
   return <div className="staff-notifications min-w-0 space-y-6" data-staff-notifications="remote">
-    <StaffPageHeader title="Thông báo" description="Thông báo thật dành cho tài khoản nhân viên đang đăng nhập." />
+    <StaffPageHeader title="Thông báo" description="Cập nhật dành cho bạn." />
     <Card className="staff-notifications-panel"><CardContent>
       <div className="staff-notifications-summary">
         <span className="staff-notifications-symbol"><BellRingIcon aria-hidden="true" /></span>
@@ -156,8 +170,8 @@ function StaffNotificationsContent({ accountId, initialUnreadOnly }: { accountId
       </div>
     </CardContent></Card>
     <div className="staff-notifications-toolbar" role="group" aria-label="Lọc thông báo">
-      <Button variant={query.unreadOnly ? "ghost" : "default"} aria-pressed={!query.unreadOnly} onClick={() => changeFilter(false)}>Tất cả{report && <span> {report.pagination.total}</span>}</Button>
-      <Button variant={query.unreadOnly ? "default" : "ghost"} aria-pressed={query.unreadOnly} onClick={() => changeFilter(true)}>Chưa đọc{report && <span> {report.unreadCount}</span>}</Button>
+      <Button disabled={busy || loading} variant={query.unreadOnly ? "ghost" : "default"} aria-pressed={!query.unreadOnly} onClick={() => changeFilter(false)}>Tất cả{report && <span> {report.pagination.total}</span>}</Button>
+      <Button disabled={busy || loading} variant={query.unreadOnly ? "default" : "ghost"} aria-pressed={query.unreadOnly} onClick={() => changeFilter(true)}>Chưa đọc{report && <span> {report.unreadCount}</span>}</Button>
       <Button variant="outline" disabled={loading || busy || !report?.unreadCount} onClick={() => void markAll()}><CheckCheckIcon aria-hidden="true" />Đọc tất cả</Button>
     </div>
     {notice && <p className="staff-notifications-feedback" role="status" aria-live="polite">{notice}</p>}
@@ -171,6 +185,7 @@ function StaffNotificationsContent({ accountId, initialUnreadOnly }: { accountId
             <div className="staff-notifications-item-meta"><span className={"staff-notifications-state" + (item.readAt ? "" : " staff-notifications-state-unread")}>{item.readAt ? "Đã đọc" : "Chưa đọc"}</span></div>
             <p className="staff-notifications-body">{item.content}</p>
             <time dateTime={item.createdAt}>{formatStaffNotificationTime(item.createdAt)}</time>
+            <div className="staff-notifications-item-actions"><Button variant="outline" aria-label={"Xem thông báo " + item.id} onClick={event => { detailTrigger.current = event.currentTarget; setSelected(item) }}>Xem chi tiết</Button></div>
             {!item.readAt && <div className="staff-notifications-item-actions"><Button variant="outline" disabled={busy} aria-label={"Đánh dấu đã đọc thông báo " + item.id} onClick={() => void markOne(item.id)}><CheckIcon aria-hidden="true" />Đánh dấu đã đọc</Button></div>}
           </div>
         </CardContent></Card>)}
@@ -180,5 +195,11 @@ function StaffNotificationsContent({ accountId, initialUnreadOnly }: { accountId
       <span>Trang {report.pagination.page} / {report.pagination.totalPages}</span>
       <Button variant="outline" disabled={busy || query.page >= report.pagination.totalPages} onClick={() => setQuery(current => ({ ...current, page: current.page + 1 }))}>Trang sau</Button>
     </nav>}
+    <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null) }}><DialogContent finalFocus={detailTrigger} className="staff-notification-detail-dialog" data-staff-notification-detail={selected?.id}><DialogHeader><DialogTitle>Nội dung thông báo</DialogTitle><DialogDescription>{selected?.readAt ? "Đã đọc" : "Chưa đọc"}{selected ? " · " + formatStaffNotificationTime(selected.createdAt) : ""}</DialogDescription></DialogHeader>
+      <p className="staff-notification-detail-body">{selected?.content}</p>
+      {selected?.bookingId && <p>Đơn dịch vụ #{selected.bookingId}</p>}
+      <div className="staff-notification-detail-actions">{selected && !selected.readAt && <Button disabled={busy} onClick={() => void markOne(selected.id)}>Đánh dấu đã đọc</Button>}<DialogClose render={<Button variant="outline" />}>Đóng</DialogClose></div>
+      {error && <p role="alert">{error}</p>}
+    </DialogContent></Dialog>
   </div>
 }

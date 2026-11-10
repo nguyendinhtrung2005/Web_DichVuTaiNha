@@ -17,7 +17,7 @@ function timestamp(value) {
 export function parseJobsQuery(params) {
   const values = {}
   for (const [key, value] of params) {
-    if (!['status', 'page', 'pageSize', 'sort'].includes(key) || Object.hasOwn(values, key)) inputError()
+    if (!['status', 'page', 'pageSize', 'sort', 'from', 'to', 'serviceId'].includes(key) || Object.hasOwn(values, key)) inputError()
     values[key] = value
   }
   const number = (key, fallback, max) => {
@@ -30,7 +30,24 @@ export function parseJobsQuery(params) {
   if (status !== undefined && !statuses.has(status)) inputError()
   const sort = values.sort ?? 'asc'
   if (!['asc', 'desc'].includes(sort)) inputError()
-  return { status, page: number('page', 1, 100000), pageSize: number('pageSize', 20, 100), sort }
+  const result = { status, page: number('page', 1, 100000), pageSize: number('pageSize', 20, 100), sort }
+  if (values.serviceId !== undefined) { if (!id(values.serviceId)) inputError(); result.serviceId = values.serviceId }
+  if (values.from !== undefined || values.to !== undefined) {
+    if (![values.from, values.to].every(day => typeof day === 'string' && /^(19[7-9]\d|20\d\d)-\d{2}-\d{2}$/.test(day) && Number.isFinite(Date.parse(day + 'T00:00:00Z')) && new Date(day + 'T00:00:00Z').toISOString().slice(0, 10) === day)
+      || values.to < values.from || (Date.parse(values.to) - Date.parse(values.from)) / 86400000 > 365 || values.from < '1971-01-01') inputError()
+    result.from = values.from; result.to = values.to
+  }
+  return result
+}
+
+export function parseJobFiltersResponse(payload) {
+  if (!object(payload) || !object(payload.data) || !Array.isArray(payload.data.services) || payload.data.services.length > 500
+    || payload.data.areaSupported !== false || payload.data.requiredStaffCountSupported !== false) invalid()
+  const seen = new Set()
+  return { data: { services: payload.data.services.map(service => {
+    if (!object(service) || !id(service.id) || !text(service.name) || !service.name.trim() || seen.has(service.id)) invalid()
+    seen.add(service.id); return { id: service.id, name: service.name }
+  }), areaSupported: false, requiredStaffCountSupported: false } }
 }
 
 /** Validate and explicitly select the UC9 DTO; no profile, token, or arbitrary upstream fields. */
@@ -60,6 +77,9 @@ export function parseJobsResponse(payload, query) {
         || !decimal(service.quantity) || !decimal(service.unitPrice)) invalid()
       return { serviceId: service.serviceId, name: service.name, unit: service.unit, quantity: service.quantity, unitPrice: service.unitPrice }
     })
+    if (query.serviceId && !services.some(service => service.serviceId === query.serviceId)) invalid()
+    if (query.from && (!job.scheduledAt || !job.expectedEndAt || Date.parse(job.scheduledAt) >= Date.parse(query.to + 'T00:00:00+07:00') + 86400000
+      || Date.parse(job.expectedEndAt) <= Date.parse(query.from + 'T00:00:00+07:00'))) invalid()
     return {
       id: job.id, assignmentId: job.assignmentId, orderId: job.orderId,
       jobCode: null, orderCode: null, status, databaseStatus: job.databaseStatus, jobStatus, orderStatus: job.orderStatus,

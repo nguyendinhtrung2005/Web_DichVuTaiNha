@@ -83,7 +83,7 @@ export function createStaffIncomeHttp({ configFactory = loadStaffJobsConfig, aut
         const session = await auth.inspect(sid)
         if (session.user.id !== accountId) fail(409, 'STAFF_SESSION_CHANGED', 'Tài khoản đăng nhập đã thay đổi. Vui lòng tải lại tiền công dự kiến.')
       }
-      const result = await auth.withAccessToken(sid, async token => { if (env.NODE_ENV !== "development" || env.STAFF_INCOME_DEMO_ENABLED !== "true") fail(503, "INCOME_POLICY_NOT_AVAILABLE", "Chính sách minh họa chỉ khả dụng khi được bật trong development."); return parseIncomeEstimate(await upstream(config, token, path, fetchImpl), query) })
+      const result = await auth.withAccessToken(sid, async token => { if (env.NODE_ENV !== "development" || env.STAFF_INCOME_DEMO_ENABLED !== "true") fail(503, "INCOME_POLICY_NOT_AVAILABLE", "Chính sách minh họa chỉ khả dụng khi được bật trong development."); return parseIncomeEstimate(await upstream(config, token, path, fetchImpl), query) }, { retryOnExpiredToken: true })
       return Response.json(result, { headers })
     } catch (error) {
       const known = error instanceof AuthBffError

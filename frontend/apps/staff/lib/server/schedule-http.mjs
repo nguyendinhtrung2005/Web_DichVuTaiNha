@@ -69,7 +69,7 @@ export function createStaffScheduleHttp({ configFactory = loadStaffJobsConfig, a
       sid = sessionId(request, config.cookieName)
       auth = authFactory({ config, now })
       authStarted = true
-      const result = await auth.withAccessToken(sid, token => readSchedule(config, token, query, fetchImpl))
+      const result = await auth.withAccessToken(sid, token => readSchedule(config, token, query, fetchImpl), { retryOnExpiredToken: true })
       return Response.json(result, { headers })
     } catch (error) {
       const known = error instanceof AuthBffError

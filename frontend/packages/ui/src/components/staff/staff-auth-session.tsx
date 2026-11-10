@@ -100,13 +100,14 @@ export function StaffAuthProvider({ children }: { children: ReactNode }) {
   const generation = useRef(0)
   const mutation = useRef(false)
   const pending = useRef<AbortController | null>(null)
-  const renewing = useRef(false)
+  const inspection = useRef<{ version: number; promise: Promise<void> } | null>(null)
   const sessionRequests = useRef(0)
   const lastActivity = useRef(Date.now())
 
   useEffect(() => { statusRef.current = status }, [status])
 
   const begin = useCallback(() => {
+    inspection.current = null
     pending.current?.abort()
     const controller = new AbortController()
     pending.current = controller
@@ -115,14 +116,17 @@ export function StaffAuthProvider({ children }: { children: ReactNode }) {
     return { controller, version, finish: () => window.clearTimeout(timeout) }
   }, [])
 
-  const inspectSession = useCallback(async (action: "session" | "renew") => {
-    if (mutation.current || renewing.current) return
-    if (action === "renew") renewing.current = true
+  const inspectSession = useCallback((action: "session" | "renew"): Promise<void> => {
+    if (mutation.current) return Promise.resolve()
+    // Share checks from focus, visibility and simultaneous resource failures.
+    // Login/logout still abort the old generation and take precedence.
+    if (inspection.current) return inspection.current.promise
     // A background recheck must not replace the open login form with a skeleton.
     // Protected pages still fail closed below if their authenticated check fails.
     setStatus((current) => current === "authenticated" || current === "unauthenticated" ? current : "loading")
     const operation = begin()
     sessionRequests.current++
+    const promise = (async () => {
     try {
       const value = parseStaffSession(await request(action, operation.controller.signal, action === "renew" ? {} : undefined))
       if (!value) throw new StaffAuthError(503, "INVALID_RESPONSE")
@@ -150,8 +154,11 @@ export function StaffAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       operation.finish()
       sessionRequests.current--
-      if (action === "renew") renewing.current = false
+      if (inspection.current?.version === operation.version) inspection.current = null
     }
+    })()
+    inspection.current = { version: operation.version, promise }
+    return promise
   }, [begin])
 
   const checkSession = useCallback(() => inspectSession("session"), [inspectSession])
@@ -202,7 +209,7 @@ export function StaffAuthProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", checkVisible)
     for (const event of ["pointerdown", "keydown", "wheel", "touchstart"]) window.addEventListener(event, markActivity, { passive: true })
     return () => {
-      ++generation.current; pending.current?.abort(); mutation.current = false; renewing.current = false
+      ++generation.current; pending.current?.abort(); mutation.current = false; inspection.current = null
       window.removeEventListener("focus", checkVisible)
       document.removeEventListener("visibilitychange", checkVisible)
       for (const event of ["pointerdown", "keydown", "wheel", "touchstart"]) window.removeEventListener(event, markActivity)

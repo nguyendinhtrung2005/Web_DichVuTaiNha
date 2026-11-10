@@ -139,6 +139,33 @@ const renewableSession = (h, ttl = 604800000) => {
   return value
 }
 
+test('provider single-flight: concurrent session checks share one request instead of aborting each other', async () => {
+  const h = providerHarness()
+  await h.respond(0, 200, renewableSession(h))
+  const a = h.value.checkSession(), b = h.value.checkSession()
+  h.event('window', 'focus'); h.event('document', 'visibilitychange')
+  assert.equal(h.requests.length, 2)
+  assert.equal(h.requests[1].aborted, false)
+  await h.respond(1, 200, renewableSession(h))
+  await Promise.all([a, b]); assert.equal(h.value.status, 'authenticated')
+  h.unmount()
+})
+
+test('provider single-flight: logout clears an older check without preventing a new account session check', async () => {
+  const h = providerHarness({ ignoreAbort: true })
+  await h.respond(0, 200, renewableSession(h))
+  const checking = h.value.checkSession()
+  const logout = h.value.logout(); await h.respond(2, 200, { ok: true }); await logout
+  const login = h.value.login('UNIT_ACCOUNT_B', 'unit-only password')
+  await h.respond(3, 200, h.session('9109003')); await login
+  const next = h.value.checkSession()
+  assert.equal(h.requests.length, 5)
+  await h.respond(4, 200, h.session('9109003')); await next
+  await h.respond(1, 401, anonymous); await checking
+  assert.equal(h.value.session.user.id, '9109003'); assert.equal(h.value.status, 'authenticated')
+  h.unmount()
+})
+
 test('provider hook unit: initial session inspection remains loading until a real response', async () => {
   const h = providerHarness()
   assert.equal(h.value.status, 'loading')
@@ -302,13 +329,14 @@ test('provider hook unit: focus checks cannot interrupt login or overwrite it wi
   h.unmount()
 })
 
-test('provider hook unit: concurrent focus/visibility checks ignore older outcomes', async () => {
+test('provider hook unit: concurrent focus/visibility checks share the current server outcome', async () => {
   const h = providerHarness({ ignoreAbort: true })
   await h.respond(0, 401, anonymous)
   h.event('window', 'focus')
   h.event('document', 'visibilitychange')
-  await h.respond(2, 200, h.session())
-  await h.respond(1, 503, { error: { code: 'AUTH_UNAVAILABLE' } })
+  assert.equal(h.requests.length, 2)
+  assert.equal(h.requests[1].aborted, false)
+  await h.respond(1, 200, h.session())
   assert.equal(h.value.status, 'authenticated')
   assert.equal(h.value.error, '')
   h.unmount()

@@ -11,7 +11,7 @@ import { incomeStatementReconciliation } from "./staff-income-insights-model"
 import {
   INCOME_REASON_LABELS, INCOME_STATUS_LABELS, canShiftIncomeMonth, currentVietnamMonth, formatIncomeMonth,
   formatIncomeMoment, formatIncomeVnd, formatIncomeWindow, readStaffIncome, shiftIncomeMonth,
-  staffIncomeMessage, validIncomeMonth, StaffIncomeRequestError,
+  staffIncomeMessage, validIncomeMonth, StaffIncomeRequestError, repeatedIncomeBookings,
   type StaffIncomeAssignment, type StaffIncomeEstimate,
 } from "./staff-income-remote-model"
 
@@ -113,8 +113,8 @@ function IncomeStatement({ assignments, unitPrice }: { assignments: StaffIncomeA
   const pages = Math.max(1, Math.ceil(matching.length / 20)), current = Math.min(page, pages)
   const matchingTotal = matching.reduce((sum, item) => sum + (item.detail?.totalVnd ?? unitPrice), 0)
   return <>
-    <div className="staff-income-insights-filters">
-      <label htmlFor="staff-income-entry-search">Tìm mã phân công hoặc đơn<input id="staff-income-entry-search" type="search" maxLength={19} value={query}
+    <div className="staff-income-insights-filters staff-income-statement-filters">
+      <label htmlFor="staff-income-entry-search">Tìm mã phân công hoặc đơn<input id="staff-income-entry-search" type="search" placeholder="Nhập mã phân công hoặc đơn" maxLength={19} value={query}
         onChange={event => { setQuery(event.target.value); setPage(1) }} /></label>
       <label htmlFor="staff-income-distance-filter">Bằng chứng di chuyển<select id="staff-income-distance-filter" value={distance}
         onChange={event => { setDistance(event.target.value); setPage(1) }}>
@@ -167,6 +167,7 @@ export function StaffIncomePanel({ month, estimate, loading, error, onMonth, onR
   const eligible = estimate?.assignments.filter(item => item.eligible) || []
   const incomplete = estimate?.assignments.filter(item => item.reason === "MISSING_CHECK_TIMES" || item.reason === "INVALID_CHECK_TIMES") || []
   const statement = estimate ? incomeStatementReconciliation(estimate) : null
+  const repeated = repeatedIncomeBookings(estimate?.assignments || [])
   return <div className="staff-income min-w-0 space-y-6" data-staff-income-remote={loading ? "loading" : error ? "error" : estimate ? "ready" : "empty"}>
     <StaffPageHeader title="Thu nhập" description="Xem tiền công dự kiến theo từng kỳ."
       action={<Button variant="outline" render={<Link href="/ho-so" />} nativeButton={false}><ArrowLeftIcon aria-hidden="true" />Cá nhân</Button>} />
@@ -183,6 +184,10 @@ export function StaffIncomePanel({ month, estimate, loading, error, onMonth, onR
         : !estimate.counts.assignments
           ? <><StaffEmpty title="Chưa có phân công trong tháng" description="Không có phân công nào thuộc tài khoản của bạn trong tháng đã chọn." /><StaffIncomeInsights key={`${accountId}:${month}`} estimate={estimate} accountId={accountId} checkSession={checkSession} /></>
           : <>
+            {repeated.length > 0 && <section className="staff-income-repeat-notice" role="status" data-income-repeated-bookings>
+              <h2>Đơn có nhiều phân công trong kỳ</h2><p>Chưa đủ thông tin để xác định các phân công có trùng nghiệp vụ hay không. Bảng kê và tổng tiền dự kiến được giữ nguyên theo dữ liệu đã nhận. Liên hệ Admin để kiểm tra trước khi đối soát.</p>
+              <details><summary>Xem {repeated.length} đơn cần kiểm tra</summary><ul>{repeated.map(group => <li key={group.bookingId}>Đơn #{group.bookingId} · Phân công {group.assignmentIds.map(id => "#" + id).join(", ")}</li>)}</ul></details>
+            </section>}
             <Summary estimate={estimate} />
             <Payout />
             <StaffIncomeInsights key={`${accountId}:${month}`} estimate={estimate} accountId={accountId} checkSession={checkSession} />
@@ -190,6 +195,7 @@ export function StaffIncomePanel({ month, estimate, loading, error, onMonth, onR
               <CardContent><details className="staff-income-calculation">
                 <summary>Chi tiết cách tính</summary>
                 <div className="staff-income-calculation-body">
+                    {estimate.policy.version === "DEMO_V2" && <p>Chính sách minh họa · DEMO_V2</p>}
                     <p>Công cơ bản minh họa: {formatIncomeVnd(estimate.policy.unitPriceVnd)}/công việc hoàn thành hợp lệ.</p>
                     {estimate.policy.version === "DEMO_V2" && <ul><li>Cao điểm: thêm 10.000đ khi bắt đầu từ 17:00 đến trước 20:00.</li><li>Thưởng ngày: 30.000đ khi đủ 5 công việc hợp lệ, tính một lần theo ngày hoàn thành.</li><li>Di chuyển: 3.000đ/km vượt 3km, chỉ cộng khi có quãng đường được xác minh. Chưa có bằng chứng thì chưa tính phụ phí.</li></ul>}
                     <p data-staff-income-formula>{estimate.policy.version === "DEMO_V2" && estimate.breakdown ? <>Cơ bản {formatIncomeVnd(estimate.breakdown.baseVnd)} + cao điểm {formatIncomeVnd(estimate.breakdown.peakVnd)} + di chuyển đã xác minh {formatIncomeVnd(estimate.breakdown.distanceVnd)} + thưởng ngày {formatIncomeVnd(estimate.breakdown.incentiveVnd)} = {formatIncomeVnd(estimate.estimateTotalVnd)}</> : <>{formatIncomeVnd(estimate.policy.unitPriceVnd)} × {estimate.counts.eligible} công việc DONE hợp lệ = {formatIncomeVnd(estimate.estimateTotalVnd)}</>}</p>

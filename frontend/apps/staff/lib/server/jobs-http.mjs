@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { AuthBffError, createStaffAuth } from './auth-core.mjs'
 import { loadStaffJobsConfig } from './jobs-config.mjs'
-import { parseJobsQuery, parseJobsResponse } from './jobs-contract.mjs'
+import { parseJobsQuery, parseJobsResponse, parseJobFiltersResponse } from './jobs-contract.mjs'
 
 const fail = (status, code, message) => { throw new AuthBffError(status, code, message) }
 const unavailable = () => new AuthBffError(503, 'STAFF_UNAVAILABLE', 'Dịch vụ công việc tạm thời gián đoạn. Vui lòng thử lại.', 5)
@@ -15,9 +15,9 @@ function sessionId(request, name) {
   return /^[A-Za-z0-9_-]{43}$/.test(sid) && Buffer.from(sid, 'base64url').toString('base64url') === sid ? sid : undefined
 }
 
-async function readJobs(config, token, query, fetchImpl) {
-  const url = new URL('/api/v1/staff/me/jobs', config.staffUrl)
-  for (const key of ['status', 'page', 'pageSize', 'sort']) if (query[key] !== undefined) url.searchParams.set(key, String(query[key]))
+async function readJobs(config, token, query, fetchImpl, filters = false) {
+  const url = new URL(filters ? '/api/v1/staff/me/job-filters' : '/api/v1/staff/me/jobs', config.staffUrl)
+  for (const key of ['status', 'page', 'pageSize', 'sort', 'from', 'to', 'serviceId']) if (query[key] !== undefined) url.searchParams.set(key, String(query[key]))
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), config.jobsTimeoutMs)
   try {
@@ -44,7 +44,7 @@ async function readJobs(config, token, query, fetchImpl) {
     } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
     let body
     try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks))) } catch { throw invalid() }
-    return parseJobsResponse(body, query)
+    return filters ? parseJobFiltersResponse(body) : parseJobsResponse(body, query)
   } catch (error) {
     if (error instanceof AuthBffError) throw error
     throw unavailable()
@@ -61,11 +61,13 @@ export function createStaffJobsHttp({ configFactory = loadStaffJobsConfig, authF
       config = configFactory()
       if (request.method !== 'GET') { headers.set('Allow', 'GET'); fail(405, 'METHOD_NOT_ALLOWED', 'Phương thức không được hỗ trợ.') }
       const url = new URL(request.url)
-      if (url.pathname !== '/api/staff/jobs') fail(404, 'NOT_FOUND', 'Không tìm thấy API.')
+      if (!['/api/staff/jobs', '/api/staff/jobs/filters'].includes(url.pathname)) fail(404, 'NOT_FOUND', 'Không tìm thấy API.')
+      const filters = url.pathname === '/api/staff/jobs/filters'
       const origin = request.headers.get('origin'), site = request.headers.get('sec-fetch-site')
       if (url.origin !== config.appOrigin || (request.headers.get('host') && request.headers.get('host') !== url.host)
         || (origin !== null && origin !== config.appOrigin) || (site !== null && site !== 'same-origin')) fail(403, 'ORIGIN_DENIED', 'Nguồn yêu cầu không được cho phép.')
-      const query = parseJobsQuery(url.searchParams)
+      if (filters && url.search) fail(400, 'VALIDATION_ERROR', 'Loại dịch vụ chỉ lấy theo tài khoản đang đăng nhập.')
+      const query = filters ? {} : parseJobsQuery(url.searchParams)
       // Optional browser identity binding; it never selects or impersonates an employee.
       const accountId = request.headers.get('X-Staff-Account-Id')
       if (accountId !== null && (!/^[1-9]\d{0,18}$/.test(accountId) || BigInt(accountId) > 9_223_372_036_854_775_807n)) fail(400, 'VALIDATION_ERROR', 'Danh tính phiên chưa hợp lệ.')
@@ -76,7 +78,7 @@ export function createStaffJobsHttp({ configFactory = loadStaffJobsConfig, authF
         const session = await auth.inspect(sid)
         if (session.user.id !== accountId) fail(409, 'STAFF_SESSION_CHANGED', 'Tài khoản đăng nhập đã thay đổi. Vui lòng tải lại danh sách.')
       }
-      const result = await auth.withAccessToken(sid, token => readJobs(config, token, query, fetchImpl))
+      const result = await auth.withAccessToken(sid, token => readJobs(config, token, query, fetchImpl, filters), { retryOnExpiredToken: true })
       return Response.json(result, { headers })
     } catch (error) {
       const known = error instanceof AuthBffError

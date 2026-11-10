@@ -72,7 +72,7 @@ export function createStaffReviewsHttp({ configFactory = loadStaffJobsConfig, au
       const result = await auth.withAccessToken(sid, async token => {
         if (env.STAFF_REVIEWS_API_ENABLED !== 'true') fail(503, 'REVIEWS_NOT_AVAILABLE', 'Review API chưa được cấu hình. Không có đánh giá hoặc huy hiệu chính thức để hiển thị.')
         return readReviews(config, token, query, fetchImpl, request.signal)
-      })
+      }, { retryOnExpiredToken: true })
       return Response.json(result, { headers })
     } catch (error) {
       let status = error instanceof AuthBffError ? error.status : 503

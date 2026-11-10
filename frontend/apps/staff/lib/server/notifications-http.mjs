@@ -112,7 +112,7 @@ export function createStaffNotificationsHttp({ configFactory = loadStaffJobsConf
         const session = await auth.inspect(sid)
         if (session.user.id !== accountId) fail(409, 'STAFF_SESSION_CHANGED', 'Tài khoản đăng nhập đã thay đổi. Vui lòng tải lại thông báo.')
       }
-      const result = await auth.withAccessToken(sid, async token => parse(await upstream(config, token, method, path, fetchImpl, Boolean(one))))
+      const result = await auth.withAccessToken(sid, async token => parse(await upstream(config, token, method, path, fetchImpl, Boolean(one))), { retryOnExpiredToken: method === 'GET' })
       return Response.json(result, { headers })
     } catch (error) {
       const known = error instanceof AuthBffError
