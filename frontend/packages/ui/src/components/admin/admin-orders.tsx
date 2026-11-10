@@ -9,6 +9,8 @@ import { Card, CardContent } from "../ui/card"
 import { Input } from "../ui/input"
 import { CancelRequestBadge, OrderStatusBadge } from "../shared/status-badge"
 import { ORDER_STATUS_LABEL } from "@/lib/config"
+import { PORTAL_API_ENABLED } from "@/lib/env"
+import { AdminBookingQueue } from "./admin-booking-queue"
 import { AdminEmpty, AdminError, AdminLoading, AdminPageHeader, formatAdminTime, getAdminDataError, localDateKey, normalizeSearch } from "./admin-shared"
 
 const PAGE_SIZE = 8
@@ -49,6 +51,10 @@ export function AdminOrders() {
 
   return <div className="min-w-0 space-y-6">
     <AdminPageHeader title="Quản lý đơn dịch vụ" description="Tra cứu lịch hẹn, trạng thái và mở chi tiết để xử lý từng đơn." />
+    {PORTAL_API_ENABLED && <AdminBookingQueue />}
+    <p className="m-0 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm leading-6 text-blue-950">
+      Danh sách này chỉ gồm đơn đặt dịch vụ. Đơn mua sản phẩm được xử lý riêng tại <Link href="/don-mua" className="font-semibold underline underline-offset-2">Đơn mua sản phẩm</Link>.
+    </p>
 
     <section aria-label="Tìm và lọc đơn dịch vụ" className="min-w-0 rounded-2xl border border-border bg-white p-5 sm:p-6">
       <div className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">

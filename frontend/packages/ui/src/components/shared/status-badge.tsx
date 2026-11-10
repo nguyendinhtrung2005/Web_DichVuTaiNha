@@ -34,6 +34,22 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return <ToneBadge tone={ORDER_TONE[status]}>{ORDER_STATUS_LABEL[status]}</ToneBadge>
 }
 
+const BOOKING_DECISION: Record<string, { label: string; tone: Tone }> = {
+  AUTO_CONFIRMED: { label: "Đã tự xác nhận", tone: "success" },
+  NEEDS_DISPATCH: { label: "Cần điều phối", tone: "warning" },
+  NEEDS_ADMIN: { label: "Chờ admin xử lý", tone: "warning" },
+  ADMIN_CONFIRMED: { label: "Admin đã xác nhận", tone: "info" },
+  ADMIN_REJECTED: { label: "Admin đã từ chối", tone: "danger" },
+  ADMIN_CANCELLED: { label: "Admin đã hủy", tone: "danger" },
+  LEGACY: { label: "Đơn cũ", tone: "neutral" },
+}
+
+export function BookingDecisionBadge({ state }: { state?: string }) {
+  if (!state) return null
+  const decision = BOOKING_DECISION[state] ?? { label: state, tone: "neutral" as const }
+  return <ToneBadge tone={decision.tone}>{decision.label}</ToneBadge>
+}
+
 const JOB_TONE: Record<JobStatus, Tone> = {
   waiting: "warning",
   accepted: "info",

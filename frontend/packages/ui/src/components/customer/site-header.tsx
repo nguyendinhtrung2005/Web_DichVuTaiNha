@@ -1,22 +1,24 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowRightIcon, LogOutIcon, MenuIcon, UserRoundIcon, XIcon } from "lucide-react"
+import { ArrowRightIcon, LogOutIcon, MenuIcon, ShoppingCartIcon, UserRoundIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/shared/logo"
 import { areaHref, useAreaRoutes } from "@/components/shared/area-routes"
 import type { User } from "@/lib/types"
+import { getProductCartSnapshot, subscribeProductCart } from "@/lib/product-commerce"
 
 const NAVIGATION = [
   { href: "/", route: "", label: "Trang chủ" },
   { href: "/dich-vu", route: "dich-vu", label: "Dịch vụ" },
-  { href: "/don-cua-toi", route: "don-cua-toi", label: "Đơn của tôi" },
+  { href: "/san-pham", route: "san-pham", label: "Sản phẩm" },
+  { href: "/don-cua-toi", route: "don-cua-toi", label: "Lịch dịch vụ" },
+  { href: "/don-san-pham", route: "don-san-pham", label: "Đơn sản phẩm" },
   { href: "/lich-su", route: "lich-su", label: "Lịch sử" },
   { href: "/ho-so", route: "ho-so", label: "Hồ sơ" },
 ]
-
 export function SiteHeader({ route, user, onLogout }: { route: string; user: User | null; onLogout: () => void }) {
   const { unified } = useAreaRoutes()
   const internalUser = unified && user && user.role !== "customer" ? user : null
@@ -29,6 +31,8 @@ export function SiteHeader({ route, user, onLogout }: { route: string; user: Use
     { href: profileHref, route: `${internalUser.role}/ho-so`, label: "Hồ sơ" },
   ] : NAVIGATION
   const [menuOpen, setMenuOpen] = useState(false)
+  const cart = useSyncExternalStore(subscribeProductCart, getProductCartSnapshot, getProductCartSnapshot)
+  const cartCount = cart.reduce((total, item) => total + item.quantity, 0)
   const pathname = usePathname()
   const headerRef = useRef<HTMLElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -59,9 +63,9 @@ export function SiteHeader({ route, user, onLogout }: { route: string; user: Use
   }, [menuOpen])
 
   const navigationLinks = (mobile = false) => navigation.map((item) => (
-    <Link key={item.href} href={item.href} aria-current={route === item.route ? "page" : undefined}
+    <Link key={item.href} href={item.href} aria-current={(route === item.route || (route === "don" && item.route === "don-cua-toi")) ? "page" : undefined}
       onClick={() => setMenuOpen(false)}
-      className={`${mobile ? "flex min-h-12 items-center px-4" : "inline-flex min-h-11 items-center px-3"} rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none ${route === item.route ? "bg-blue-50 text-primary" : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"}`}>
+      className={`${mobile ? "flex min-h-12 items-center px-4" : "inline-flex min-h-11 items-center px-2"} rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none ${(route === item.route || (route === "don" && item.route === "don-cua-toi")) ? "bg-blue-50 text-primary" : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"}`}>
       {item.label}
     </Link>
   ))
@@ -77,6 +81,7 @@ export function SiteHeader({ route, user, onLogout }: { route: string; user: Use
             <Button variant="ghost" size="icon" render={<Link href={profileHref} />} nativeButton={false} aria-label={`Hồ sơ của ${user.name}`}><UserRoundIcon aria-hidden="true" /></Button>
             <Button variant="ghost" size="icon" className="hidden xl:inline-flex" onClick={onLogout} aria-label="Đăng xuất" title="Đăng xuất"><LogOutIcon aria-hidden="true" /></Button>
           </> : <Button variant="ghost" className="min-w-11" render={<Link href="/dang-nhap" />} nativeButton={false} aria-label="Đăng nhập"><UserRoundIcon aria-hidden="true" className="min-[360px]:hidden" /><span className="hidden min-[360px]:inline">Đăng nhập</span></Button>}
+          <Button variant="ghost" size="icon" render={<Link href="/gio-hang" />} nativeButton={false} aria-label={`Giỏ hàng${cartCount > 0 ? `, ${cartCount} sản phẩm` : ""}`} title={`Giỏ hàng${cartCount > 0 ? ` (${cartCount})` : ""}`}><ShoppingCartIcon aria-hidden="true" />{cartCount > 0 && <span className="sr-only">{cartCount} sản phẩm</span>}</Button>
           <Button className="hidden sm:inline-flex" render={<Link href={workspaceHref} />} nativeButton={false}>{internalUser ? `Vào ${workspaceLabel.toLocaleLowerCase("vi-VN")}` : "Đặt dịch vụ"} <ArrowRightIcon aria-hidden="true" /></Button>
           <Button ref={toggleRef} variant="outline" size="icon" className="xl:hidden" aria-label={menuOpen ? "Đóng menu" : "Mở menu"} aria-expanded={menuOpen} aria-controls="customer-mobile-navigation" onClick={() => setMenuOpen((open) => !open)}>
             {menuOpen ? <XIcon aria-hidden="true" /> : <MenuIcon aria-hidden="true" />}

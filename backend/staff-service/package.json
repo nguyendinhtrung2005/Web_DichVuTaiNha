@@ -1,4 +1,5 @@
 {
   "name": "home-service-staff-service",
-  "private": true
+  "private": true,
+  "type": "module"
 }

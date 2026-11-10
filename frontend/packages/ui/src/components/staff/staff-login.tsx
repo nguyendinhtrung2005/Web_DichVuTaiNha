@@ -9,10 +9,8 @@ import { Input } from "@/components/ui/input"
 import { PasswordField } from "@/components/shared/password-field"
 import { Field } from "../../common"
 import { validateLogin } from "../customer/account-validation"
-import { actions } from "@/lib/store"
-import { APP_ROLE } from "@/lib/env"
+import { loginPortal } from "@/lib/portal-auth"
 import { HOME_PATH } from "@/lib/auth"
-import type { AppState } from "@/lib/types"
 import { toast } from "sonner"
 
 export function StaffLogin() {
@@ -54,19 +52,11 @@ export function StaffLogin() {
     setBusy(true)
     let completed = false
     try {
-      // Authentication and role checks stay in the existing store.
-      const result = await Promise.resolve(actions.login(values.email, values.password))
-      if (!result.ok) { focusIntent.current = "error"; setSubmitError(result.error); return }
-      let persisted = false
-      try {
-        const saved = JSON.parse(window.localStorage.getItem(`cleanhome-demo-state-${APP_ROLE}`) || "null") as AppState | null
-        persisted = saved?.session?.userId === result.data.id && saved.session.role === result.data.role
-      } catch { /* The store can keep the session in memory when storage is unavailable. */ }
-      if (persisted) toast.success("Đã đăng nhập trên trình duyệt này")
-      else toast.warning("Đã đăng nhập trong phiên hiện tại; trình duyệt chưa lưu được phiên đăng nhập")
+      await loginPortal("staff", values.email, values.password)
+      toast.success("Đăng nhập thành công")
       completed = true
       router.push(HOME_PATH.staff)
-    } catch { focusIntent.current = "error"; setSubmitError("Chưa thể đăng nhập. Vui lòng thử lại.") }
+    } catch (error) { focusIntent.current = "error"; setSubmitError(error instanceof Error ? error.message : "Chưa thể đăng nhập. Vui lòng thử lại.") }
     finally { if (!completed) { locked.current = false; setBusy(false) } }
   }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AreaLink as Link } from "@/components/shared/area-routes"
 import { ArrowRightIcon, BriefcaseBusinessIcon, ClipboardListIcon, CreditCardIcon, DownloadIcon, RotateCcwIcon, UsersIcon } from "lucide-react"
 import { csv, Field, money, useData } from "../../common"
@@ -11,6 +11,8 @@ import { ORDER_STATUS_LABEL } from "@/lib/config"
 import { AdminEmpty, AdminError, AdminLoading, AdminPageHeader } from "./admin-shared"
 import { formatAdminDate, getAdminCommerceDataError } from "./admin-display"
 import { ADMIN_REPORT_CSV_HEADERS, adminReportCsvRows, computeAdminReport } from "./admin-report-data"
+import { adminServiceOrderReportCsvRows, loadAdminServiceOrderReport, type AdminServiceOrderReport } from "@/lib/admin-service-order-report"
+import { ApiError } from "@/lib/api-client"
 
 const STATUS_COLOR = { pending: "bg-amber-400", confirmed: "bg-blue-400", in_progress: "bg-sky-500", completed: "bg-emerald-500", cancelled: "bg-slate-400" }
 
@@ -27,6 +29,36 @@ export function AdminReports() {
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
   const [exportError, setExportError] = useState("")
+  const [serviceOrderReport, setServiceOrderReport] = useState<AdminServiceOrderReport | null>(null)
+  const [serviceOrderReportError, setServiceOrderReportError] = useState("")
+  const [serviceOrderReportLoading, setServiceOrderReportLoading] = useState(false)
+
+  useEffect(() => {
+    if (!user || role !== "admin" || user.role !== "admin" || user.status !== "active") {
+      setServiceOrderReport(null)
+      setServiceOrderReportError("")
+      setServiceOrderReportLoading(false)
+      return
+    }
+    if (from && to && from > to) {
+      setServiceOrderReport(null)
+      setServiceOrderReportError("")
+      setServiceOrderReportLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    setServiceOrderReport(null)
+    setServiceOrderReportError("")
+    setServiceOrderReportLoading(true)
+    void loadAdminServiceOrderReport(from, to, controller.signal).then((result) => {
+      setServiceOrderReport(result)
+    }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setServiceOrderReportError(error instanceof ApiError ? error.message : "Chưa thể tải báo cáo trạng thái đơn.")
+    }).finally(() => {
+      if (!controller.signal.aborted) setServiceOrderReportLoading(false)
+    })
+    return () => controller.abort()
+  }, [from, to])
 
   if (!s) return <AdminLoading />
   if (!user || role !== "admin" || user.role !== "admin" || user.status !== "active") return <AdminEmpty title="Vui lòng đăng nhập tài khoản quản trị viên" />
@@ -41,6 +73,11 @@ export function AdminReports() {
     setExportError("")
     try { csv("bao-cao-cleanhome.csv", ADMIN_REPORT_CSV_HEADERS, adminReportCsvRows(report)) }
     catch { setExportError("Chưa thể tải file CSV. Vui lòng thử lại.") }
+  }
+  const exportServiceOrderCsv = () => {
+    if (!serviceOrderReport) return
+    try { csv("bao-cao-trang-thai-don-dich-vu.csv", ["Chỉ tiêu", "Giá trị"], adminServiceOrderReportCsvRows(serviceOrderReport)) }
+    catch { setServiceOrderReportError("Chưa thể tải CSV báo cáo đơn. Vui lòng thử lại.") }
   }
   const metrics = [
     { key: "orders", label: "Tổng đơn dịch vụ", value: String(report.totalOrders), hint: "Theo ngày tạo trong khoảng đã chọn", icon: ClipboardListIcon, color: "bg-blue-50 text-primary" },
@@ -59,7 +96,7 @@ export function AdminReports() {
         <Button variant="outline" className="min-h-11 w-full sm:col-span-2 xl:col-span-1 xl:w-auto" disabled={!from && !to} onClick={clearDates}><RotateCcwIcon aria-hidden="true" />Xóa khoảng ngày</Button>
       </div>
       <p role="status" className="m-0 mt-4 break-words text-sm leading-7 font-medium text-foreground">{rangeLabel}</p>
-      <p className="m-0 mt-2 text-xs leading-6 text-muted-foreground">Báo cáo tổng hợp các bản ghi lưu trên trình duyệt đang sử dụng. Đơn theo ngày tạo. Doanh thu theo ngày xác nhận thanh toán, hoặc ngày tạo bản ghi nếu chưa có ngày xác nhận. Số tài khoản và khoản cần xử lý hoàn tiền là tổng hiện có, không lọc theo ngày.</p>
+      <p className="m-0 mt-2 text-xs leading-6 text-muted-foreground">Báo cáo trạng thái đơn dịch vụ và CSV chuyên biệt lấy trực tiếp từ API/MySQL. Các chỉ số doanh thu, tài khoản, đánh giá và phân công phía dưới vẫn dùng dữ liệu trình duyệt demo. Doanh thu demo tính theo ngày xác nhận thanh toán; không dùng làm số liệu vận hành.</p>
     </section>
 
     {report.rangeError ? <AdminEmpty title="Khoảng ngày chưa hợp lệ" description="Điều chỉnh ngày bắt đầu hoặc ngày kết thúc trước khi xem hoặc xuất báo cáo." action={<Button variant="outline" onClick={clearDates}>Xóa khoảng ngày</Button>} /> : <>
@@ -74,8 +111,9 @@ export function AdminReports() {
           <div className="mt-6">{report.monthlyRevenue.length ? <ReportBars items={report.monthlyRevenue.map(({ month, amount }) => ({ id: month, label: `${month.slice(5)}/${month.slice(0, 4)}`, value: amount, display: money(amount) }))} /> : <p className="m-0 rounded-xl bg-slate-50 px-4 py-5 text-sm leading-7 text-muted-foreground">Chưa có bản ghi đã thanh toán trong khoảng ngày này.</p>}</div>
         </section>
         <section aria-labelledby="report-status-heading" data-report-section="order-status" className="min-w-0 rounded-2xl border border-border bg-white p-5 sm:p-6">
-          <h2 id="report-status-heading" className="m-0 text-lg font-semibold">Tình trạng đơn dịch vụ</h2><p className="m-0 mt-2 text-xs leading-6 text-muted-foreground">Trạng thái hiện tại của {report.totalOrders} đơn được tạo trong khoảng đã chọn.</p>
-          <div className="mt-6"><ReportBars denominator={Math.max(1, report.totalOrders)} items={Object.entries(ORDER_STATUS_LABEL).map(([status, label]) => ({ id: status, label, value: report.statusCounts[status as keyof typeof report.statusCounts], color: STATUS_COLOR[status as keyof typeof STATUS_COLOR] }))} /></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 id="report-status-heading" className="m-0 text-lg font-semibold">Tình trạng đơn dịch vụ · dữ liệu MySQL</h2><p className="m-0 mt-2 text-xs leading-6 text-muted-foreground">Trạng thái hiện tại của các đơn được tạo trong khoảng ngày đã chọn. Không bao gồm đơn mua sản phẩm.</p></div><Button variant="outline" className="min-h-11" disabled={!serviceOrderReport} onClick={exportServiceOrderCsv}><DownloadIcon aria-hidden="true" />Xuất CSV trạng thái</Button></div>
+          {serviceOrderReportError&&<p role="alert" className="m-0 mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-800">{serviceOrderReportError}</p>}
+          {serviceOrderReportLoading?<p role="status" className="m-0 mt-6 text-sm text-muted-foreground">Đang tải báo cáo từ API...</p>:serviceOrderReport&&<><p className="m-0 mt-5 text-sm font-medium">Tổng đơn: {serviceOrderReport.total} · Tổng hợp lúc {new Date(serviceOrderReport.generatedAt).toLocaleString("vi-VN",{timeZone:"Asia/Ho_Chi_Minh"})}</p><div className="mt-6"><ReportBars denominator={Math.max(1,serviceOrderReport.total)} items={Object.entries(ORDER_STATUS_LABEL).map(([status,label])=>({id:status,label,value:serviceOrderReport.statusCounts[status as keyof typeof serviceOrderReport.statusCounts],color:STATUS_COLOR[status as keyof typeof STATUS_COLOR]}))}/></div></>}
         </section>
         <section aria-labelledby="report-service-heading" data-report-section="service-usage" className="min-w-0 rounded-2xl border border-border bg-white p-5 sm:p-6">
           <h2 id="report-service-heading" className="m-0 text-lg font-semibold">Mức sử dụng dịch vụ</h2><p className="m-0 mt-2 text-xs leading-6 text-muted-foreground">Số đơn theo từng dịch vụ trong khoảng ngày tạo, loại trừ đơn đã hủy.</p>

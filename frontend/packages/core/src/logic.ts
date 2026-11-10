@@ -2,6 +2,7 @@ import { CANCEL_POLICY } from "./config"
 import type { AppState, Order, Payment, PaymentStatus } from "./types"
 
 export function orderEnd(order: Pick<Order, "scheduledAt" | "durationMinutes">) {
+  if (order.durationMinutes === null) return new Date(Number.NaN)
   return new Date(new Date(order.scheduledAt).getTime() + order.durationMinutes * 60000)
 }
 
@@ -10,10 +11,12 @@ export function isActiveOrder(order: Order) {
 }
 
 /** Tìm công việc của nhân viên trùng khung giờ với khoảng thời gian đề xuất. */
-export function findConflicts(state: AppState, staffId: string, start: Date, durationMinutes: number, excludeOrderId?: string) {
+export function findConflicts(state: AppState, staffId: string, start: Date, durationMinutes: number | null, excludeOrderId?: string) {
+  if (durationMinutes === null || !Number.isFinite(durationMinutes) || durationMinutes < 1) return []
   const end = start.getTime() + durationMinutes * 60000
   return state.orders.filter((o) => {
     if (o.id === excludeOrderId || o.staffId !== staffId || !isActiveOrder(o)) return false
+    if (o.durationMinutes === null) return true
     const s = new Date(o.scheduledAt).getTime()
     const e = orderEnd(o).getTime()
     return s < end && start.getTime() < e
