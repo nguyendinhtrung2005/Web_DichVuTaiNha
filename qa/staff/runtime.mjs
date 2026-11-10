@@ -220,6 +220,22 @@ async function checkFrontend() {
   await runChild('maps-typecheck', [require.resolve('typescript/bin/tsc'), '--noEmit', '--incremental', 'false'], environment, 180000, app)
   output({ status: 'PASS', checks: ['Webpack build', 'TypeScript'], databaseAccessed: false, sourceManifest: 'maps-build-source-manifest.json' })
 }
+/** Reload only our Staff process after a Staff-only code change. No schema/seed/bootstrap path. */
+async function refreshStaff() {
+  const config = await loadConfig(), owned = await state(config), record = owned.processes.staff
+  if (record) {
+    const identity = await processIdentity(record.pid)
+    assert(identity === null || identity === record.identity, 'REFUSED_TO_STOP_NON_QA_STAFF_PID')
+    if (identity !== null) {
+      if (process.platform === 'win32') execFileSync('taskkill.exe', ['/PID', String(record.pid), '/T', '/F'], { windowsHide: true, stdio: 'pipe' })
+      else process.kill(record.pid, 'SIGTERM')
+    }
+    delete owned.processes.staff; await writeJson(stateFile, owned)
+  }
+  await launch(config, owned, 'staff', process.execPath, [join(qaDirectory, 'service.mjs'), 'staff'], plainEnvironment(), portOf(config.staffOrigin))
+  await httpReady(config.staffOrigin, '/health/ready', 'staff-service')
+  output({ status: 'READY', staff: config.staffOrigin, schemaInitialized: false, seedExecuted: false })
+}
 function mysqlArguments(config) {
   return ['--no-defaults', '--basedir=' + dirname(dirname(config.mysql.executable)), '--datadir=' + config.mysql.dataDir, '--bind-address=127.0.0.1', '--port=' + config.db.port, '--default-time-zone=+00:00', '--mysqlx=OFF', '--skip-log-bin', '--secure-file-priv=NULL', '--pid-file=' + join(privateDirectory, 'mysql/mysql.pid'), '--console']
 }
@@ -313,11 +329,12 @@ async function stop() {
   }
 }
 try {
-  assert(['start', 'stop', 'status', 'test', 'refresh-frontend', 'check-frontend', 'resume-services'].includes(action), 'UNKNOWN_QA_ACTION')
+  assert(['start', 'stop', 'status', 'test', 'refresh-frontend', 'refresh-staff', 'check-frontend', 'resume-services'].includes(action), 'UNKNOWN_QA_ACTION')
   if (action === 'start') await start()
   else if (action === 'stop') await stop()
   else if (action === 'status') await status()
   else if (action === 'refresh-frontend') await refreshFrontend()
+  else if (action === 'refresh-staff') await refreshStaff()
   else if (action === 'check-frontend') await checkFrontend()
   else if (action === 'resume-services') await resumeServices()
   else {

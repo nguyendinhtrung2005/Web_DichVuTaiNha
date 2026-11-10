@@ -15,6 +15,10 @@ Nếu máy chặn chạy script, dùng `powershell.exe -NoProfile -ExecutionPoli
 
 Khôi phục bộ QA đã có dataset bằng `node .\qa\staff\runtime.mjs resume-services`: chỉ xác minh môi trường và khởi động service; không bootstrap, seed hoặc migration.
 
+Sau khi sửa riêng Staff Backend, dùng `node .\qa\staff\runtime.mjs refresh-staff`: chỉ dừng/khởi động process Staff có identity khớp bộ QA, kiểm tra readiness; không bootstrap/seed hoặc thay đổi dữ liệu. Frontend vẫn dùng `refresh-frontend` và cấu hình AI QA đã được duyệt nếu cần.
+
+Kiểm tra thẻ đội thực hiện: `$env:RUN_STAFF_ISOLATED_TEAM_QA='true'` rồi `node .\qa\staff\team.browser.mjs`. Suite chỉ đọc dữ liệu nghiệp vụ; chặn mọi mutation thật ngoài login/logout của tài khoản tổng hợp. Một PATCH hoàn thành được giữ và trả response double ngay trong Chrome, không gửi đến BFF/Backend; dùng để kiểm tra loading, chống bấm lặp và tải lại chi tiết. Đội hiện có và phân quyền A/B được kiểm tra thật; chính sách đội 1/2/3 người và cảnh báo phân công lặp trong thu nhập dùng response doubles có nhãn MOCK_PASS. Không gọi AI. [Contract và blocker đủ đội](../../frontend/apps/staff/docs/STAFF_TEAM_EXECUTION_CONTRACT.md).
+
 Mặc định: MySQL `3307`, Auth `4101`, Order `4103`, Staff `4115`, Frontend `http://localhost:3102`. Lần tạo mới tự chọn cổng trống khác nếu cần và lưu cấu hình đồng bộ. Không kill tiến trình để lấy cổng. `status.ps1` cho biết cổng thực tế.
 
 Máy hiện có MySQL Server 9.6 và không có Docker. Script khởi tạo **một mysqld riêng** bằng `--no-defaults`, datadir `.private/mysql/data`, chỉ bind loopback; không chạm service MySQL96/cổng3306. Có thể chỉ định binary qua biến `STAFF_QA_MYSQLD` trước lần start đầu. Cần Node.js hỗ trợ `module.registerHooks` (máy hiện dùng Node24), dependency đã cài của Staff/Auth/Frontend và Chrome cho browser test.

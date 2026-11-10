@@ -6,8 +6,10 @@ import { loadConfig, privateDirectory } from './common.mjs'
 
 if (process.env.RUN_STAFF_INCOME_CHART_QA !== 'true') { console.log(JSON.stringify({ status: 'NOT_RUN', reason: 'Isolated QA opt-in required' })); process.exit(0) }
 const before = process.argv.includes('--before'), wait = ms => new Promise(done => setTimeout(done, ms))
+const tableOnly = process.argv.includes('--table-layout')
+const screenWidth = Number(process.argv.find(arg => arg.startsWith('--screen-width='))?.split('=')[1] || 0)
 const check = (value, code) => { if (!value) throw Error(code) }
-const pointer = join(privateDirectory, 'income-chart-artifacts.json')
+const pointer = join(privateDirectory, tableOnly ? 'income-table-layout-artifacts.json' : 'income-chart-artifacts.json')
 const report = { phase: before ? 'before' : 'after', checks: [], layouts: [], exceptions: 0, forbidden: 0, databaseAccessed: false, providerCalls: 0 }
 let config, browser, profile, cdp, artifacts, failedAt = 'setup', fault = null, account = 'A', maximumActive = 0
 const held = [], incomeRequests = []
@@ -15,7 +17,7 @@ const network = new Map(), activeRequests = new Set(), apiValues = new Map()
 class CDP {
   constructor(ws) { this.ws = ws; this.seq = 0; this.pending = new Map(); this.listeners = []; ws.addEventListener('message', e => { const m = JSON.parse(e.data); if (m.id) { const p = this.pending.get(m.id); if (p) { clearTimeout(p.timer); this.pending.delete(m.id); m.error ? p.reject(Error('QA_CDP_FAILED')) : p.done(m.result) } } else for (const fn of this.listeners) fn(m.method, m.params) }); ws.addEventListener('close', () => { for (const p of this.pending.values()) { clearTimeout(p.timer); p.reject(Error('QA_BROWSER_CLOSED')) } this.pending.clear() }) }
   send(method, params = {}) { const id = ++this.seq; return new Promise((done, reject) => { const timer = setTimeout(() => { this.pending.delete(id); reject(Error('QA_CDP_TIMEOUT')) }, 25000); this.pending.set(id, { done, reject, timer }); this.ws.send(JSON.stringify({ id, method, params })) }) }
-  async evaluate(expression) { const r = await this.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); check(!r.exceptionDetails, 'QA_EXPRESSION_FAILED'); return r.result.value }
+  async evaluate(expression) { const r = await this.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (r.exceptionDetails) report.expressionError = { type: r.exceptionDetails.exception?.className, property: /reading '([a-zA-Z0-9_.-]+)'/.exec(r.exceptionDetails.exception?.description || '')?.[1] }; check(!r.exceptionDetails, 'QA_EXPRESSION_FAILED'); return r.result.value }
   async until(expression, ms = 35000) { const end = Date.now() + ms; while (Date.now() < end) { if (await this.evaluate(expression)) return; await wait(80) } throw Error('QA_UI_TIMEOUT') }
   async navigate(route) { const time = await this.evaluate('performance.timeOrigin'); await this.send('Page.navigate', { url: config.frontendOrigin + route }); await this.until('performance.timeOrigin!==' + JSON.stringify(time) + '&&location.pathname===' + JSON.stringify(route) + '&&document.readyState==="complete"') }
 }
@@ -50,7 +52,7 @@ async function input(selector, value) { await cdp.until('!!document.querySelecto
 async function click(selector) { await cdp.until('!!document.querySelector(' + JSON.stringify(selector) + ')'); await cdp.evaluate('document.querySelector(' + JSON.stringify(selector) + ').scrollIntoView({block:"center"});true'); await wait(80); const point = await cdp.evaluate('(()=>{const r=document.querySelector(' + JSON.stringify(selector) + ').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()'); await cdp.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', buttons: 1, clickCount: 1 }); await cdp.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', buttons: 0, clickCount: 1 }) }
 async function login(label) { account = label; await cdp.navigate('/dang-nhap'); await input('[name=phone]', config.accounts[label].phone); await input('[name=password]', config.accounts[label].password); await cdp.evaluate('document.querySelector("form").requestSubmit();true'); await cdp.until('location.pathname!=="/dang-nhap"&&!!document.querySelector(".staff-account-trigger")') }
 async function logout() { await cdp.evaluate('(async()=>{await fetch("/api/auth/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return true})()') }
-async function ready() { await cdp.until('document.querySelector("[data-staff-income-remote]")?.dataset.staffIncomeRemote==="ready"'); if (!before) await cdp.until('document.querySelector("[data-income-history-state]")?.dataset.incomeHistoryState==="ready"') }
+async function ready() { await cdp.until('document.querySelector("[data-staff-income-remote]")?.dataset.staffIncomeRemote==="ready"'); if (!before || tableOnly) await cdp.until('document.querySelector("[data-income-history-state]")?.dataset.incomeHistoryState==="ready"') }
 async function shot(file) { const r = await cdp.send('Page.captureScreenshot', { format: 'png' }); await writeFile(join(artifacts, file), Buffer.from(r.data, 'base64')) }
 async function capture() {
   for (const [width, height] of [[375, 812], [390, 844], [768, 1024], [1440, 1000]]) {
@@ -77,6 +79,62 @@ async function compare() {
   return { ...state, backend: data }
 }
 async function key(name, code = name, virtual = 13) { await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', key: name, code, windowsVirtualKeyCode: virtual, ...(name === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}) }); await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: name, code, windowsVirtualKeyCode: virtual }) }
+async function tableLayoutChecks() {
+  check(!screenWidth || Number.isInteger(screenWidth) && screenWidth >= 320 && screenWidth <= 7680, 'QA_SCREEN_WIDTH_INVALID')
+  const state = await compare()
+  await click('[data-income-view=table]'); await cdp.until('!!document.querySelector("[data-income-history-table]")')
+  report.tableLayouts = []; report.tableViolations = []; report.screenWidth = screenWidth || null
+  const widths = [...new Set([375, 390, 768, 1024, 1440, ...(screenWidth ? [screenWidth] : [])])]
+  for (const [index, width] of widths.entries()) {
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: width < 768 ? 844 : 1000, deviceScaleFactor: 1, mobile: width < 768 })
+    await wait(150); await ready()
+    if (!await cdp.evaluate('!!document.querySelector("[data-income-history-table]")')) await click('[data-income-view=table]')
+    await cdp.until('!!document.querySelector("[data-income-history-table]")')
+    const metrics = await cdp.evaluate(`(() => {
+      const table = document.querySelector('[data-income-history-table]'), wrap = table.parentElement
+      const lines = cell => { const range = document.createRange(); range.selectNodeContents(cell); return new Set([...range.getClientRects()].filter(r => r.width > 0 && r.height > 0).map(r => Math.round(r.top))).size }
+      const headers = [...table.tHead.rows[0].cells], rows = [...table.tBodies[0].rows]
+      const moneyCells = [...table.querySelectorAll('tbody td:nth-child(n+3):not(:last-child)')]
+      const buttons = [...table.querySelectorAll('tbody button')]
+      return {
+        width: innerWidth, pageWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth,
+        tableWidth: table.getBoundingClientRect().width, wrapWidth: wrap.clientWidth, wrapScrollWidth: wrap.scrollWidth,
+        headers: headers.map(cell => ({ label: cell.textContent, width: cell.getBoundingClientRect().width, lines: lines(cell) })),
+        maxMoneyLines: Math.max(...moneyCells.map(lines)), moneyAlignedRight: moneyCells.every(cell => getComputedStyle(cell).textAlign === 'right'),
+        maxRowHeight: Math.max(...rows.map(row => row.getBoundingClientRect().height)), headerHeight: table.tHead.getBoundingClientRect().height,
+        tableHeight: table.getBoundingClientRect().height, rowCount: rows.length,
+        actionWidth: Math.min(...rows.map(row => row.lastElementChild.getBoundingClientRect().width)),
+        minButtonWidth: Math.min(...buttons.map(button => button.getBoundingClientRect().width)),
+        buttonsContained: buttons.every(button => { const b = button.getBoundingClientRect(), c = button.closest('td').getBoundingClientRect(); return b.left >= c.left - 1 && b.right <= c.right + 1 }),
+        statement: rows.map(row => { const cells = [...row.cells], amount = Number(cells[6].dataset.incomeTableAmount); const parts = cells.slice(2,6).map(cell => /^[-\\d\\s.,\u20ab\u0111]+$/.test(cell.textContent) ? Number(cell.textContent.replace(/[^\\d-]/g,'')) : null); return { amount, components: parts.includes(null) ? null : parts.reduce((sum, value) => sum + value, 0) } })
+      }
+    })()`)
+    const violations = []
+    if (metrics.pageWidth > metrics.clientWidth + 1) violations.push('PAGE_HORIZONTAL_OVERFLOW')
+    if (metrics.headers.some(cell => cell.lines !== 1)) violations.push('HEADER_WRAPPING')
+    if (metrics.maxMoneyLines !== 1) violations.push('MONEY_WRAPPING')
+    if (!metrics.moneyAlignedRight) violations.push('MONEY_NOT_RIGHT_ALIGNED')
+    if (metrics.actionWidth < 80 || metrics.minButtonWidth < 60 || !metrics.buttonsContained) violations.push('ACTION_COLUMN_TOO_NARROW')
+    if (metrics.maxRowHeight > 88 || metrics.headerHeight > 64 || metrics.tableHeight > metrics.rowCount * 88 + 120) violations.push('EXCESSIVE_ROW_HEIGHT')
+    if (metrics.wrapScrollWidth + 1 < metrics.tableWidth) violations.push('TABLE_SCROLL_NOT_CONTAINED')
+    report.tableLayouts.push(metrics)
+    report.tableViolations.push(...violations.map(code => ({ width, code })))
+    check(metrics.statement.reduce((sum, row) => sum + row.amount, 0) === state.total, 'QA_TABLE_TOTAL_DIFFERS_FROM_BACKEND')
+    const mismatches = metrics.statement.filter(row => row.components !== null && row.components !== row.amount)
+    if (mismatches.length) { report.amountMismatches = mismatches; throw Error('QA_TABLE_COMPONENT_SUM_MISMATCH') }
+    await cdp.evaluate('document.querySelector("[data-income-history-table]").parentElement.scrollLeft=0;document.querySelector("[data-income-history-table]").parentElement.scrollIntoView({block:"start"});window.scrollBy(0,-90);true')
+    await shot(report.phase + '-table-' + width + '-left.png')
+    await cdp.evaluate('(()=>{const e=document.querySelector("[data-income-history-table]").parentElement;e.scrollLeft=e.scrollWidth;return true})()')
+    await shot(report.phase + '-table-' + width + '-right.png')
+    const rowIndex = index % metrics.rowCount + 1
+    const expected = await cdp.evaluate('(()=>{const r=document.querySelector("[data-income-history-table] tbody tr:nth-child(' + rowIndex + ')");return {label:r.cells[0].textContent,amount:Number(r.cells[6].dataset.incomeTableAmount)}})()')
+    await click('[data-income-history-table] tbody tr:nth-child(' + rowIndex + ') button')
+    await cdp.until('document.querySelector("[data-income-selected-total]")?.dataset.incomeSelectedTotal===' + JSON.stringify(String(expected.amount)) + '&&document.querySelector("[data-income-selected-total] h3")?.textContent.includes(' + JSON.stringify(expected.label) + ')')
+    metrics.viewButtonWorks = true
+  }
+  report.layoutRegression = report.tableViolations.length ? 'FAIL' : 'PASS'
+  if (!before) check(report.tableViolations.length === 0, 'QA_INCOME_TABLE_LAYOUT_REGRESSION')
+}
 async function afterChecks() {
   await step('Daily columns, all sources and statement match real Backend amounts', 'REAL_PASS', async () => {
     for (const source of ['amountVnd', 'baseVnd', 'peakVnd', 'distanceVnd', 'incentiveVnd']) { await input('[data-income-source]', source); await cdp.until('document.querySelector("[data-income-filter-total]")?.dataset.incomeFilterSource===' + JSON.stringify(source)); const state = await compare(); check(state.rows.length === Number(state.backend[0].period.to.slice(8)), 'QA_ZERO_DAYS_MISSING') }
@@ -118,8 +176,11 @@ try {
   if (before) { artifacts = join(privateDirectory, 'reports/income-chart-' + new Date().toISOString().replace(/[:.]/g, '-')); await mkdir(artifacts, { recursive: true }); await writeFile(pointer, JSON.stringify({ artifacts })) }
   else { artifacts = JSON.parse(await readFile(pointer, 'utf8')).artifacts; check(dirname(resolve(artifacts)) === resolve(privateDirectory, 'reports') && basename(artifacts).startsWith('income-chart-'), 'QA_ARTIFACT_PATH_INVALID') }
   await launch(); await login('A'); await cdp.navigate('/thu-nhap'); await ready()
-  await step('Income chart screenshots and responsive 375/390/768/1440', before ? 'CAPTURED' : 'REAL_PASS', capture)
-  if (!before) await afterChecks()
+  if (tableOnly) await step('Income table headers, VND, row heights, local scrolling and detail action', before ? 'CAPTURED' : 'DEMO_PASS', tableLayoutChecks)
+  else {
+    await step('Income chart screenshots and responsive 375/390/768/1440', before ? 'CAPTURED' : 'REAL_PASS', capture)
+    if (!before) await afterChecks()
+  }
   check(report.exceptions === 0 && report.forbidden === 0, 'QA_BROWSER_SECURITY_BOUNDARY_FAILED')
 } catch (error) { report.failedAt = failedAt; report.error = /^[A-Z0-9_]+$/.test(error.message || '') ? error.message : 'QA_ERROR_DETAILS_WITHHELD'; process.exitCode = 1; try { await shot(report.phase + '-failure.png') } catch {} }
 finally {
