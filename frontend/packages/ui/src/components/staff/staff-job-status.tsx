@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent } from "react"
-import { LoaderCircleIcon, RefreshCwIcon } from "lucide-react"
+import { CheckIcon, LoaderCircleIcon, RefreshCwIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { useStaffAuth } from "./staff-auth-session"
@@ -51,7 +51,7 @@ function StatusConfirmation({ target, retry, busy, isBusy, close, submit }: {
     return () => element?.close()
   }, [])
   return <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={descriptionId}
-    className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-border bg-background p-5 text-foreground shadow-xl backdrop:bg-slate-950/35 sm:p-7"
+    className="staff-status-dialog m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-border bg-background p-5 text-foreground shadow-xl backdrop:bg-slate-950/35 sm:p-7"
     onCancel={event => { event.preventDefault(); if (!isBusy()) close() }}>
     <h2 id={titleId} className="m-0 break-words text-xl leading-8 font-semibold">{retry ? "Thử lại thao tác đã lưu" : STAFF_STATUS_ACTION[target].label}</h2>
     <p id={descriptionId} className="mt-4 mb-0 break-words text-sm leading-7 text-muted-foreground">{retry ? "Hệ thống sẽ gửi lại đúng bước và mã thao tác trước đó để đối chiếu kết quả, không tạo thao tác mới." : STAFF_STATUS_ACTION[target].confirm}</p>
@@ -62,8 +62,15 @@ function StatusConfirmation({ target, retry, busy, isBusy, close, submit }: {
   </dialog>
 }
 
+function StatusProgress({ status }: { status: keyof typeof labels }) {
+  const steps = ["ASSIGNED", "ACCEPTED", "IN_PROGRESS", "DONE"] as const
+  const current = steps.findIndex(step => step === status)
+  return <ol aria-label="Quy trình thực hiện" className="staff-status-progress">{steps.map((step, index) => <li key={step} data-progress-step={step} data-step-state={index < current ? "complete" : index === current ? "current" : "upcoming"} aria-current={index === current ? "step" : undefined}><span className="staff-status-step-marker" aria-hidden="true">{index < current ? <CheckIcon /> : index + 1}</span><span>{labels[step]}</span></li>)}</ol>
+}
+
+
 /** Every mutation is explicit. Mount, reload and refresh only GET the durable BFF context. */
-export function StaffJobStatus({ assignmentId, onChanged }: { assignmentId: string; onChanged: () => void }) {
+export function StaffJobStatus({ assignmentId, onChanged, teamStartBlockedReason = null, teamCompletionBlockedReason = null }: { assignmentId: string; onChanged: () => void; teamStartBlockedReason?: string | null; teamCompletionBlockedReason?: string | null }) {
   const auth = useStaffAuth()
   const [state, setState] = useState<StaffStatusState | null>(null)
   const [attempt, setAttempt] = useState<StaffStatusOperation | null>(null)
@@ -102,7 +109,10 @@ export function StaffJobStatus({ assignmentId, onChanged }: { assignmentId: stri
   const unresolved = operation && operation.phase !== "confirmed" ? operation : null
   const canRetry = Boolean(unresolved && state && state.blockedReason !== "ASSIGNMENT_CHANGED" && state.current.status !== "CANCELLED" && state.current.orderStatus !== "cancelled"
     && (state.canRetry || (attempt && state.operation?.idempotencyKey !== attempt.idempotencyKey)))
-  const allowed = !unresolved && !error ? state?.allowedStatus : null
+  const allowedByStatus = !unresolved && !error ? state?.allowedStatus : null
+  const teamBlockedReason = allowedByStatus === "IN_PROGRESS" ? teamStartBlockedReason : allowedByStatus === "DONE" ? teamCompletionBlockedReason : null
+  const teamBlocked = Boolean(teamBlockedReason)
+  const allowed = teamBlocked ? null : allowedByStatus
   const close = () => { if (mutex.current) return; setConfirmation(null); queueMicrotask(() => trigger.current?.focus({ preventScroll: true })) }
 
   async function check() {
@@ -170,20 +180,20 @@ export function StaffJobStatus({ assignmentId, onChanged }: { assignmentId: stri
   }
 
   useEffect(() => () => active.current?.abort(), [])
-  return <Card data-staff-status-panel className="min-w-0 rounded-2xl shadow-none ring-border [--card-spacing:--spacing(6)]">
-    <CardHeader><h2 className="m-0 text-lg font-semibold">Cập nhật công việc</h2></CardHeader>
+  return <Card data-staff-status-panel className="staff-status-card min-w-0 rounded-2xl shadow-none ring-border [--card-spacing:--spacing(6)]">
+    <CardHeader><p className="staff-eyebrow m-0">Thực hiện công việc</p><h2 className="m-0 text-lg font-semibold">Tiến trình và trạng thái</h2></CardHeader>
     <CardContent className="min-w-0 space-y-4" aria-busy={busy !== null}>
-      {state && <p className="m-0 text-sm leading-7">Trạng thái hiện tại: <strong>{labels[state.current.status]}</strong></p>}
+      {state && <><p className="staff-status-current">Trạng thái hiện tại: <strong>{labels[state.current.status]}</strong></p><StatusProgress status={state.current.status} /></>}
       {busy === "check" && <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircleIcon aria-hidden="true" className="size-4 shrink-0 animate-spin motion-reduce:animate-none" />Đang kiểm tra thao tác...</p>}
-      {operation && <div data-operation-phase={operation.phase} className={`min-w-0 rounded-xl border px-4 py-3 text-sm leading-7 ${operation.phase === "confirmed" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
+      {operation && <div data-operation-phase={operation.phase} className={`staff-status-operation min-w-0 rounded-xl border px-4 py-3 text-sm leading-7 ${operation.phase === "confirmed" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
         <p className="m-0 font-medium">{operation.phase === "confirmed" ? "Thao tác đã được xác nhận" : operation.phase === "pending" ? "Đang chờ xác nhận đồng bộ" : "Chưa xác định được kết quả thao tác"}</p>
         <p className="mt-1 mb-0">{STAFF_STATUS_ACTION[operation.requestedStatus].label}. {operation.phase === "confirmed" ? "Thông tin hiển thị là xác nhận của thao tác đã lưu." : "Không tạo thao tác mới. Hãy kiểm tra lại hoặc thử lại cùng thao tác để đối chiếu."}</p>
         {operation.observedTarget && operation.phase !== "confirmed" && <p className="mt-2 mb-0">Trạng thái công việc đã tiến triển, nhưng chưa đủ để xác nhận thao tác này đã đồng bộ hoàn tất.</p>}
       </div>}
-      {(error || notice) && <div ref={feedback} tabIndex={-1} role={error ? "alert" : "status"} className={`min-w-0 rounded-xl border px-4 py-3 text-sm leading-7 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${error ? "border-red-200 bg-red-50 text-red-800" : "border-blue-100 bg-blue-50 text-blue-950"}`}>{error || notice}</div>}
-      {!busy && state && !allowed && !unresolved && !error && <p className="m-0 text-sm leading-7 text-muted-foreground">{state.blockedReason === "ASSIGNMENT_CHANGED" ? "Phân công đã thay đổi. Vui lòng liên hệ người quản lý để đối chiếu." : state.blockedReason === "CANCELLATION_PENDING" ? "Đơn đang có yêu cầu hủy chờ xử lý." : state.blockedReason === "BOOKING_NOT_ACTIVE" ? "Đơn dịch vụ hiện chưa cho phép cập nhật công việc." : "Hiện không có bước tiếp theo để cập nhật."}</p>}
+      {(error || notice) && <div ref={feedback} tabIndex={-1} role={error ? "alert" : "status"} className={`staff-status-feedback min-w-0 rounded-xl border px-4 py-3 text-sm leading-7 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${error ? "border-red-200 bg-red-50 text-red-800" : "border-blue-100 bg-blue-50 text-blue-950"}`}>{error || notice}</div>}
+      {!busy && state && !allowed && !unresolved && !error && <p className="m-0 text-sm leading-7 text-muted-foreground" data-team-start-blocked={teamBlocked || undefined}>{teamBlocked ? teamBlockedReason : state.blockedReason === "ASSIGNMENT_CHANGED" ? "Phân công đã thay đổi. Vui lòng liên hệ người quản lý để đối chiếu." : state.blockedReason === "CANCELLATION_PENDING" ? "Đơn đang có yêu cầu hủy chờ xử lý." : state.blockedReason === "BOOKING_NOT_ACTIVE" ? "Đơn dịch vụ hiện chưa cho phép cập nhật công việc." : "Hiện không có bước tiếp theo để cập nhật."}</p>}
       {unresolved && state?.blockedReason === "ASSIGNMENT_CHANGED" && <p className="m-0 text-sm leading-7 text-muted-foreground">Phân công đã thay đổi. Cần người quản lý đối chiếu thao tác trước khi tiếp tục.</p>}
-      <div className="flex min-w-0 flex-col gap-3">
+      <div className="staff-status-actions flex min-w-0 flex-col gap-3">
         {allowed && <Button ref={trigger} type="button" className="h-auto min-h-11 w-full whitespace-normal px-4 py-2" disabled={busy !== null} onClick={() => { if (!mutex.current) setConfirmation({ target: allowed, retry: false }) }}>{STAFF_STATUS_ACTION[allowed].label}</Button>}
         {unresolved && <Button ref={trigger} type="button" className="h-auto min-h-11 w-full whitespace-normal px-4 py-2" disabled={busy !== null || !canRetry} onClick={() => { if (!mutex.current && canRetry) setConfirmation({ target: unresolved.requestedStatus, retry: true }) }}>Thử lại cùng thao tác</Button>}
         <Button type="button" variant="outline" className="h-auto min-h-11 w-full whitespace-normal px-4 py-2" disabled={busy !== null} onClick={() => void check()}><RefreshCwIcon aria-hidden="true" />Kiểm tra lại trạng thái</Button>

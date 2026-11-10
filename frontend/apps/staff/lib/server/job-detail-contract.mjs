@@ -1,5 +1,6 @@
 import { AuthBffError } from './auth-core.mjs'
 import { parseJobsResponse } from './jobs-contract.mjs'
+import { parseStaffTeam } from '../../../../packages/ui/src/components/staff/staff-team-contract.mjs'
 
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const text = value => typeof value === 'string' && value.length <= 20000
@@ -56,12 +57,20 @@ export function parseJobDetailResponse(payload, assignmentId) {
     || !object(raw.warnings[0]) || raw.warnings[0].code !== 'ORDER_HISTORY_UNAVAILABLE'
     || !text(raw.warnings[0].message) || raw.historySource !== 'order-service-unavailable')) invalid()
   if (raw.historySource === 'order-service-unavailable' && raw.warnings === undefined) invalid()
+  let team
+  if (raw.team !== undefined) {
+    team = raw.team === null ? null : parseStaffTeam(raw.team, assignmentId, base.orderId)
+    if (raw.team !== null && (!team || team.members.find(member => member.isSelf)?.status !== raw.databaseStatus)) invalid()
+  }
+  if (raw.teamError !== undefined && (raw.team !== null || raw.teamError !== 'TEAM_READ_UNAVAILABLE')) invalid()
   return {
     data: {
       ...base,
       contact: { ...base.contact, phone: raw.contact.phone, houseType: null, area: null, rooms: null, floors: null, hasPets: null },
       specialRequest: null, cancellationPending: raw.cancellationPending, orderHistory,
       historySource: raw.historySource, unsupportedFields: [...raw.unsupportedFields],
+      ...(team === undefined ? {} : { team }),
+      ...(raw.teamError === undefined ? {} : { teamError: 'TEAM_READ_UNAVAILABLE' }),
       ...(raw.warnings === undefined ? {} : { warnings: [{ code: 'ORDER_HISTORY_UNAVAILABLE', message: 'Chưa lấy được lịch sử công việc. Vui lòng thử lại sau.' }] }),
     },
   }

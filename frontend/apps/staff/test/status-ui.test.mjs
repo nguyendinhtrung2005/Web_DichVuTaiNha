@@ -144,3 +144,8 @@ test('UC12 UI distinguishes expired login, dependency outage, pending reconcilia
   assert.match(staffStatusErrorMessage(409, ''), /đã thay đổi/)
   assert.match(staffStatusErrorMessage(503, 'OPERATION_STORE_UNAVAILABLE'), /thao tác an toàn/)
 })
+
+test('specific Order rejection codes have safe actionable Vietnamese messages', () => {
+  for (const [code, text] of [['BOOKING_CANCELLED', 'bị hủy'], ['BOOKING_COMPLETED', 'đã hoàn thành'], ['BOOKING_NOT_CONFIRMED', 'chưa được xác nhận'], ['CANCELLATION_PENDING', 'hủy chờ xử lý'], ['ASSIGNMENT_NOT_ACTIVE', 'không còn hiệu lực'], ['STALE_ASSIGNMENT', 'đã thay đổi'], ['IDEMPOTENCY_CONFLICT', 'Mã thao tác'], ['OPERATION_CONFLICT', 'nội dung khác']]) assert.ok(staffStatusErrorMessage(409, code).includes(text))
+  assert.doesNotMatch(staffStatusErrorMessage(409, 'UNAPPROVED_TEAM_REASON'), /UNAPPROVED|đủ đội/)
+})

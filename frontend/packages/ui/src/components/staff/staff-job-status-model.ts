@@ -33,7 +33,7 @@ export type StaffStatusState = {
 export const STAFF_STATUS_ACTION: Record<StaffNextStatus, { label: string; confirm: string }> = {
   ACCEPTED: { label: "Tiếp nhận công việc", confirm: "Bạn xác nhận tiếp nhận công việc được phân công?" },
   IN_PROGRESS: { label: "Bắt đầu thực hiện", confirm: "Bạn xác nhận bắt đầu thực hiện công việc? Hệ thống sẽ ghi nhận thời điểm bắt đầu khi cập nhật được chấp nhận." },
-  DONE: { label: "Hoàn thành công việc", confirm: "Bạn xác nhận đã hoàn thành phần công việc được phân công? Việc hoàn thành đơn dịch vụ còn phụ thuộc các nhân viên khác được phân công." },
+  DONE: { label: "Hoàn thành phần việc", confirm: "Bạn xác nhận đã hoàn thành phần việc được giao? Trạng thái chung của đơn dịch vụ sẽ do hệ thống xác nhận riêng." },
 }
 const next = { ASSIGNED: "ACCEPTED", ACCEPTED: "IN_PROGRESS", IN_PROGRESS: "DONE", DONE: null, CANCELLED: null } as const
 const jobStatuses = { ASSIGNED: "waiting", ACCEPTED: "accepted", IN_PROGRESS: "in_progress", DONE: "done", CANCELLED: null } as const
@@ -109,6 +109,19 @@ export function staffStatusErrorMessage(status: number, code: string): string {
   if (status === 401) return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại trước khi kiểm tra thao tác."
   if (status === 403) return "Tài khoản hiện không được phép cập nhật công việc. Vui lòng liên hệ người quản lý."
   if (status === 404) return "Công việc không còn trong danh sách được phân công cho bạn."
+  const orderReasons: Record<string, string> = {
+    STAFFING_POLICY_REQUIRED: "Chưa xác nhận quy tắc đủ nhân viên. Liên hệ người quản lý trước khi bắt đầu hoặc hoàn thành công việc.",
+    INVALID_TRANSITION: "Không thể bỏ bước hoặc cập nhật bước không còn hợp lệ. Vui lòng kiểm tra lại trạng thái.",
+    BOOKING_CANCELLED: "Đơn dịch vụ đã bị hủy. Không thể cập nhật phần việc này.",
+    BOOKING_COMPLETED: "Đơn dịch vụ đã hoàn thành. Vui lòng kiểm tra lại trạng thái phần việc của bạn.",
+    BOOKING_NOT_CONFIRMED: "Đơn dịch vụ chưa được xác nhận. Vui lòng chờ người quản lý xử lý.",
+    CANCELLATION_PENDING: "Đơn đang có yêu cầu hủy chờ xử lý. Chưa thể tiếp tục thao tác này.",
+    ASSIGNMENT_NOT_ACTIVE: "Phân công hoặc tài khoản nhân viên không còn hiệu lực. Vui lòng liên hệ Admin.",
+    STALE_ASSIGNMENT: "Phân công đã thay đổi. Vui lòng kiểm tra lại hoặc liên hệ Admin.",
+    IDEMPOTENCY_CONFLICT: "Mã thao tác đã được sử dụng với nội dung khác. Hãy kiểm tra lại thao tác đã lưu.",
+    OPERATION_CONFLICT: "Thao tác đã ghi nhận có nội dung khác. Hãy kiểm tra lại trước khi gửi tiếp.",
+  }
+  if ([409, 422].includes(status) && Object.hasOwn(orderReasons, code)) return orderReasons[code]
   if (code === "AUTH_UNAVAILABLE") return "Chưa thể kiểm tra phiên đăng nhập. Vui lòng thử lại sau."
   if (code === "OPERATION_STORE_UNAVAILABLE") return "Chưa thể đọc hoặc lưu thông tin thao tác an toàn. Vui lòng thử kiểm tra lại hoặc liên hệ người quản lý."
   if (["OPERATION_EXISTS", "UNRESOLVED_OPERATION"].includes(code)) return "Còn một thao tác cần đối chiếu. Vui lòng kiểm tra lại trước khi tiếp tục."

@@ -2,38 +2,52 @@
 
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { ClipboardListIcon, ShieldCheckIcon } from "lucide-react"
+import { ClipboardListIcon } from "lucide-react"
 import { AreaLink as Link, AreaRoutesProvider } from "@/components/shared/area-routes"
-import { validAreaPath } from "@/components/shared/route-policy"
+import { validStaffPath } from "@/components/staff/staff-route-policy"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { StaffAuthProvider, useStaffAuth } from "./staff-auth-session"
+import { useStaffAuth } from "./staff-auth-session"
+import { StaffAppProviders } from "./staff-app-providers"
 import { StaffLayout } from "./staff-layout"
 import { StaffJobsRemote } from "./staff-jobs-remote"
+import { StaffDashboardRemote } from "./staff-dashboard-remote"
 import { StaffJobDetailRemote } from "./staff-job-detail-remote"
 import { StaffScheduleRemote } from "./staff-schedule-remote"
+import { StaffProfileRemote } from "./staff-profile-remote"
+import { StaffHistoryRemote } from "./staff-history-remote"
+import { StaffWorkStatisticsRemote } from "./staff-work-statistics-remote"
+import { StaffNotifications } from "./staff-notifications"
+import { StaffSupport } from "./staff-support"
+import { StaffSettings } from "./staff-settings"
+import { StaffIncome } from "./staff-income"
+import { StaffAreas } from "./staff-areas"
+import type { StaffMapsConfig } from "./staff-maps-model"
+import { StaffAchievements } from "./staff-achievements"
 import { StaffLogin } from "./staff-login"
 import { staffLoginReturnTo } from "./staff-login-route"
 import { StaffEmpty, StaffPageHeader } from "./staff-shared"
 
 /** Staff-only entry: the local business store is deliberately not mounted under a Backend identity. */
-export function StaffAuthPortal({ path }: { path: string[] }) {
-  return <AreaRoutesProvider role="staff" unified={false}><StaffAuthProvider><StaffAuthScreen path={path} /></StaffAuthProvider></AreaRoutesProvider>
+export function StaffAuthPortal({ path, incomeDemoEnabled = false, profileDemoEnabled = false, notificationsDemoEnabled = false, areasDemoEnabled = false, achievementsDemoEnabled = false, supportDemoEnabled = false, settingsDemoEnabled = false, mapsConfig = null }: { mapsConfig?: StaffMapsConfig | null; path: string[]; incomeDemoEnabled?: boolean; profileDemoEnabled?: boolean; notificationsDemoEnabled?: boolean; areasDemoEnabled?: boolean; achievementsDemoEnabled?: boolean; supportDemoEnabled?: boolean; settingsDemoEnabled?: boolean }) {
+  const auth = useStaffAuth()
+  const screen = <AreaRoutesProvider role="staff" unified={false}><StaffAuthScreen path={path} incomeDemoEnabled={incomeDemoEnabled} profileDemoEnabled={profileDemoEnabled} notificationsDemoEnabled={notificationsDemoEnabled} areasDemoEnabled={areasDemoEnabled} achievementsDemoEnabled={achievementsDemoEnabled} supportDemoEnabled={supportDemoEnabled} settingsDemoEnabled={settingsDemoEnabled} mapsConfig={mapsConfig} /></AreaRoutesProvider>
+  return auth ? screen : <StaffAppProviders>{screen}</StaffAppProviders>
 }
 
 function SessionLoading() {
   return <div role="status" aria-label="Đang kiểm tra phiên đăng nhập" className="mx-auto max-w-lg space-y-5"><span className="sr-only">Đang kiểm tra phiên đăng nhập</span><Skeleton className="h-10 w-56" /><Skeleton className="h-64 w-full rounded-3xl" /></div>
 }
 
-function StaffAuthScreen({ path }: { path: string[] }) {
+function StaffAuthScreen({ path, incomeDemoEnabled, profileDemoEnabled, notificationsDemoEnabled, areasDemoEnabled, achievementsDemoEnabled, supportDemoEnabled, settingsDemoEnabled, mapsConfig }: { mapsConfig: StaffMapsConfig | null; path: string[]; incomeDemoEnabled: boolean; profileDemoEnabled: boolean; notificationsDemoEnabled: boolean; areasDemoEnabled: boolean; achievementsDemoEnabled: boolean; supportDemoEnabled: boolean; settingsDemoEnabled: boolean }) {
   const auth = useStaffAuth()!
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
   const route = path[0] || ""
   const authPage = route === "dang-nhap" || route === "dang-ky"
-  const validRoute = validAreaPath("staff", path)
+  const validRoute = validStaffPath(path)
   const [logoutError, setLogoutError] = useState("")
   const logoutAlert = useRef<HTMLDivElement>(null)
 
@@ -64,10 +78,19 @@ function StaffAuthScreen({ path }: { path: string[] }) {
   else if (auth.status === "unauthenticated" && route === "dang-nhap") content = <StaffLogin />
   else if (auth.status === "unauthenticated" && route === "dang-ky") content = <StaffEmpty title="Tài khoản nhân viên được người quản lý cấp" description="Liên hệ người quản lý để được cấp tài khoản làm việc." action={<Button render={<Link href="/dang-nhap" />} nativeButton={false}>Đăng nhập</Button>} />
   else if (!authenticated || authPage) content = <SessionLoading />
-  else if (!route) content = <><StaffPageHeader title="Không gian làm việc" description="Bạn đã đăng nhập bằng tài khoản nhân viên CleanHome." /><Card className="max-w-2xl rounded-2xl shadow-none ring-border"><CardContent className="flex min-w-0 items-start gap-4"><div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-primary"><ShieldCheckIcon aria-hidden="true" className="size-6" /></div><div className="min-w-0"><h2 className="m-0 text-lg font-semibold">Sẵn sàng cho công việc của bạn</h2><p className="mt-3 mb-0 break-all text-sm leading-7 text-muted-foreground">Mã tài khoản: {auth.session!.user.id}</p><p className="mt-2 mb-5 text-sm leading-7 text-muted-foreground">Xem các công việc được phân công và lịch thực hiện trong danh sách công việc.</p><Button className="min-h-11 max-w-full whitespace-normal" render={<Link href="/cong-viec" />} nativeButton={false}>Xem công việc được phân công</Button></div></CardContent></Card></>
+  else if (!route) content = <StaffDashboardRemote />
+  else if (route === "thong-bao") content = <StaffNotifications demoEnabled={notificationsDemoEnabled} />
   else if (route === "cong-viec") content = <StaffJobsRemote />
   else if (route === "lich-lam-viec") content = <StaffScheduleRemote />
   else if (route === "don") content = <StaffJobDetailRemote id={path[1] || ""} />
+  else if (route === "ho-so") content = <StaffProfileRemote demoEnabled={profileDemoEnabled} />
+  else if (route === "lich-su") content = <StaffHistoryRemote />
+  else if (route === "thong-ke-cong-viec") content = <StaffWorkStatisticsRemote />
+  else if (route === "thu-nhap") content = <StaffIncome demoEnabled={incomeDemoEnabled} />
+  else if (route === "khu-vuc") content = <StaffAreas demoEnabled={areasDemoEnabled} mapsConfig={mapsConfig} />
+  else if (route === "thanh-tich") content = <StaffAchievements demoEnabled={achievementsDemoEnabled} />
+  else if (route === "ho-tro") content = <StaffSupport demoEnabled={supportDemoEnabled} />
+  else if (route === "cai-dat") content = <StaffSettings demoEnabled={settingsDemoEnabled} />
   else {
     const titles: Record<string, string> = { "cong-viec": "Công việc", "don": "Chi tiết công việc", "lich-lam-viec": "Lịch làm việc", "ho-so": "Hồ sơ cá nhân" }
     content = <><StaffPageHeader title={titles[route] || "Không gian làm việc"} /><section className="rounded-2xl border border-border bg-white px-5 py-10"><ClipboardListIcon aria-hidden="true" className="mb-4 size-7 text-primary" /><h2 className="m-0 text-lg font-semibold">Thông tin hiện chưa khả dụng</h2><p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">Vui lòng quay lại sau hoặc liên hệ người quản lý nếu cần hỗ trợ.</p><Button variant="outline" render={<Link href="/" />} nativeButton={false}>Về tổng quan</Button></section></>

@@ -6,6 +6,7 @@ const fail = (status, code, message) => { throw new AuthBffError(status, code, m
 const unavailable = () => new AuthBffError(503, 'STAFF_UNAVAILABLE', 'Dịch vụ công việc tạm thời gián đoạn. Vui lòng kiểm tra lại trước khi thử tiếp.', 5)
 const invalid = () => new AuthBffError(502, 'STAFF_INVALID_RESPONSE', 'Chưa thể xác minh phản hồi. Vui lòng kiểm tra lại thao tác đã lưu.')
 const messages = {
+  STAFFING_POLICY_REQUIRED: 'Chưa xác nhận quy tắc đủ nhân viên. Liên hệ người quản lý trước khi bắt đầu hoặc hoàn thành công việc.',
   INVALID_TRANSITION: 'Trạng thái hiện tại không cho phép chuyển bước này. Vui lòng tải lại thông tin.',
   ASSIGNMENT_CHANGED: 'Phân công đã thay đổi. Vui lòng tải lại thông tin hoặc liên hệ người quản lý.',
   RECONCILIATION_CONFLICT: 'Thao tác cần được đối chiếu. Vui lòng giữ thao tác hiện tại và liên hệ người quản lý.',
@@ -14,6 +15,18 @@ const messages = {
   ORDER_BAD_RESPONSE: 'Chưa thể xác minh phản hồi từ dịch vụ đơn hàng.',
   ORDER_REJECTED: 'Dịch vụ đơn hàng chưa chấp nhận thao tác. Vui lòng kiểm tra lại thông tin.',
   AUTH_UNAVAILABLE: 'Dịch vụ xác thực tạm thời gián đoạn. Vui lòng thử kiểm tra lại sau.',
+}
+// Exact reason codes already emitted by Staff's OrderClient. Never relay raw upstream messages/details.
+const orderReasons = {
+  INVALID_TRANSITION: messages.INVALID_TRANSITION,
+  BOOKING_CANCELLED: 'Đơn dịch vụ đã bị hủy. Không thể cập nhật phần việc này.',
+  BOOKING_COMPLETED: 'Đơn dịch vụ đã hoàn thành. Vui lòng kiểm tra lại trạng thái phần việc của bạn.',
+  BOOKING_NOT_CONFIRMED: 'Đơn dịch vụ chưa được xác nhận. Vui lòng chờ người quản lý xử lý.',
+  CANCELLATION_PENDING: 'Đơn đang có yêu cầu hủy chờ xử lý. Chưa thể tiếp tục thao tác này.',
+  ASSIGNMENT_NOT_ACTIVE: 'Phân công hoặc tài khoản nhân viên không còn hiệu lực. Vui lòng liên hệ Admin.',
+  STALE_ASSIGNMENT: 'Phân công đã thay đổi. Vui lòng kiểm tra lại hoặc liên hệ Admin.',
+  IDEMPOTENCY_CONFLICT: 'Mã thao tác đã được sử dụng với nội dung khác. Hãy kiểm tra lại thao tác đã lưu.',
+  OPERATION_CONFLICT: 'Thao tác đã ghi nhận có nội dung khác. Hãy kiểm tra lại trước khi gửi tiếp.',
 }
 
 /** Fixed Staff endpoints only. This module never contacts Order's internal APIs. */
@@ -56,6 +69,8 @@ async function staffRequest(config, token, assignmentId, fetchImpl, mutation) {
     if (response.status === 200 || (mutation && response.status === 202)) return { status: response.status, body }
     const rawCode = body?.error?.code
     if (response.status === 400) fail(400, 'VALIDATION_ERROR', 'Dữ liệu thao tác không hợp lệ. Vui lòng kiểm tra lại.')
+    const reason = body?.error?.details?.reason
+    if ([409, 422].includes(response.status) && rawCode === 'ORDER_REJECTED' && typeof reason === 'string' && Object.hasOwn(orderReasons, reason)) fail(response.status, reason, orderReasons[reason])
     if (typeof rawCode === 'string' && Object.hasOwn(messages, rawCode) && [409, 422, 502, 503].includes(response.status)) fail(response.status, rawCode, messages[rawCode])
     if ([409, 422].includes(response.status)) fail(response.status, 'TRANSITION_REJECTED', 'Trạng thái công việc đã thay đổi hoặc không cho phép thao tác này.')
     if (response.status >= 500) throw unavailable()
@@ -84,7 +99,7 @@ export function createStatusService({ config, auth, store, fetchImpl = fetch }) 
       return auth.withAccessToken(sid, async token => {
         const current = await readCurrent(token, id)
         return statusView(current, await entriesFor(session.user.id, id))
-      })
+      }, { retryOnExpiredToken: true })
     },
     async update(sid, id, target, key) {
       let active, current, sent = false
@@ -108,6 +123,9 @@ export function createStatusService({ config, auth, store, fetchImpl = fetch }) 
               active = entries.find(entry => entry.receipt?.httpStatus !== 200)
               fail(409, 'TRANSITION_BLOCKED', 'Chưa thể chuyển bước này. Vui lòng đối chiếu thao tác trước và trạng thái hiện tại.')
             }
+            // No approved Order staffing contract: reject before creating a pending operation.
+            // Previously recorded receipts/recovery above remain readable and retryable.
+            if (['IN_PROGRESS', 'DONE'].includes(target)) fail(409, 'STAFFING_POLICY_REQUIRED', messages.STAFFING_POLICY_REQUIRED)
             const ensured = await store.ensure({ userId: session.user.id, assignmentId: id, orderId: current.orderId,
               assignedAt: current.assignedAt, requestedStatus: target, fromStatus: STATUS_STEPS[STATUS_STEPS.indexOf(target) - 1], idempotencyKey: key })
             active = { record: ensured.record, receipt: null }

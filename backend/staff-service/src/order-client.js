@@ -216,6 +216,12 @@ export class OrderClient {
   }
   async applyAssignmentTransition(value) {
     const operation = operationInput(value)
+    // The current Order contract has no authoritative staffing requirement/readiness.
+    // Do not send a new command that can start or complete a booking on observed counts.
+    // Historical journal reads/acknowledgements stay available for reconciliation.
+    if (['IN_PROGRESS', 'DONE'].includes(operation.toStatus)) {
+      throw new HttpError(409, 'STAFFING_POLICY_REQUIRED', 'Chưa xác nhận quy tắc đủ nhân viên. Liên hệ người quản lý trước khi bắt đầu hoặc hoàn thành công việc.')
+    }
     return ack(await this.#request('PUT', this.#path(operation), { body: this.#payload(operation), actorUserId: operation.actorUserId, key: operation.id }), operation)
   }
   async ackAssignmentTransition(value) {

@@ -1,0 +1,16 @@
+{
+  "description": "Example only. start.ps1 generates the real gitignored config and cryptographic secrets; do not use this as runtime-config.json.",
+  "schemaVersion": "CLEANHOME_STAFF_QA_V1",
+  "isolated": true,
+  "database": { "host": "127.0.0.1", "port": 3307, "name": "cleanhome_staff_qa_isolated" },
+  "authOrigin": "http://127.0.0.1:4101",
+  "orderOrigin": "http://127.0.0.1:4103",
+  "staffOrigin": "http://127.0.0.1:4115",
+  "frontendOrigin": "http://localhost:3102",
+  "mode": "development",
+  "incomeDemoEnabled": true,
+  "reconciliationWorkerEnabled": false,
+  "mapsEnabled": true,
+  "supportAiEnabled": false,
+  "reviewsApiEnabled": false
+}

@@ -49,3 +49,58 @@ export function jobDto(row, items = [], detail = false) {
     ...(detail ? { specialRequest: null, cancellationPending: null, orderHistory: null, historySource: 'order-service-not-loaded', unsupportedFields: ['jobCode', 'orderCode', 'houseType', 'area', 'rooms', 'floors', 'hasPets', 'specialRequest', 'cancellationPending'] } : {}),
   }
 }
+
+/**
+ * Notification DTO for the stored schema (id, user_id, booking_id, content, read_at, created_at).
+ * The table has no title/type/link columns, so those are not invented here.
+ */
+export function notificationDto(row) {
+  return {
+    id: String(row.id),
+    content: typeof row.content === 'string' ? row.content : '',
+    bookingId: row.bookingId === null || row.bookingId === undefined ? null : String(row.bookingId),
+    readAt: iso(row.readAt),
+    createdAt: iso(row.createdAt),
+  }
+}
+
+/**
+ * Branch DTO: the stored service_area JSON has no approved shape in the
+ * project spec, so it is returned verbatim instead of being reinterpreted.
+ */
+export function branchDto(row) {
+  return {
+    id: String(row.id),
+    name: text(row.name),
+    addressText: text(row.addressText),
+    serviceArea: snapshot(row.serviceArea),
+    latitude: row.latitude === null || row.latitude === undefined ? null : String(row.latitude),
+    longitude: row.longitude === null || row.longitude === undefined ? null : String(row.longitude),
+    status: text(row.status),
+  }
+}
+
+/** Availability window as stored; status values come from employee_availability. */
+export function availabilityDto(row) {
+  return {
+    id: String(row.id),
+    startsAt: iso(row.startsAt),
+    endsAt: iso(row.endsAt),
+    status: text(row.status),
+  }
+}
+
+/** Assignment row used by the DEMO income estimate. No booking price is included. */
+export function incomeAssignmentDto(row) {
+  return {
+    id: String(row.id),
+    bookingId: String(row.bookingId),
+    status: text(row.status),
+    scheduledStart: iso(row.scheduledStart),
+    scheduledEnd: iso(row.scheduledEnd),
+    checkInAt: iso(row.checkInAt),
+    checkOutAt: iso(row.checkOutAt),
+    eligible: row.eligible === true,
+    reason: text(row.reason),
+  }
+}
