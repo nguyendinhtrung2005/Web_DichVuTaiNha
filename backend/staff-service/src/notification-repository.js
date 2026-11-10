@@ -25,11 +25,21 @@ export class MysqlNotificationRepository {
   async listForUser(userId, { page, pageSize, unreadOnly }) {
     const filter = unreadOnly ? 'user_id = ? AND read_at IS NULL' : 'user_id = ?'
     return this.connection(async connection => {
-      const [counts] = await connection.execute(`SELECT COUNT(*) AS total FROM notifications WHERE ${filter}`, [userId])
-      const [unread] = await connection.execute('SELECT COUNT(*) AS unread FROM notifications WHERE user_id = ? AND read_at IS NULL', [userId])
-      const [rows] = await connection.query(`SELECT ${columns} FROM notifications WHERE ${filter}
-        ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [userId, pageSize, (page - 1) * pageSize])
-      return { items: rows, total: Number(counts[0].total), unreadCount: Number(unread[0].unread) }
+      // Keep pagination/counts/rows coherent while another request reads or creates a notice.
+      // NEXT-transaction isolation only; do not change a global or pooled-session default.
+      await connection.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
+      await connection.query('START TRANSACTION READ ONLY')
+      try {
+        const [counts] = await connection.execute(`SELECT COUNT(*) AS total FROM notifications WHERE ${filter}`, [userId])
+        const [unread] = await connection.execute('SELECT COUNT(*) AS unread FROM notifications WHERE user_id = ? AND read_at IS NULL', [userId])
+        const [rows] = await connection.query(`SELECT ${columns} FROM notifications WHERE ${filter}
+          ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [userId, pageSize, (page - 1) * pageSize])
+        await connection.query('COMMIT')
+        return { items: rows, total: Number(counts[0].total), unreadCount: Number(unread[0].unread) }
+      } catch (error) {
+        try { await connection.query('ROLLBACK') } catch { /* Preserve the original sanitized failure. */ }
+        throw error
+      }
     })
   }
 
@@ -62,7 +72,9 @@ export class MysqlNotificationRepository {
   async markAllRead(userId) {
     return this.connection(async connection => {
       const [result] = await connection.execute('UPDATE notifications SET read_at = COALESCE(read_at, UTC_TIMESTAMP()) WHERE user_id = ? AND read_at IS NULL', [userId])
-      return { updated: Number(result.affectedRows || 0), unreadCount: 0 }
+      // New notices may commit after UPDATE. Report a fresh real count, never an assumed zero.
+      const [unread] = await connection.execute('SELECT COUNT(*) AS unread FROM notifications WHERE user_id = ? AND read_at IS NULL', [userId])
+      return { updated: Number(result.affectedRows || 0), unreadCount: Number(unread[0].unread) }
     })
   }
 }

@@ -65,11 +65,34 @@ test('a notification owned by another user is not found and never updated', asyn
 })
 
 test('mark-all only touches the current user unread rows', async () => {
-  const f = fixture([{ affectedRows: 4 }])
+  const f = fixture([{ affectedRows: 4 }, [{ unread: '0' }]])
   assert.deepEqual(await f.repository.markAllRead('100'), { updated: 4, unreadCount: 0 })
   const command = f.log.find(item => item.kind === 'execute')
   assert.deepEqual(command.values, ['100'])
   assert.match(command.sql, /WHERE user_id = \? AND read_at IS NULL/)
+})
+
+test('race regression: a new notification after read-all is counted instead of invented zero', async () => {
+  const f = fixture([{ affectedRows: 2 }, [{ unread: '1' }]])
+  assert.deepEqual(await f.repository.markAllRead('100'), { updated: 2, unreadCount: 1 })
+  const commands = f.log.filter(item => item.values)
+  assert.equal(commands.length, 2); assert.deepEqual(commands[1].values, ['100'])
+  assert.match(commands[1].sql, /COUNT\(\*\).*user_id = \? AND read_at IS NULL/)
+})
+
+test('race regression: list totals, unread and rows share one explicit repeatable read-only snapshot', async () => {
+  const f = fixture([[{ total: '1' }], [{ unread: '1' }], [row]])
+  await f.repository.listForUser('100', { page: 1, pageSize: 20, unreadOnly: true })
+  const sql = f.log.filter(item => item.sql).map(item => item.sql)
+  assert.equal(sql[1], 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
+  assert.equal(sql[2], 'START TRANSACTION READ ONLY')
+  assert.equal(sql.at(-1), 'COMMIT')
+})
+
+test('race regression: failed snapshot rolls back and releases without exposing driver details', async () => {
+  const f = fixture([Error('PRIVATE_DRIVER_DETAILS')])
+  await assert.rejects(f.repository.listForUser('100', { page: 1, pageSize: 20, unreadOnly: false }), error => error.code === 'DATABASE_UNAVAILABLE' && !error.message.includes('PRIVATE_DRIVER_DETAILS'))
+  assert.equal(f.log.at(-2).sql, 'ROLLBACK'); assert.equal(f.log.at(-1).kind, 'release')
 })
 
 test('service returns the stored notification DTO with ISO timestamps and unread count', async () => {

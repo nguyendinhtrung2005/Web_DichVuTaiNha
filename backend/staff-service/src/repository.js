@@ -168,12 +168,14 @@ export class MysqlStaffRepository {
     })
   }
 
-  async findJobs(employeeId, { status, page = 1, pageSize = 20, sort = 'asc', fromUtc, toUtc }) {
+  async findJobs(employeeId, { status, page = 1, pageSize = 20, sort = 'asc', fromUtc, toUtc, serviceId }) {
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100 || !['asc', 'desc'].includes(sort)) {
       throw new HttpError(400, 'INVALID_PAGINATION', 'Phân trang hoặc sắp xếp không hợp lệ.')
     }
     const where = ['a.employee_id = ?'], values = [employeeId]
     if (status) { where.push('a.status = ?'); values.push(status) }
+    // EXISTS avoids multiplying assignments when a booking has repeated service lines.
+    if (serviceId) { where.push('EXISTS (SELECT 1 FROM booking_items filtered WHERE filtered.booking_id = b.id AND filtered.service_id = ?)'); values.push(serviceId) }
     if (fromUtc || toUtc) {
       if (!fromUtc || !toUtc) throw new HttpError(400, 'INVALID_RANGE', 'Cần đủ thời điểm bắt đầu và kết thúc.')
       where.push('b.scheduled_start < ? AND b.scheduled_end > ?'); values.push(toUtc, fromUtc)
@@ -196,6 +198,31 @@ export class MysqlStaffRepository {
     return this.connection(async connection => {
       const [rows] = await connection.execute(`${jobSelect} WHERE a.employee_id = ? AND a.id = ? LIMIT 1`, [employeeId, assignmentId])
       return job(rows[0])
+    })
+  }
+
+  /** Facets cover this employee's assignments across all pages, never another employee's catalog. */
+  async findJobServices(employeeId) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT DISTINCT s.id, s.name FROM services s
+        JOIN booking_items bi ON bi.service_id = s.id
+        JOIN assignments a ON a.booking_id = bi.booking_id WHERE a.employee_id = ?
+        ORDER BY s.name, s.id LIMIT 501`, [employeeId])
+      if (rows.length > 500) throw new HttpError(503, 'JOB_FILTERS_UNAVAILABLE', 'Danh sách loại dịch vụ chưa thể tải đầy đủ.')
+      return rows.map(row => ({ id: String(row.id), name: row.name }))
+    })
+  }
+
+  /** Same-booking team projection, rechecked against the caller's own assignment. No peer personal data. */
+  async findTeamRoster(employeeId, assignmentId, bookingId) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT a.id, a.booking_id AS bookingId, a.employee_id AS employeeId, a.status,
+        e.status AS employeeStatus, u.status AS userStatus, u.role AS userRole
+        FROM assignments a JOIN employees e ON e.id = a.employee_id JOIN users u ON u.id = e.user_id
+        WHERE a.booking_id = ? AND EXISTS (SELECT 1 FROM assignments owned
+          WHERE owned.id = ? AND owned.employee_id = ? AND owned.booking_id = a.booking_id)
+        ORDER BY a.id LIMIT 501`, [bookingId, assignmentId, employeeId])
+      return rows.map(row => ({ ...row, id: String(row.id), bookingId: String(row.bookingId), employeeId: String(row.employeeId) }))
     })
   }
 

@@ -18,7 +18,7 @@ export function positiveId(value) {
   return value
 }
 export function listQuery(query, schedule = false) {
-  keysOnly(query, schedule ? ['from', 'to', 'status', 'page', 'pageSize', 'sort'] : ['status', 'page', 'pageSize', 'sort'])
+  keysOnly(query, schedule ? ['from', 'to', 'status', 'page', 'pageSize', 'sort'] : ['from', 'to', 'serviceId', 'status', 'page', 'pageSize', 'sort'])
   Object.values(query).forEach(single)
   const rawStatus = query.status?.toUpperCase()
   const status = rawStatus === 'WAITING' ? 'ASSIGNED' : rawStatus
@@ -26,7 +26,8 @@ export function listQuery(query, schedule = false) {
   const sort = query.sort || 'asc'
   if (!['asc', 'desc'].includes(sort)) fail('sort chỉ nhận asc hoặc desc.')
   const result = { status, page: integer(query.page, 1, 100000), pageSize: integer(query.pageSize, 20, 100), sort }
-  if (schedule) {
+  if (!schedule && query.serviceId !== undefined) result.serviceId = positiveId(query.serviceId)
+  if (schedule || query.from !== undefined || query.to !== undefined) {
     const from = parseDay(query.from), to = parseDay(query.to)
     if (to < from || (to - from) / 86400000 > 365) fail('Khoảng ngày phải tăng dần và không dài hơn 366 ngày.')
     // API calendar dates use Vietnam time (UTC+07); MySQL connections use UTC.

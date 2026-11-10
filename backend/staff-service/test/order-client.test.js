@@ -145,11 +145,13 @@ test('Order HTTP client: status projection supports multiple workers, never comp
   ]) {
     const op = { ...operation, toStatus, fromStatus }
     f.respond = () => ({ body: acknowledged(op, bookingStatus) })
-    assert.equal((await f.client.applyAssignmentTransition(op)).booking.status, bookingStatus)
+    // Existing journal receipts remain readable; new start/finish commands are blocked.
+    const receipt = toStatus === 'ACCEPTED' ? await f.client.applyAssignmentTransition(op) : await f.client.getAssignmentTransition(op)
+    assert.equal(receipt.booking.status, bookingStatus)
   }
   const start = { ...operation, fromStatus: 'ACCEPTED', toStatus: 'IN_PROGRESS' }
   f.respond = () => ({ body: { ...acknowledged(start, 'IN_PROGRESS'), booking: { id: '80', status: 'IN_PROGRESS', cancellationPending: true } } })
-  await reject(f.client.applyAssignmentTransition(start), 502, 'ORDER_BAD_RESPONSE')
+  await reject(f.client.getAssignmentTransition(start), 502, 'ORDER_BAD_RESPONSE')
 })
 
 test('Order HTTP client: only explicit transition-not-found allows safe first application', async t => {

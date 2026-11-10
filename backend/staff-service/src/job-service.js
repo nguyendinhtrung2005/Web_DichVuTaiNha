@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { HttpError } from './errors.js'
 import { jobDto, jobStatus, iso, previousStatus, steps } from './mapping.js'
+import { staffTeamSummary } from './team-summary.js'
 
 export class StaffJobService {
   constructor({ repository, orderClient, orderReadEnabled = false }) {
@@ -31,6 +32,19 @@ export class StaffJobService {
     if (!row) throw new HttpError(404, 'JOB_NOT_FOUND', 'Không tìm thấy công việc được phân công cho bạn.')
     const items = await this.repository.getBookingItems([String(row.bookingId)])
     const data = jobDto(row, items.get(String(row.bookingId)) || [], true)
+    if (typeof this.repository.findTeamRoster === 'function') {
+      try {
+        data.team = staffTeamSummary(await this.repository.findTeamRoster(employee.id, assignmentId, String(row.bookingId)),
+          { employeeId: String(employee.id), assignmentId, bookingId: String(row.bookingId) })
+        // Separate reads can straddle a transition. Keep the authorized detail snapshot,
+        // but never attach a roster whose validated self status belongs to another one.
+        if (data.team.members[0].status !== data.databaseStatus) throw new Error('TEAM_SNAPSHOT_MISMATCH')
+      } catch {
+        // Team availability must not erase an otherwise readable, authorized job detail.
+        data.team = null
+        data.teamError = 'TEAM_READ_UNAVAILABLE'
+      }
+    }
     if (this.orderReadEnabled) {
       try {
         const context = await this.orderClient.getBookingDetail({ bookingId: String(row.bookingId), actorUserId: actor.userId })
@@ -44,6 +58,10 @@ export class StaffJobService {
       }
     }
     return { data }
+  }
+  async filters(actor) {
+    const employee = await this.employee(actor)
+    return { data: { services: await this.repository.findJobServices(employee.id), areaSupported: false, requiredStaffCountSupported: false } }
   }
   async advance(actor, assignmentId, { status, idempotencyKey }) {
     const id = createHash('sha256').update(JSON.stringify([actor.userId, assignmentId, idempotencyKey])).digest('hex')

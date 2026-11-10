@@ -32,6 +32,10 @@ export function createApp({ service, notificationService, areaService, incomeSer
   const router = express.Router()
   router.use(authenticate)
   router.get('/jobs', async (req, res) => res.json(await service.list(req.actor, listQuery(req.query))))
+  router.get('/job-filters', async (req, res) => {
+    if (Object.keys(req.query).length) throw new HttpError(400, 'VALIDATION_ERROR', 'Bộ lọc dịch vụ không nhận danh tính hoặc tham số từ trình duyệt.')
+    res.json(await service.filters(req.actor))
+  })
   router.get('/schedule', async (req, res) => res.json(await service.list(req.actor, listQuery(req.query, true))))
   router.get('/jobs/:assignmentId', async (req, res) => res.json(await service.detail(req.actor, positiveId(req.params.assignmentId))))
   router.get('/notifications', async (req, res) => res.json(await notificationService.list(req.actor, notificationQuery(req.query))))
