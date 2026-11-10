@@ -65,4 +65,4 @@ function nonnegativeInteger(value, label, defaultValue) {
   return parsed
 }
 
-module.exports = { ORDER_STATUSES, ValidationError, nonnegativeInteger, positiveId, validateCreateOrder, validateOrderStatus }
+export { ORDER_STATUSES, ValidationError, nonnegativeInteger, positiveId, validateCreateOrder, validateOrderStatus }

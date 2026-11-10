@@ -1,55 +1,108 @@
-const path = require("node:path")
-require("dotenv").config({ path: path.resolve(__dirname, "../../.env") })
+import express from "express";
+import { createAdminProductRouter } from "./admin-product-routes.js";
+import { createHttpApp, HttpError, reply } from '../../shared/http.js';
+import { enumValue, id, invalid, number, object, pagination, text } from '../../shared/validation.js';
 
-const express = require("express")
-const helmet = require("helmet")
-const mysql = require("mysql2/promise")
-const { createAdminProductRouter } = require("./admin-product-routes")
+const serviceGroups = ['ve-sinh', 'cham-soc', 'bao-duong'];
+const cleaningTypes = ['phong-tro', 'nha-gia-dinh', 'khac'];
 
-function requiredEnv(name) {
-  const value = process.env[name]
-  if (!value || value.startsWith("replace-locally")) throw new Error(`${name} chưa được cấu hình.`)
-  return value
+function reservationInput(body) {
+  object(body, ['operationKey', 'customerId', 'items']);
+  const operationKey = text(body.operationKey, 'operationKey', 10, 100);
+  if (!/^purchase-[1-9]\d{0,18}$/.test(operationKey)) throw invalid('operationKey', 'operationKey không hợp lệ.');
+  if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 50) throw invalid('items', 'Đơn cần từ 1 đến 50 sản phẩm.');
+  const seen = new Set();
+  const items = body.items.map((item, index) => {
+    object(item, ['productId', 'quantity', 'expectedUnitPrice']);
+    const productId = id(item.productId, `items.${index}.productId`);
+    const quantity = number(item.quantity, `items.${index}.quantity`, 1, 999);
+    if (!Number.isInteger(quantity)) throw invalid(`items.${index}.quantity`, 'Số lượng phải là số nguyên.');
+    if (seen.has(productId)) throw invalid('items', 'Không được lặp sản phẩm trong đơn.');
+    seen.add(productId);
+    const expectedUnitPrice = number(item.expectedUnitPrice, `items.${index}.expectedUnitPrice`, 0, 9999999999.99);
+    if (Math.abs(expectedUnitPrice * 100 - Math.round(expectedUnitPrice * 100)) > 0.000001) throw invalid(`items.${index}.expectedUnitPrice`, 'Đơn giá có tối đa hai chữ số thập phân.');
+    return { productId, quantity, expectedUnitPrice };
+  });
+  return { operationKey, customerId: id(body.customerId, 'customerId'), items };
 }
 
-function createPoolFromEnv() {
-  return mysql.createPool({
-    host: requiredEnv("MYSQL_HOST"),
-    port: Number(process.env.MYSQL_PORT || 3306),
-    database: requiredEnv("MYSQL_DATABASE"),
-    user: requiredEnv("MYSQL_USER"),
-    password: requiredEnv("MYSQL_PASSWORD"),
-    waitForConnections: true,
-    connectionLimit: 10,
-    decimalNumbers: true,
-    supportBigNumbers: true,
-    bigNumberStrings: true,
-  })
+function operationKey(value) {
+  const result = text(value, 'operationKey', 10, 100);
+  if (!/^purchase-[1-9]\d{0,18}$/.test(result)) throw invalid('operationKey', 'operationKey không hợp lệ.');
+  return result;
 }
 
-function createApp({ pool = createPoolFromEnv(), authOptions = {
-  publicKey: process.env.JWT_PUBLIC_KEY,
-  issuer: process.env.JWT_ISSUER,
-  audience: process.env.JWT_AUDIENCE,
-  cookieName: process.env.AUTH_COOKIE_NAME || "cleanhome_access",
-} } = {}) {
-  const app = express()
-  app.disable("x-powered-by")
-  app.use(helmet())
-  app.get("/health", (_req, res) => res.json({ status: "ok", service: "service-catalog" }))
-  app.use("/api/v1/admin", createAdminProductRouter({ pool, authOptions }))
-  app.use((error, _req, res, _next) => {
-    console.error("Service catalog request failed:", error.message)
-    res.status(500).json({ error: { code: "INTERNAL_ERROR", message: "Không thể hoàn tất yêu cầu. Vui lòng thử lại sau." } })
-  })
-  return app
-}
+export function createApp({
+  repository,
+  config,
+  pool,
+  authOptions = {
+    publicKey: process.env.JWT_PUBLIC_KEY,
+    issuer: process.env.JWT_ISSUER,
+    audience: process.env.JWT_AUDIENCE,
+    cookieName: process.env.AUTH_COOKIE_NAME || "cleanhome_access",
+  },
+}) {
+  const get = async (value) => {
+    const service = await repository.get(id(value));
+    if (!service) throw new HttpError(404, 'SERVICE_NOT_FOUND', 'Không tìm thấy dịch vụ đang cung cấp.');
+    return reply(service);
+  };
 
-if (require.main === module) {
-  const port = Number(process.env.SERVICE_SERVICE_PORT || 4105)
-  const host = process.env.SERVICE_HOST || "127.0.0.1"
-  const app = createApp()
-  app.listen(port, host, () => console.log(`Service catalog listening on http://${host}:${port}`))
+  const catalogHandler = repository && config ? createHttpApp({
+    name: 'catalog', config,
+    routes: [
+      { method: 'GET', path: '/api/v1/catalog/categories', handler: async () => reply(await repository.categories()) },
+      { method: 'GET', path: '/api/v1/catalog/services', handler: async ({ url }) => {
+        const query = url.searchParams.get('q');
+        const category = url.searchParams.get('category');
+        const group = url.searchParams.get('group');
+        const cleaningType = url.searchParams.get('cleaningType');
+        if (cleaningType && group && group !== 've-sinh') throw invalid('cleaningType', 'Loại vệ sinh chỉ thuộc nhóm Vệ sinh.');
+        return reply(await repository.list({
+          ...pagination(url),
+          q: query === null ? '' : text(query, 'q', 0, 120),
+          category: category === null ? undefined : id(category, 'category'),
+          group: group === null ? undefined : enumValue(group, 'group', serviceGroups),
+          cleaningType: cleaningType === null ? undefined : enumValue(cleaningType, 'cleaningType', cleaningTypes),
+        }));
+      } },
+      { method: 'GET', path: '/api/v1/catalog/services/:id', handler: ({ params }) => get(params.id) },
+      { method: 'GET', path: '/api/v1/catalog/product-categories', handler: async () => reply(await repository.productCategories()) },
+      { method: 'GET', path: '/api/v1/catalog/products', handler: async ({ url }) => {
+        const query = url.searchParams.get('q');
+        const category = url.searchParams.get('category');
+        const serviceId = url.searchParams.get('serviceId');
+        return reply(await repository.listProducts({
+          ...pagination(url),
+          q: query === null ? '' : text(query, 'q', 0, 120),
+          category: category === null ? undefined : id(category, 'category'),
+          serviceId: serviceId === null ? undefined : id(serviceId, 'serviceId'),
+        }));
+      } },
+      { method: 'GET', path: '/api/v1/catalog/products/:id', handler: async ({ params }) => {
+        const product = await repository.getProduct(id(params.id));
+        if (!product) throw new HttpError(404, 'PRODUCT_NOT_FOUND', 'Không tìm thấy sản phẩm.');
+        return reply(product);
+      } },
+      { method: 'POST', path: '/internal/v1/product-reservations', auth: 'internal', callers: ['order'], handler: async ({ body }) =>
+        reply(await repository.reserveProducts(reservationInput(body)), 201) },
+      { method: 'GET', path: '/internal/v1/product-reservations/:operationKey', auth: 'internal', callers: ['order'], handler: async ({ params }) => {
+        const result = await repository.getReservation(operationKey(params.operationKey));
+        if (!result) throw new HttpError(404, 'RESERVATION_NOT_FOUND', 'Không tìm thấy giao dịch giữ tồn kho.');
+        return reply(result);
+      } },
+      { method: 'POST', path: '/internal/v1/product-reservations/:operationKey/release', auth: 'internal', callers: ['order'], handler: async ({ params, body }) => {
+        object(body);
+        return reply(await repository.releaseReservation(operationKey(params.operationKey)));
+      } },
+      { method: 'GET', path: '/internal/v1/services/:id', auth: 'internal', callers: ['order'], handler: ({ params }) => get(params.id) },
+    ],
+  }) : null;
+  const app = express();
+  app.disable("x-powered-by");
+  if (pool) app.use("/api/v1/admin", createAdminProductRouter({ pool, authOptions }));
+  if (catalogHandler) app.use((req, res) => catalogHandler(req, res));
+  else app.use((_req, res) => res.status(404).json({ error: { code: "NOT_FOUND", message: "Không tìm thấy API." } }));
+  return app;
 }
-
-module.exports = { createApp, createPoolFromEnv }

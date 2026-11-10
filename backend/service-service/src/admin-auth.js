@@ -1,7 +1,7 @@
-const { cookieValue, createSessionAuth } = require("../../shared/session-auth")
+import { cookieValue, createSessionAuth } from "../../shared/session-auth.js";
 
 function createAdminAuth(options) {
   return createSessionAuth({ ...options, requiredRole: "ADMIN" })
 }
 
-module.exports = { cookieValue, createAdminAuth }
+export { cookieValue, createAdminAuth };

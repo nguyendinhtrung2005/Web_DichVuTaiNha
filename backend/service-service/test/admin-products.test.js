@@ -1,9 +1,9 @@
-const assert = require("node:assert/strict")
-const { once } = require("node:events")
-const { generateKeyPairSync } = require("node:crypto")
-const jwt = require("jsonwebtoken")
-const test = require("node:test")
-const { createApp } = require("../src/app")
+import assert from "node:assert/strict";
+import { once } from "node:events";
+import { generateKeyPairSync } from "node:crypto";
+import jwt from "jsonwebtoken";
+import test from "node:test";
+import { createApp } from "../src/app.js";
 
 function rowCategory(category) {
   return {

@@ -42,6 +42,7 @@ function shiftAnchor(anchor: string, view: CalendarView, direction: number) {
 
 function eventTime(order: Order) {
   const start = new Date(order.scheduledAt)
+  if (order.durationMinutes === null) return start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
   const end = new Date(start.getTime() + order.durationMinutes * 60000)
   const time = (value: Date) => value.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
   return `${time(start)} – ${time(end)}${localDateKey(start) !== localDateKey(end) ? ` (${displayDay(end, false)})` : ""}`
@@ -71,7 +72,7 @@ function CalendarEvent({ order, serviceName, staffName, conflicts, compact = fal
     <h4 className={`m-0 break-words font-semibold ${compact ? "text-xs leading-5" : "text-base leading-7"}`}>{serviceName}</h4>
     <dl className={`m-0 grid ${compact ? "mt-2 gap-2 text-xs leading-5" : "mt-4 gap-3 text-sm leading-6"}`}>
       <div className="flex min-w-0 items-start gap-2"><UserRoundIcon aria-hidden="true" className={`mt-0.5 shrink-0 text-primary ${compact ? "size-3.5" : "size-4"}`} /><dt className="sr-only">Nhân viên</dt><dd className="m-0 min-w-0 break-words">{staffName}</dd></div>
-      <div className="flex min-w-0 items-start gap-2"><Clock3Icon aria-hidden="true" className={`mt-0.5 shrink-0 text-primary ${compact ? "size-3.5" : "size-4"}`} /><dt className="sr-only">Giờ và thời lượng</dt><dd className="m-0 min-w-0 break-words tabular-nums">{eventTime(order)}<span className="mt-0.5 block text-muted-foreground">{order.durationMinutes} phút</span></dd></div>
+      <div className="flex min-w-0 items-start gap-2"><Clock3Icon aria-hidden="true" className={`mt-0.5 shrink-0 text-primary ${compact ? "size-3.5" : "size-4"}`} /><dt className="sr-only">Giờ và thời lượng</dt><dd className="m-0 min-w-0 break-words tabular-nums">{eventTime(order)}<span className="mt-0.5 block text-muted-foreground">{order.durationMinutes === null ? "Chưa xác định thời lượng" : `${order.durationMinutes} phút`}</span></dd></div>
       <div className="flex min-w-0 items-start gap-2"><MapPinIcon aria-hidden="true" className={`mt-0.5 shrink-0 text-muted-foreground ${compact ? "size-3.5" : "size-4"}`} /><dt className="sr-only">Địa chỉ thực hiện</dt><dd className="m-0 min-w-0 break-words text-muted-foreground">{order.contact.address}</dd></div>
     </dl>
     {conflicts.length > 0 && <div className={`mt-3 flex min-w-0 items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 ${compact ? "p-2 text-xs leading-5" : "px-3 py-2.5 text-sm leading-6"}`}><AlertTriangleIcon aria-hidden="true" className={`mt-0.5 shrink-0 ${compact ? "size-3.5" : "size-4"}`} /><p className="m-0 min-w-0 break-words"><span className="font-semibold">Trùng lịch đã lưu</span><span className="mt-1 block">Với {conflicts.map((item) => item.code).join(", ")}.</span></p></div>}

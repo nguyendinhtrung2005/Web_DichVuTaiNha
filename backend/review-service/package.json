@@ -1,4 +1,5 @@
 {
   "name": "home-service-review-service",
-  "private": true
+  "private": true,
+  "type": "module"
 }

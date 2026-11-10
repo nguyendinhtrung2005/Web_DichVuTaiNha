@@ -1,14 +1,14 @@
-const express = require("express")
-const { createSessionAuth } = require("../../shared/session-auth")
-const { createProductOrdersRepository } = require("./product-orders-repository")
-const {
+import express from "express"
+import { createSessionAuth } from "../../shared/session-auth.js"
+import { createProductOrdersRepository } from "./product-orders-repository.js"
+import {
   ORDER_STATUSES,
   ValidationError,
   nonnegativeInteger,
   positiveId,
   validateCreateOrder,
   validateOrderStatus,
-} = require("./product-order-validation")
+} from "./product-order-validation.js"
 
 function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
@@ -61,4 +61,4 @@ function createProductOrderRouter({ pool, authOptions }) {
   return router
 }
 
-module.exports = { createProductOrderRouter, sendError }
+export { createProductOrderRouter, sendError }

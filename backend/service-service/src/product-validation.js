@@ -1,4 +1,4 @@
-const PRODUCT_STATUSES = new Set(["AVAILABLE", "OUT_OF_STOCK", "INACTIVE"])
+export const PRODUCT_STATUSES = new Set(["AVAILABLE", "OUT_OF_STOCK", "INACTIVE"])
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/
 
 function text(value, field, { required = false, max = 5000 } = {}) {
@@ -24,7 +24,7 @@ function nonnegativeInteger(value, field) {
   return number
 }
 
-function validateCategory(input) {
+export function validateCategory(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new ValidationError("Dữ liệu danh mục không hợp lệ.")
   if (typeof input.isActive !== "boolean") throw new ValidationError("Trạng thái danh mục không hợp lệ.")
   return {
@@ -60,7 +60,7 @@ function validateImages(value) {
   return images
 }
 
-function validateProduct(input) {
+export function validateProduct(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new ValidationError("Dữ liệu sản phẩm không hợp lệ.")
   const price = Number(input.price)
   if (!Number.isFinite(price) || price < 0 || price > 9999999999.99) throw new ValidationError("Giá bán không hợp lệ.")
@@ -80,7 +80,7 @@ function validateProduct(input) {
   }
 }
 
-class ValidationError extends Error {
+export class ValidationError extends Error {
   constructor(message) {
     super(message)
     this.name = "ValidationError"
@@ -89,13 +89,4 @@ class ValidationError extends Error {
   }
 }
 
-module.exports = {
-  PRODUCT_STATUSES,
-  ValidationError,
-  nonnegativeInteger,
-  positiveId,
-  validateCategory,
-  validateImageUrl,
-  validateImages,
-  validateProduct,
-}
+export { nonnegativeInteger, positiveId, validateImageUrl, validateImages };

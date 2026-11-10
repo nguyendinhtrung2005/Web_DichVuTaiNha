@@ -1,49 +1,63 @@
-const assert = require("node:assert/strict")
-const { once } = require("node:events")
-const { generateKeyPairSync } = require("node:crypto")
-const express = require("express")
-const jwt = require("jsonwebtoken")
-const test = require("node:test")
-const { createApp } = require("../src/app")
-const { createApp: createServiceApp } = require("../../service-service/src/app")
+import assert from "node:assert/strict"
+import { once } from "node:events"
+import { createServer } from "node:http"
+import { generateKeyPairSync } from "node:crypto"
+import express from "express"
+import jwt from "jsonwebtoken"
+import test from "node:test"
+import { createApp } from "../src/app.js"
+import { createApp as createServiceApp } from "../../service-service/src/app.js"
 
 async function listen(app) {
-  const server = app.listen(0, "127.0.0.1")
+  const server = typeof app.listen === "function"
+    ? app.listen(0, "127.0.0.1")
+    : createServer(app).listen(0, "127.0.0.1")
   await once(server, "listening")
   return { server, url: `http://127.0.0.1:${server.address().port}` }
 }
 
-async function close(server) {
-  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+function close(server) {
+  server.close()
+  server.closeAllConnections()
 }
 
-test("gateway proxies product routes and forwards the server session cookie", async () => {
+function gatewayConfig(catalogUrl, orderUrl = catalogUrl) {
+  return {
+    origin: "http://localhost:3001",
+    origins: {
+      customer: "http://localhost:3001",
+      staff: "http://localhost:3002",
+      admin: "http://localhost:3003",
+    },
+    allowedOrigins: ["http://localhost:3001", "http://localhost:3002", "http://localhost:3003"],
+    urls: { catalog: catalogUrl, order: orderUrl },
+  }
+}
+
+test("gateway proxies admin product APIs to catalog and forwards the session cookie", async () => {
   const upstreamApp = express()
-  upstreamApp.post("/api/v1/admin/products", express.json(), (req, res) => {
-    res.status(201).json({
+  upstreamApp.get("/api/v1/admin/products", (req, res) => {
+    res.json({
       path: req.originalUrl,
       session: req.get("cookie"),
-      product: req.body.name,
+      origin: req.get("origin"),
     })
   })
   const upstream = await listen(upstreamApp)
-  const gateway = await listen(createApp({ serviceUrl: upstream.url, origins: ["http://localhost:3003"] }))
+  const gateway = await listen(createApp({ config: gatewayConfig(upstream.url) }))
   try {
     const response = await fetch(`${gateway.url}/api/v1/admin/products?search=cleaner`, {
-      method: "POST",
       headers: {
         origin: "http://localhost:3003",
         cookie: "cleanhome_access=signed-token",
-        "content-type": "application/json",
       },
-      body: JSON.stringify({ name: "Dung dịch" }),
     })
-    assert.equal(response.status, 201)
+    assert.equal(response.status, 200)
     assert.equal(response.headers.get("access-control-allow-origin"), "http://localhost:3003")
     assert.deepEqual(await response.json(), {
       path: "/api/v1/admin/products?search=cleaner",
       session: "cleanhome_access=signed-token",
-      product: "Dung dịch",
+      origin: "http://localhost:3003",
     })
   } finally {
     await close(gateway.server)
@@ -52,30 +66,29 @@ test("gateway proxies product routes and forwards the server session cookie", as
 })
 
 test("gateway rejects unrecognized origins", async () => {
-  const gateway = await listen(createApp({ serviceUrl: "http://127.0.0.1:1", origins: ["http://localhost:3003"] }))
+  const gateway = await listen(createApp({ config: gatewayConfig("http://127.0.0.1:1") }))
   try {
-    const response = await fetch(`${gateway.url}/api/v1/admin/products`, { headers: { origin: "https://not-allowed.example" } })
+    const response = await fetch(`${gateway.url}/api/v1/admin/products`, {
+      headers: { origin: "https://not-allowed.example" },
+    })
     assert.equal(response.status, 403)
   } finally {
     await close(gateway.server)
   }
 })
 
-test("gateway routes product purchase APIs to the order service", async () => {
+test("gateway keeps product purchase APIs routed to the order service", async () => {
   const upstreamApp = express()
   upstreamApp.post("/api/v1/product-orders", express.json(), (req, res) => {
     res.status(201).json({ data: { recipient: req.body.recipientName, cookie: req.get("cookie") } })
   })
   const upstream = await listen(upstreamApp)
-  const gateway = await listen(createApp({
-    orderServiceUrl: upstream.url,
-    origins: ["http://localhost:3003"],
-  }))
+  const gateway = await listen(createApp({ config: gatewayConfig("http://127.0.0.1:1", upstream.url) }))
   try {
     const response = await fetch(`${gateway.url}/api/v1/product-orders`, {
       method: "POST",
       headers: {
-        origin: "http://localhost:3003",
+        origin: "http://localhost:3001",
         cookie: "cleanhome_access=customer-token",
         "content-type": "application/json",
       },
@@ -89,7 +102,7 @@ test("gateway routes product purchase APIs to the order service", async () => {
   }
 })
 
-test("gateway routes an authenticated admin request to the product service", async () => {
+test("gateway proxies authenticated admin product categories to the ESM catalog service", async () => {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 })
   const pool = {
     async execute(sql) {
@@ -108,10 +121,7 @@ test("gateway routes an authenticated admin request to the product service", asy
       audience: "test-api",
     },
   }))
-  const gateway = await listen(createApp({
-    serviceUrl: service.url,
-    origins: ["http://localhost:3003"],
-  }))
+  const gateway = await listen(createApp({ config: gatewayConfig(service.url) }))
   const token = jwt.sign({}, privateKey, {
     algorithm: "RS256",
     subject: "7",
@@ -119,7 +129,6 @@ test("gateway routes an authenticated admin request to the product service", asy
     audience: "test-api",
     expiresIn: "5m",
   })
-
   try {
     const response = await fetch(`${gateway.url}/api/v1/admin/product-categories`, {
       headers: {

@@ -1,14 +1,14 @@
-const express = require("express")
-const { createAdminAuth } = require("./admin-auth")
-const { createProductRepository } = require("./product-repository")
-const {
+import express from "express";
+import { createAdminAuth } from "./admin-auth.js";
+import { createProductRepository } from "./product-repository.js";
+import {
   PRODUCT_STATUSES,
   ValidationError,
   nonnegativeInteger,
   positiveId,
   validateCategory,
   validateProduct,
-} = require("./product-validation")
+} from "./product-validation.js";
 
 function sendError(res, error) {
   if (error.code === "ER_DUP_ENTRY") {
@@ -27,9 +27,8 @@ function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
 }
 
-function createAdminProductRouter({ pool, authOptions }) {
+function createAdminProductRouter({ pool, repository = createProductRepository(pool), authOptions }) {
   const router = express.Router()
-  const repository = createProductRepository(pool)
   const requireAdmin = createAdminAuth({ pool, ...authOptions })
 
   router.use(express.json({ limit: "256kb" }))
@@ -114,4 +113,4 @@ function createAdminProductRouter({ pool, authOptions }) {
   return router
 }
 
-module.exports = { createAdminProductRouter, sendError }
+export { createAdminProductRouter, sendError };

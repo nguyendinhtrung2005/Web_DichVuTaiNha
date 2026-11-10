@@ -1,4 +1,4 @@
-const { PRODUCT_STATUSES } = require("./product-validation")
+import { PRODUCT_STATUSES } from "./product-validation.js";
 
 const CATEGORY_COLUMNS = "id, name, description, is_active AS isActive, created_at AS createdAt, updated_at AS updatedAt"
 
@@ -356,4 +356,4 @@ function createProductRepository(pool) {
   }
 }
 
-module.exports = { createProductRepository, productFromRows }
+export { createProductRepository, productFromRows };

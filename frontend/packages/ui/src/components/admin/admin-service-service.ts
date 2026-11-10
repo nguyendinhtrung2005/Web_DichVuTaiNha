@@ -2,14 +2,12 @@
 
 import { actions, executeStoreCommand, getStoreSnapshot, staleRecordError, storedStateRaw, storedStateData } from "@/lib/store"
 import { APP_ROLE, IS_UNIFIED_APP } from "@/lib/env"
-import { SERVICE_GROUPS } from "@/lib/config"
-import type { AppState, Service, ServiceGroup } from "@/lib/types"
+import type { AppState, Service } from "@/lib/types"
 
 export type AdminServiceInput = Omit<Service, "id" | "slug" | "status">
 export type AdminServiceErrors = Partial<Record<keyof AdminServiceInput, string>>
 export type AdminServiceResult = { ok: true; serviceId: string; persistence: "local" | "session" } | { ok: false; error: string; field?: keyof AdminServiceInput }
 const CATEGORIES = new Set(["dinh-ky", "chuyen-sau", "noi-that", "thiet-bi"])
-const SERVICE_GROUP_IDS = new Set<ServiceGroup>(SERVICE_GROUPS.map(({ id }) => id))
 const BLOCKED_CONTROLS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/
 
 export function isSafeServiceImage(value: string) {
@@ -27,7 +25,9 @@ export function validateAdminService(input: AdminServiceInput): AdminServiceErro
   }
   text("name", 2, 120); text("shortDesc", 10, 300); text("description", 20, 5000, true); text("unit", 1, 40); text("quantityLabel", 1, 80)
   if (!CATEGORIES.has(input.category)) errors.category = "Chọn một nhóm dịch vụ hiện có."
-  if (!input.adminGroup || !SERVICE_GROUP_IDS.has(input.adminGroup)) errors.adminGroup = "Chọn một nhóm điều hành dịch vụ."
+  if (input.group !== undefined && !["ve-sinh", "cham-soc", "bao-duong"].includes(input.group)) errors.group = "Chọn Vệ sinh, Chăm sóc hoặc Bảo dưỡng."
+  if (input.cleaningType !== undefined && (!["phong-tro", "nha-gia-dinh", "khac"].includes(input.cleaningType) || input.group !== "ve-sinh")) errors.cleaningType = "Loại vệ sinh chỉ áp dụng cho nhóm Vệ sinh."
+  if (input.pricingMode !== undefined && !["fixed", "reference", "survey"].includes(input.pricingMode)) errors.pricingMode = "Chọn cách tính giá hợp lệ."
   const number = (key: "price" | "minQuantity" | "defaultQuantity" | "minutesPerUnit" | "baseMinutes", zero = false) => {
     const value = input[key]
     if (typeof value !== "number" || !Number.isFinite(value) || value < (zero ? 0 : 1)) errors[key] = zero ? "Nhập số hữu hạn lớn hơn hoặc bằng 0." : "Nhập số hữu hạn lớn hơn hoặc bằng 1."
@@ -49,7 +49,7 @@ function hasActiveAdmin(state: AppState) {
 }
 
 function cleanInput(input: AdminServiceInput): AdminServiceInput {
-  return { name: input.name.trim(), category: input.category, adminGroup: input.adminGroup, shortDesc: input.shortDesc.trim(), description: input.description.trim(), unit: input.unit.trim(), quantityLabel: input.quantityLabel.trim(), price: input.price, minQuantity: input.minQuantity, defaultQuantity: input.defaultQuantity, minutesPerUnit: input.minutesPerUnit, baseMinutes: input.baseMinutes, image: input.image.trim(), scope: input.scope.map((line) => line.trim()), included: input.included.map((line) => line.trim()), excluded: input.excluded.map((line) => line.trim()) }
+  return { ...(input.group ? { group: input.group } : {}), cleaningType: input.group === "ve-sinh" ? input.cleaningType : undefined, pricingModeKnown: true, minimumQuantityKnown: true, ...(input.pricingMode ? { pricingMode: input.pricingMode } : {}), name: input.name.trim(), category: input.category, shortDesc: input.shortDesc.trim(), description: input.description.trim(), unit: input.unit.trim(), quantityLabel: input.quantityLabel.trim(), price: input.price, minQuantity: input.minQuantity, defaultQuantity: input.defaultQuantity, minutesPerUnit: input.minutesPerUnit, baseMinutes: input.baseMinutes, image: input.image.trim(), scope: input.scope.map((line) => line.trim()), included: input.included.map((line) => line.trim()), excluded: input.excluded.map((line) => line.trim()) }
 }
 
 function storedState() {

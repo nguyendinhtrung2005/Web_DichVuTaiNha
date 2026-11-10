@@ -286,4 +286,4 @@ function createProductOrdersRepository(pool) {
   }
 }
 
-module.exports = { createProductOrdersRepository }
+export { createProductOrdersRepository }

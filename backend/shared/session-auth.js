@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken")
-const { createPublicKey } = require("node:crypto")
+import jwt from "jsonwebtoken"
+import { createPublicKey } from "node:crypto"
 
 function cookieValue(header = "", name) {
   for (const part of header.split(";")) {
@@ -52,4 +52,4 @@ function createSessionAuth({ pool, publicKey, issuer, audience, cookieName = "cl
   }
 }
 
-module.exports = { cookieValue, createSessionAuth }
+export { cookieValue, createSessionAuth }
