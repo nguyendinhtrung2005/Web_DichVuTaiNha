@@ -1,0 +1,856 @@
+{
+  "schemaVersion": 1,
+  "base": "72be976d0cce009c54c2503608689b3c8987873d",
+  "previousPrHead": "48f3c30ee8076a8de3b8363c443db2886ed9c4dd",
+  "sourceHead": "c8dec005f87a8bad4a9bb8f763348a5b74c0f438",
+  "totalUpdateFiles": 71,
+  "groups": [
+    {
+      "id": "backend",
+      "message": "feat(staff-api): add scoped filters and guarded team reads",
+      "files": [
+        "backend/staff-service/package.json",
+        "backend/staff-service/src/app.js",
+        "backend/staff-service/src/job-service.js",
+        "backend/staff-service/src/notification-repository.js",
+        "backend/staff-service/src/order-client.js",
+        "backend/staff-service/src/repository.js",
+        "backend/staff-service/src/team-summary.js",
+        "backend/staff-service/src/validation.js",
+        "backend/staff-service/test/notifications.test.js",
+        "backend/staff-service/test/order-client.test.js",
+        "backend/staff-service/test/practical-workflow.test.js",
+        "backend/staff-service/test/team.test.js"
+      ]
+    },
+    {
+      "id": "frontend",
+      "message": "feat(staff): refine team workflows and harden session handling",
+      "files": [
+        "frontend/apps/staff/app/api/staff/jobs/filters/route.ts",
+        "frontend/apps/staff/app/globals.css",
+        "frontend/apps/staff/lib/server/areas-http.mjs",
+        "frontend/apps/staff/lib/server/auth-core.mjs",
+        "frontend/apps/staff/lib/server/income-http.mjs",
+        "frontend/apps/staff/lib/server/job-detail-contract.mjs",
+        "frontend/apps/staff/lib/server/job-detail-http.mjs",
+        "frontend/apps/staff/lib/server/jobs-contract.mjs",
+        "frontend/apps/staff/lib/server/jobs-http.mjs",
+        "frontend/apps/staff/lib/server/notifications-contract.mjs",
+        "frontend/apps/staff/lib/server/notifications-http.mjs",
+        "frontend/apps/staff/lib/server/reviews-http.mjs",
+        "frontend/apps/staff/lib/server/schedule-http.mjs",
+        "frontend/apps/staff/lib/server/status-core.mjs",
+        "frontend/apps/staff/package.json",
+        "frontend/apps/staff/test/auth-core-renewal.test.mjs",
+        "frontend/apps/staff/test/auth-read-retry.test.mjs",
+        "frontend/apps/staff/test/auth-session-ui.test.mjs",
+        "frontend/apps/staff/test/availability-interactions.test.mjs",
+        "frontend/apps/staff/test/income-remote-ui.test.mjs",
+        "frontend/apps/staff/test/job-detail-ui.test.mjs",
+        "frontend/apps/staff/test/notifications-concurrency.test.mjs",
+        "frontend/apps/staff/test/practical-workflow.test.mjs",
+        "frontend/apps/staff/test/profile-editor.test.mjs",
+        "frontend/apps/staff/test/settings-demo-ui.test.mjs",
+        "frontend/apps/staff/test/status-core.test.mjs",
+        "frontend/apps/staff/test/status-ui.test.mjs",
+        "frontend/apps/staff/test/team.test.mjs",
+        "frontend/apps/staff/tsconfig.json",
+        "frontend/packages/ui/src/components/staff/staff-account-settings.tsx",
+        "frontend/packages/ui/src/components/staff/staff-areas-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-auth-session.tsx",
+        "frontend/packages/ui/src/components/staff/staff-availability-interactions.tsx",
+        "frontend/packages/ui/src/components/staff/staff-income-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-income-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-job-detail-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-job-detail-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-job-status-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-job-status.tsx",
+        "frontend/packages/ui/src/components/staff/staff-job-team.tsx",
+        "frontend/packages/ui/src/components/staff/staff-jobs-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-jobs-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-notifications-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-notifications-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-performance-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-profile-edit-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-profile-editor.tsx",
+        "frontend/packages/ui/src/components/staff/staff-team-contract.mjs",
+        "frontend/packages/ui/src/components/staff/staff-team-model.ts"
+      ]
+    },
+    {
+      "id": "qa",
+      "message": "test(staff): cover team safeguards and income table layout",
+      "files": [
+        "qa/staff/README.md",
+        "qa/staff/income-chart.browser.mjs",
+        "qa/staff/runtime.mjs",
+        "qa/staff/team.browser.mjs"
+      ]
+    },
+    {
+      "id": "docs",
+      "message": "docs(staff): record PR scope and persistent login limitations",
+      "files": [
+        "frontend/apps/staff/docs/STAFF_IDENTITY_SCOPE_BRANCH_CONTRACT_PROPOSAL.md",
+        "frontend/apps/staff/docs/STAFF_ORDER_STAFFING_CONTRACT_PROPOSAL.md",
+        "frontend/apps/staff/docs/STAFF_PERSISTENT_LOGIN_20261110.md",
+        "frontend/apps/staff/docs/STAFF_TEAM_EXECUTION_CONTRACT.md",
+        "frontend/apps/staff/docs/STAFF_PR_UPDATE_20261110.md",
+        "qa/staff/pr-update-manifest-20261110.json"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "backend/staff-service/package.json",
+      "group": "backend",
+      "sha256": "59fb0d87699c00d263edc481b5a1bf24e8a9217133b438284e6ef9faa5cdd42f",
+      "sourceSha256": "db98b0280544f7cb1f0a0cfe72118da21b4902d1bf32dbb9908f11e3a76f7619",
+      "previousPrSha256": "117aa35eff2833b7810e9e00b4db42d86d1eb5f87286e2c1ae1ff5e7103dbe17"
+    },
+    {
+      "path": "backend/staff-service/src/app.js",
+      "group": "backend",
+      "sha256": "30932fe43b67a300c979f81ea8c102374a39ca4dddd2ca4ade9c61ab43d15215",
+      "sourceSha256": "30932fe43b67a300c979f81ea8c102374a39ca4dddd2ca4ade9c61ab43d15215",
+      "previousPrSha256": "961bd698ff8001c82e64b3b10dbabef301fb4e4fdc0ae186b299b9918e2ddc4d"
+    },
+    {
+      "path": "backend/staff-service/src/job-service.js",
+      "group": "backend",
+      "sha256": "f2ccc4ca001e7c150fe6cb98fb3397a3b88a910d4b37518ac27c312931798d15",
+      "sourceSha256": "f2ccc4ca001e7c150fe6cb98fb3397a3b88a910d4b37518ac27c312931798d15",
+      "previousPrSha256": "7b246ba90a757f306cbf2f4d8be70b1754e43fb0dd6f46799ce3d381e4f80513"
+    },
+    {
+      "path": "backend/staff-service/src/notification-repository.js",
+      "group": "backend",
+      "sha256": "0027a6dd081709b41de0f87755d72f6d0c3926993b1824f93eaa3766b979655d",
+      "sourceSha256": "0027a6dd081709b41de0f87755d72f6d0c3926993b1824f93eaa3766b979655d",
+      "previousPrSha256": "6929e38cc845c1f32bbbd74412a5424d19fa25361f55d43cdc38ea1daf0e923e"
+    },
+    {
+      "path": "backend/staff-service/src/order-client.js",
+      "group": "backend",
+      "sha256": "911bb0e56fcc25fd96d26cca7cee705c349d8987b83fb00e0b6ef71409c249c4",
+      "sourceSha256": "911bb0e56fcc25fd96d26cca7cee705c349d8987b83fb00e0b6ef71409c249c4",
+      "previousPrSha256": "5be7f64491ffbc1a1762279c3ac9ebeffaa64957025115ab9f6ac98cbc3a68fd"
+    },
+    {
+      "path": "backend/staff-service/src/repository.js",
+      "group": "backend",
+      "sha256": "8e9766c60bb807d874bfc2c22f921bbf605b4d7488e26d51a1fd3a4e06d1d012",
+      "sourceSha256": "8e9766c60bb807d874bfc2c22f921bbf605b4d7488e26d51a1fd3a4e06d1d012",
+      "previousPrSha256": "a65bf7f2e00474ed1f308526be6f61c6826b9b4813716f69d6dadd5f2ff0d874"
+    },
+    {
+      "path": "backend/staff-service/src/team-summary.js",
+      "group": "backend",
+      "sha256": "d7105302f1627252e2f0cb05d7abf663727edb09236744edae18ad73dd24bbe0",
+      "sourceSha256": "d7105302f1627252e2f0cb05d7abf663727edb09236744edae18ad73dd24bbe0",
+      "previousPrSha256": null
+    },
+    {
+      "path": "backend/staff-service/src/validation.js",
+      "group": "backend",
+      "sha256": "31b9d06b08c17827b3fa2f45dc6a125c6788e7ad050ddb59de5da05c422eb1ba",
+      "sourceSha256": "31b9d06b08c17827b3fa2f45dc6a125c6788e7ad050ddb59de5da05c422eb1ba",
+      "previousPrSha256": "5fce74b21187729a44a6deb127a72f69d1fc9e3cc8d3991d850b9504310bfb7e"
+    },
+    {
+      "path": "backend/staff-service/test/notifications.test.js",
+      "group": "backend",
+      "sha256": "a8729cdc8ccc7569bd0c2a2a83a409cc4658cff7cabd7d8dc2976ee479ab5c5d",
+      "sourceSha256": "a8729cdc8ccc7569bd0c2a2a83a409cc4658cff7cabd7d8dc2976ee479ab5c5d",
+      "previousPrSha256": "b5f1bc36f7b76397d39c2ea98f9e026522ea01026c82012968c74603507663f1"
+    },
+    {
+      "path": "backend/staff-service/test/order-client.test.js",
+      "group": "backend",
+      "sha256": "4bddaf756b2f11138b6f837181571a0ba183b9c048a25d5ddbf711bf4a41ef94",
+      "sourceSha256": "4bddaf756b2f11138b6f837181571a0ba183b9c048a25d5ddbf711bf4a41ef94",
+      "previousPrSha256": "89190fa4e88d95363158b1ac213bcd1c55f2553eff47e0ac124eb58e08194cad"
+    },
+    {
+      "path": "backend/staff-service/test/practical-workflow.test.js",
+      "group": "backend",
+      "sha256": "7a110f88fad8175911511bff65d1b6ab6541b203ff7392e8adc0115f38a896b2",
+      "sourceSha256": "7a110f88fad8175911511bff65d1b6ab6541b203ff7392e8adc0115f38a896b2",
+      "previousPrSha256": null
+    },
+    {
+      "path": "backend/staff-service/test/team.test.js",
+      "group": "backend",
+      "sha256": "64ab53e522dd48261e23513c55b792ed4bb2bd58bb84efe4e96ded3d27cbaa4f",
+      "sourceSha256": "64ab53e522dd48261e23513c55b792ed4bb2bd58bb84efe4e96ded3d27cbaa4f",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/jobs/filters/route.ts",
+      "group": "frontend",
+      "sha256": "fbeaf21d501a084402ae22c65930d4d0d60437894804c52b47b2866926222f35",
+      "sourceSha256": "fbeaf21d501a084402ae22c65930d4d0d60437894804c52b47b2866926222f35",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/app/globals.css",
+      "group": "frontend",
+      "sha256": "7337e145982a3340fa557241ddf01e71f737d3c466a39369eedddb1b58b16893",
+      "sourceSha256": "7337e145982a3340fa557241ddf01e71f737d3c466a39369eedddb1b58b16893",
+      "previousPrSha256": "8407133211477b606c4dab23a61fe85ecf35e16750a96b2d26f0b93be29ee186"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/areas-http.mjs",
+      "group": "frontend",
+      "sha256": "e5bdfefde651bfe8862c25a5105432bc651b6b703e419f197fe1ae0e36a1ea89",
+      "sourceSha256": "e5bdfefde651bfe8862c25a5105432bc651b6b703e419f197fe1ae0e36a1ea89",
+      "previousPrSha256": "a7ef2e8726e32c3aa663c88c795a3d70e72cf04972fa0c077da8db8553f956a2"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/auth-core.mjs",
+      "group": "frontend",
+      "sha256": "ac07865c67bed3e0ce88fbece6f41c1182501948d30d0a6c897ea3647ffc871a",
+      "sourceSha256": "ac07865c67bed3e0ce88fbece6f41c1182501948d30d0a6c897ea3647ffc871a",
+      "previousPrSha256": "cb47486953b7d42a56ece487d415465af015d8aee3b4d497997a1b476ad2a85b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/income-http.mjs",
+      "group": "frontend",
+      "sha256": "7e4a6ef8023c4c56c9477f95fba7c2af70b981f8ca05af08dbc058b3e5f5683f",
+      "sourceSha256": "7e4a6ef8023c4c56c9477f95fba7c2af70b981f8ca05af08dbc058b3e5f5683f",
+      "previousPrSha256": "7ef5c7ee9c59c983394b82ee999933ce980139d91cfccef6de31a9916d856580"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/job-detail-contract.mjs",
+      "group": "frontend",
+      "sha256": "8449a2286dc5c23e6470d07f2c0b8614b24c1744b9e6ed240873a4c9eec1bc13",
+      "sourceSha256": "8449a2286dc5c23e6470d07f2c0b8614b24c1744b9e6ed240873a4c9eec1bc13",
+      "previousPrSha256": "01975315a8204e2e2a44c6c602fbc7559d3c5435e73503f388fbd28b840a56d7"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/job-detail-http.mjs",
+      "group": "frontend",
+      "sha256": "42f9deb90e662bff9c8316a88285bc7518e52ef0ca61a424d42b95d908ab3a95",
+      "sourceSha256": "42f9deb90e662bff9c8316a88285bc7518e52ef0ca61a424d42b95d908ab3a95",
+      "previousPrSha256": "546be675ea0055266cb21301b2fd74dc412f71221b4f1e65c6447f5eb2b966fc"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/jobs-contract.mjs",
+      "group": "frontend",
+      "sha256": "db1c489b474f4fe8a9371d759e29f9a8b7c083a572e57f21171c7d9af65ce57b",
+      "sourceSha256": "db1c489b474f4fe8a9371d759e29f9a8b7c083a572e57f21171c7d9af65ce57b",
+      "previousPrSha256": "9924cbc6c82439e821ef55019ff076f6df489db727b3c5760db9a8e8a369aa2f"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/jobs-http.mjs",
+      "group": "frontend",
+      "sha256": "172108d190fd0df1fcf05aaca07c652483144ef66d6a2b86abe8c3669499d042",
+      "sourceSha256": "172108d190fd0df1fcf05aaca07c652483144ef66d6a2b86abe8c3669499d042",
+      "previousPrSha256": "e81143ecf5bf2fd015d485392b3b23d9fe16b73b430df70c51ffcfa1cf93074b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/notifications-contract.mjs",
+      "group": "frontend",
+      "sha256": "67682b2127fd9ca18364bbf5d9b9e58479be5efb57d3812da5bc5986cb40b697",
+      "sourceSha256": "67682b2127fd9ca18364bbf5d9b9e58479be5efb57d3812da5bc5986cb40b697",
+      "previousPrSha256": "82707e97a755834f1c48a95a0d73b8cbed297f496c420d8c11466a52358cc223"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/notifications-http.mjs",
+      "group": "frontend",
+      "sha256": "c3193566bc3e572db7b4998ea5f7f657085d844412f58226091c623d4ebe4088",
+      "sourceSha256": "c3193566bc3e572db7b4998ea5f7f657085d844412f58226091c623d4ebe4088",
+      "previousPrSha256": "6a529a28bfe6aa91f99d942ed6b908604337f28d48613f4abc828846b827fb0b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/reviews-http.mjs",
+      "group": "frontend",
+      "sha256": "e1fcff01f83406119c20a1500e9ee9b5c893ea9fae17a90518b6e5257e708871",
+      "sourceSha256": "e1fcff01f83406119c20a1500e9ee9b5c893ea9fae17a90518b6e5257e708871",
+      "previousPrSha256": "19f10f782b82900202ed12d7b705e60250c3ecf48469a5a499a46af799439b8f"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/schedule-http.mjs",
+      "group": "frontend",
+      "sha256": "0ac801cecf15b64a71f8b7c4cae30ba450eaf0ce79e83bf37de9cf39beb6bdd6",
+      "sourceSha256": "0ac801cecf15b64a71f8b7c4cae30ba450eaf0ce79e83bf37de9cf39beb6bdd6",
+      "previousPrSha256": "ad3389d15fe1da671babcade0d694c50a1015580709fe1dfa5f5dc5b9048330b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/status-core.mjs",
+      "group": "frontend",
+      "sha256": "08d259c316c717de09fe0c6893075c8a59a89ab1191cc7c3aeca6a52d8d86290",
+      "sourceSha256": "08d259c316c717de09fe0c6893075c8a59a89ab1191cc7c3aeca6a52d8d86290",
+      "previousPrSha256": "9786bd6b94ff8dad95e2b4710c5b48f92b5662887653642ff56517f950eea09f"
+    },
+    {
+      "path": "frontend/apps/staff/package.json",
+      "group": "frontend",
+      "sha256": "78b755508179fe8544307b2ade437054f83b831a7bf253170c113a7a677aaad5",
+      "sourceSha256": "78b755508179fe8544307b2ade437054f83b831a7bf253170c113a7a677aaad5",
+      "previousPrSha256": "dde2c6ffde4f81ae258db3f171b8bfe1ce01a48e174b52f21f474ad16c703010"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-core-renewal.test.mjs",
+      "group": "frontend",
+      "sha256": "6f70ca54fa20c05bf37f72f6d5f8a768bfcbb8c153dd46234e8dc8e6f21b0d2b",
+      "sourceSha256": "6f70ca54fa20c05bf37f72f6d5f8a768bfcbb8c153dd46234e8dc8e6f21b0d2b",
+      "previousPrSha256": "91bb12938cc8c8d27b4f84a7b152ecdf6f3835375af6cbb610bf748f0ebddab7"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-read-retry.test.mjs",
+      "group": "frontend",
+      "sha256": "f41ccf15d143bd25f4f8c32f8201d50f8b1de0d129756c55bce8d3f4fa1c6753",
+      "sourceSha256": "f41ccf15d143bd25f4f8c32f8201d50f8b1de0d129756c55bce8d3f4fa1c6753",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-session-ui.test.mjs",
+      "group": "frontend",
+      "sha256": "447c527cd2484ee596e6532e0696c6151ef97685270ec5057733f611cb3e8b34",
+      "sourceSha256": "447c527cd2484ee596e6532e0696c6151ef97685270ec5057733f611cb3e8b34",
+      "previousPrSha256": "ffe788dcc41e65613837ffb08f403179f74dabe8a8191f7f9aa57386f4df2c6e"
+    },
+    {
+      "path": "frontend/apps/staff/test/availability-interactions.test.mjs",
+      "group": "frontend",
+      "sha256": "a87c0b82acc74b8280a956555841d8a5817da56adb4f426715c3d71f9e86b21b",
+      "sourceSha256": "a87c0b82acc74b8280a956555841d8a5817da56adb4f426715c3d71f9e86b21b",
+      "previousPrSha256": "e097d7af23f0902bfccd527a9a935e23d15506c535751cdab489facec8930f49"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-remote-ui.test.mjs",
+      "group": "frontend",
+      "sha256": "488684692c5dee0254d2bbb17092abecc94be3d43025e6352343387e244cb1a8",
+      "sourceSha256": "488684692c5dee0254d2bbb17092abecc94be3d43025e6352343387e244cb1a8",
+      "previousPrSha256": "006238ff1752c0cfd0b7d6310aafcd8a8a34c441efaacdf98ce09b4bbcea5472"
+    },
+    {
+      "path": "frontend/apps/staff/test/job-detail-ui.test.mjs",
+      "group": "frontend",
+      "sha256": "865b4fae6e1106a1dd77a1cd6caa156180bfce7167aabcc2c547e34043b49505",
+      "sourceSha256": "865b4fae6e1106a1dd77a1cd6caa156180bfce7167aabcc2c547e34043b49505",
+      "previousPrSha256": "5c1cf1e316bd93bd78c96e83ee087bb689f183e74c44b59be7af1919786e43e7"
+    },
+    {
+      "path": "frontend/apps/staff/test/notifications-concurrency.test.mjs",
+      "group": "frontend",
+      "sha256": "5812337712c25cf4d291a6ebd130958c8e966d776d620f8f5141e87844d13221",
+      "sourceSha256": "5812337712c25cf4d291a6ebd130958c8e966d776d620f8f5141e87844d13221",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/test/practical-workflow.test.mjs",
+      "group": "frontend",
+      "sha256": "974bfb3e8a8f738a3bc25b698dc744fc2a2f4dfb2689c2ae6a831d18db3da64b",
+      "sourceSha256": "974bfb3e8a8f738a3bc25b698dc744fc2a2f4dfb2689c2ae6a831d18db3da64b",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/test/profile-editor.test.mjs",
+      "group": "frontend",
+      "sha256": "9a301c7c968ba6a3f9550294fad64b096080bc6c1d1383261e2f1f20446ec86c",
+      "sourceSha256": "9a301c7c968ba6a3f9550294fad64b096080bc6c1d1383261e2f1f20446ec86c",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/test/settings-demo-ui.test.mjs",
+      "group": "frontend",
+      "sha256": "81ff896581c89b591c78012d8a2f0cbd96a5084460e45fae8b394ff645256702",
+      "sourceSha256": "81ff896581c89b591c78012d8a2f0cbd96a5084460e45fae8b394ff645256702",
+      "previousPrSha256": "df1f5b468d15fbf0a16296858d67779f06930cf14c0a3cb8b1394628a1ff39b5"
+    },
+    {
+      "path": "frontend/apps/staff/test/status-core.test.mjs",
+      "group": "frontend",
+      "sha256": "92091ecf2d2e82643efaaa6760aa4d94d6ae49135f1188de60776ad19d45806e",
+      "sourceSha256": "92091ecf2d2e82643efaaa6760aa4d94d6ae49135f1188de60776ad19d45806e",
+      "previousPrSha256": "db4c6baf1990ae6fff3faa38dd5cdc5cf1b7c545bda65f70ed2ae04aab2bf398"
+    },
+    {
+      "path": "frontend/apps/staff/test/status-ui.test.mjs",
+      "group": "frontend",
+      "sha256": "6b29a32f07003e3098803d265cb70b16937c2311e588ab4b65da17b978b3b6e4",
+      "sourceSha256": "6b29a32f07003e3098803d265cb70b16937c2311e588ab4b65da17b978b3b6e4",
+      "previousPrSha256": "db98277912613a35ff67751777fbbf0a04ddb6f86f16ffc5d797c5738feed4c0"
+    },
+    {
+      "path": "frontend/apps/staff/test/team.test.mjs",
+      "group": "frontend",
+      "sha256": "d6381535a4e798f68c3d7708fcf4d658c9cd11613a452a7b99716874c580005c",
+      "sourceSha256": "d6381535a4e798f68c3d7708fcf4d658c9cd11613a452a7b99716874c580005c",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/tsconfig.json",
+      "group": "frontend",
+      "sha256": "98af9973cf1d5bfa04caee5a45c73eb7ee3a9dfc2c560a424868b26283ca64bc",
+      "sourceSha256": "98af9973cf1d5bfa04caee5a45c73eb7ee3a9dfc2c560a424868b26283ca64bc",
+      "previousPrSha256": "1094bd62210ebe0761508ff9a717d4500e384321b9e3a379ca6f88ad5ccb2c68"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-account-settings.tsx",
+      "group": "frontend",
+      "sha256": "2c074a7c5e1271359c666a7de68e21522a013126873ef80cbe1c23e890f5b7ed",
+      "sourceSha256": "2c074a7c5e1271359c666a7de68e21522a013126873ef80cbe1c23e890f5b7ed",
+      "previousPrSha256": "658053ec7760cdadbb67946eb4ddcb296ce8652cdafffdeced167d2194c9d720"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-areas-remote.tsx",
+      "group": "frontend",
+      "sha256": "1fc854a385b35a02c53b49d05676a707edd70fddbb1087b9729b298c986bc8f1",
+      "sourceSha256": "1fc854a385b35a02c53b49d05676a707edd70fddbb1087b9729b298c986bc8f1",
+      "previousPrSha256": "82ee7c534a522cdf6592751ba240bb36a830c08fe31a27e91b32259f28b15624"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-auth-session.tsx",
+      "group": "frontend",
+      "sha256": "98d7f91a8693d0a9a4ec616981bf720d9de59879fcf787664055ca36fa2728aa",
+      "sourceSha256": "98d7f91a8693d0a9a4ec616981bf720d9de59879fcf787664055ca36fa2728aa",
+      "previousPrSha256": "9a545527598b0645f723484852f699ed381c422e59450e1d6767f3dba3ff327f"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-availability-interactions.tsx",
+      "group": "frontend",
+      "sha256": "58f593d8870c5f33b5817039fece426d77063a01ccfdb16dff5fc27673006665",
+      "sourceSha256": "58f593d8870c5f33b5817039fece426d77063a01ccfdb16dff5fc27673006665",
+      "previousPrSha256": "d164b80be70021952b8ea2ce0b77e92fe3c670d93c3c580c8f8c9a596573b4f2"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-remote-model.ts",
+      "group": "frontend",
+      "sha256": "9d8fdd5ee33947a971145cec3b3b939855e410f9ca7e9b82e934c02f37bab92a",
+      "sourceSha256": "9d8fdd5ee33947a971145cec3b3b939855e410f9ca7e9b82e934c02f37bab92a",
+      "previousPrSha256": "18541776cd31350262f1d7d43a66b20d38dcbb3eedbb38ca257a6d79f35a5eea"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-remote.tsx",
+      "group": "frontend",
+      "sha256": "85ec2246511e37c90b43fc09439ced91fdae2c4662860e5ed1a3ff71d37a7b10",
+      "sourceSha256": "85ec2246511e37c90b43fc09439ced91fdae2c4662860e5ed1a3ff71d37a7b10",
+      "previousPrSha256": "bb1d673f36c85a5602cb6c53b6b715b3fbf1aeee3b2275b24130a4510b76bbeb"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-detail-remote-model.ts",
+      "group": "frontend",
+      "sha256": "82feb99876fd9535fd3cab02d0ed2b6db910928736d7f4f58b7e3a5aa5567650",
+      "sourceSha256": "82feb99876fd9535fd3cab02d0ed2b6db910928736d7f4f58b7e3a5aa5567650",
+      "previousPrSha256": "8855d235be2659205528c31678d075e75d86a418184404e2bf2d8bac5020fe6e"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-detail-remote.tsx",
+      "group": "frontend",
+      "sha256": "14ced00987eeaaa5a5bed8543dc74ba86c858fa918792ce41e2cb831b1923199",
+      "sourceSha256": "14ced00987eeaaa5a5bed8543dc74ba86c858fa918792ce41e2cb831b1923199",
+      "previousPrSha256": "b71825ab639ccaf0e258ef2e67fa50e087644caaea9ee402c86c0902e99acf1a"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-status-model.ts",
+      "group": "frontend",
+      "sha256": "30c7202d69db412b9c7d7ce9ba500354e40f62ad4b0862afed2ab316b97b123d",
+      "sourceSha256": "30c7202d69db412b9c7d7ce9ba500354e40f62ad4b0862afed2ab316b97b123d",
+      "previousPrSha256": "d5279a4f07dd349f968dfa8534f21031c5a967fb0645a3a38d785b56bd3b8a85"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-status.tsx",
+      "group": "frontend",
+      "sha256": "2de1bd8037dd420f9f182adcf296dac2ee203ce150fe25c8485b2e0a47f1f1ff",
+      "sourceSha256": "2de1bd8037dd420f9f182adcf296dac2ee203ce150fe25c8485b2e0a47f1f1ff",
+      "previousPrSha256": "77a9e8053a3f32c7ad86e3582ccdd9b67cf5766420b5d3ca8bb507a10bc3de77"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-team.tsx",
+      "group": "frontend",
+      "sha256": "3878f1c2aa0aa9b03b4293b7ff499852a3c05b387d610a79d1c93459dff2703a",
+      "sourceSha256": "3878f1c2aa0aa9b03b4293b7ff499852a3c05b387d610a79d1c93459dff2703a",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-jobs-remote-model.ts",
+      "group": "frontend",
+      "sha256": "9810389faaab0ff758de8ea7504fb858a0dce0658bcfaadfd057d5caaa98a021",
+      "sourceSha256": "9810389faaab0ff758de8ea7504fb858a0dce0658bcfaadfd057d5caaa98a021",
+      "previousPrSha256": "20980bee2378300d051025a0ad141cfec9fcb7050a9c8ba5026e09b0dca9c958"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-jobs-remote.tsx",
+      "group": "frontend",
+      "sha256": "ebb30e3e665b362b259a47083fb3e33c3462db164dc24bfc252cbc93030f8671",
+      "sourceSha256": "ebb30e3e665b362b259a47083fb3e33c3462db164dc24bfc252cbc93030f8671",
+      "previousPrSha256": "391031f1ad85fd674eb3db74860382539cd9d966d67a2e594b7c3218a9b03c1d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-remote-model.ts",
+      "group": "frontend",
+      "sha256": "24da947b3c2393628f8dc34217a095197ccd97b666581820791d47d3ee921df2",
+      "sourceSha256": "24da947b3c2393628f8dc34217a095197ccd97b666581820791d47d3ee921df2",
+      "previousPrSha256": "b171c13d9ac4e10844dfdb5d68463609b291613bf119fb113dafb4ccd4919e8e"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-remote.tsx",
+      "group": "frontend",
+      "sha256": "7eeae2d4a3e7b4a4878b2f86f28be9be4e5222f0b4191e3edf675a4118260bc9",
+      "sourceSha256": "7eeae2d4a3e7b4a4878b2f86f28be9be4e5222f0b4191e3edf675a4118260bc9",
+      "previousPrSha256": "aa7026d816f4da97b1a03e72c57ce3f18a7c406c1b5dc7d236d77c3210f2ef19"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-performance-remote.tsx",
+      "group": "frontend",
+      "sha256": "9173c49588b09e89c8569366a1ed6e6088635b74c2299e42d3f60712961c2db8",
+      "sourceSha256": "9173c49588b09e89c8569366a1ed6e6088635b74c2299e42d3f60712961c2db8",
+      "previousPrSha256": "bf8f497d97e9ecb4b96c4820aef1958080f52cc1ccb8e1b1f382b493d7c1065d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-profile-edit-model.ts",
+      "group": "frontend",
+      "sha256": "2bbcde0dd7418f15d71b7cc5e25e08fdcb9a264e239767c703b15d98b338572d",
+      "sourceSha256": "2bbcde0dd7418f15d71b7cc5e25e08fdcb9a264e239767c703b15d98b338572d",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-profile-editor.tsx",
+      "group": "frontend",
+      "sha256": "a857cc06f13a0ccfdc47b0099e79b73a3f0c93acc0d73c8ba43319a59cfbd33d",
+      "sourceSha256": "a857cc06f13a0ccfdc47b0099e79b73a3f0c93acc0d73c8ba43319a59cfbd33d",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-team-contract.mjs",
+      "group": "frontend",
+      "sha256": "b41b75824a917587b8cc080f35425eecff7124cd2b0b9a066b6a245f860db442",
+      "sourceSha256": "b41b75824a917587b8cc080f35425eecff7124cd2b0b9a066b6a245f860db442",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-team-model.ts",
+      "group": "frontend",
+      "sha256": "0702273536c992700944fa5adad3b4133e179b31e471bee33c640d8469c5a276",
+      "sourceSha256": "0702273536c992700944fa5adad3b4133e179b31e471bee33c640d8469c5a276",
+      "previousPrSha256": null
+    },
+    {
+      "path": "qa/staff/README.md",
+      "group": "qa",
+      "sha256": "b72b9baffb6f39165548bcf427b57a0a5244cfd67c873dc601d55862d67edb6a",
+      "sourceSha256": "b72b9baffb6f39165548bcf427b57a0a5244cfd67c873dc601d55862d67edb6a",
+      "previousPrSha256": "2d6f7679740f9d4e806dae08c3fb2ebf6eabc0154508553c4a4f0a92dcff88f8"
+    },
+    {
+      "path": "qa/staff/income-chart.browser.mjs",
+      "group": "qa",
+      "sha256": "d92e3e7c53b235e5c63afe8b0b709f022007cdf6de1c0a4afa25cff56d9a983d",
+      "sourceSha256": "d92e3e7c53b235e5c63afe8b0b709f022007cdf6de1c0a4afa25cff56d9a983d",
+      "previousPrSha256": "4785f84afeeb0964cb81458c752b8b279e5451aa5ae11a9b0bb7dc2d0cee64b4"
+    },
+    {
+      "path": "qa/staff/runtime.mjs",
+      "group": "qa",
+      "sha256": "f899c396aa526181d9a4aaa64a89da0c4decece25782172ab7aec75d6a96a9f6",
+      "sourceSha256": "f899c396aa526181d9a4aaa64a89da0c4decece25782172ab7aec75d6a96a9f6",
+      "previousPrSha256": "a4099055fdf3daf022b4cedcef32cead911dcf54c6b4dcefd849e7c45e4f1595"
+    },
+    {
+      "path": "qa/staff/team.browser.mjs",
+      "group": "qa",
+      "sha256": "527f70d8808fa96bef91d6251e43a1b0516d162ada9a6cc723fc299cce0905ce",
+      "sourceSha256": "527f70d8808fa96bef91d6251e43a1b0516d162ada9a6cc723fc299cce0905ce",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_IDENTITY_SCOPE_BRANCH_CONTRACT_PROPOSAL.md",
+      "group": "docs",
+      "sha256": "37d0d17ec568611b2585f5ba356e330e8f18ad4ff066e0df5a0fbb5f6d7dd71b",
+      "sourceSha256": "37d0d17ec568611b2585f5ba356e330e8f18ad4ff066e0df5a0fbb5f6d7dd71b",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_ORDER_STAFFING_CONTRACT_PROPOSAL.md",
+      "group": "docs",
+      "sha256": "163a5998d14b5d4547268a839f26f6ee0b39d4e7b12d350a50e4ef20edd52f1d",
+      "sourceSha256": "163a5998d14b5d4547268a839f26f6ee0b39d4e7b12d350a50e4ef20edd52f1d",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PERSISTENT_LOGIN_20261110.md",
+      "group": "docs",
+      "sha256": "a8b13ce449a8064fc071719b442e781f8c63ce4071debeae189a447e71d9f236",
+      "sourceSha256": "1e68e82a69de107f4677b68ee7eac19e26b53a36a7f25ca1923270e7d785a446",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_TEAM_EXECUTION_CONTRACT.md",
+      "group": "docs",
+      "sha256": "1fe3ac9c374846296ad4ce9a3e43639878acbb1e8b6ac343e728526be097b78d",
+      "sourceSha256": "8725f5e8f292020c1ddd50764cab1fcd4a50c6fe477c2d50faedb4b9f26aed50",
+      "previousPrSha256": null
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PR_UPDATE_20261110.md",
+      "group": "docs",
+      "sha256": "00857a98445d59a4f5579b51a88a363e4f59ad1c6d9601aee377f3e15bb6c0ce",
+      "sourceSha256": null,
+      "previousPrSha256": null
+    },
+    {
+      "path": "qa/staff/pr-update-manifest-20261110.json",
+      "group": "docs",
+      "selfManifest": true,
+      "sourceSha256": null,
+      "previousPrSha256": null
+    }
+  ],
+  "persistentLogin": [
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PERSISTENT_LOGIN_20261110.md",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/areas-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/auth-core.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/income-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/job-detail-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/jobs-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/notifications-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/reviews-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/schedule-http.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/status-core.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/package.json",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-core-renewal.test.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-read-retry.test.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-session-ui.test.mjs",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-auth-session.tsx",
+      "selected": true,
+      "reason": "STAFF_RUNTIME_TEST_OR_CONTRACT"
+    },
+    {
+      "path": "qa/integration/refresh-staff.mjs",
+      "selected": false,
+      "reason": "LOCAL_TRIAL_HARNESS_NOT_PORTABLE"
+    },
+    {
+      "path": "qa/integration/session.browser.mjs",
+      "selected": false,
+      "reason": "LOCAL_TRIAL_HARNESS_NOT_PORTABLE"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BACKEND_HANDOFF_20261110.md",
+      "reason": "LOCAL_ACCEPTANCE_OR_WHITESPACE_ONLY"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BUSINESS_SPEC.md",
+      "reason": "LOCAL_ACCEPTANCE_OR_WHITESPACE_ONLY"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_FINAL_SIX_ACCEPTANCE_20261110.md",
+      "reason": "LOCAL_ACCEPTANCE_OR_WHITESPACE_ONLY"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PRACTICAL_READINESS.md",
+      "reason": "LOCAL_ACCEPTANCE_OR_WHITESPACE_ONLY"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_REAL_API_INTEGRATION.md",
+      "reason": "LOCAL_ACCEPTANCE_OR_WHITESPACE_ONLY"
+    },
+    {
+      "path": "qa/integration/.gitignore",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/README.md",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/browser.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/common.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/final-six.browser.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/final-six.verify.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/fixtures.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/frontend.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/notifications-real.browser.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/practical-smoke.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/practical.browser.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/preserve.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/processes.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/refresh-staff.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/runtime.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/service.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/session.browser.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/sql.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/sql.test.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/support-env.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/support-env.test.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/test.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/trial.ps1",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/integration/verify.mjs",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "qa/staff/.gitignore",
+      "reason": "LOCAL_TRIAL_OR_PR_PROTECTION_NOT_OVERWRITTEN"
+    },
+    {
+      "path": "frontend/apps/staff/test/areas-demo-ui.test.mjs",
+      "reason": "WHITESPACE_ONLY_AFTER_EOF_NORMALIZATION_NO_INCREMENTAL_CHANGE"
+    },
+    {
+      "path": "frontend/apps/staff/test/notifications-demo.test.mjs",
+      "reason": "WHITESPACE_ONLY_AFTER_EOF_NORMALIZATION_NO_INCREMENTAL_CHANGE"
+    }
+  ],
+  "excludedPaths": [
+    "backend/auth-service/.env.example",
+    "backend/auth-service/README.md",
+    "backend/auth-service/docs/auth-contract.md",
+    "backend/auth-service/docs/refresh-integration.md",
+    "backend/auth-service/package.json",
+    "backend/auth-service/scripts/init-refresh.js",
+    "backend/auth-service/src/app.js",
+    "backend/auth-service/src/config.js",
+    "backend/auth-service/src/refresh-store.js",
+    "backend/auth-service/src/runtime.js",
+    "backend/auth-service/src/service.js",
+    "backend/auth-service/test/refresh.test.js",
+    "docs/cleanhome-erd-32-tables.png",
+    "docs/cleanhome-erd-32-tables.svg",
+    "docs/cleanhome-erd-export.json",
+    "docs/cleanhome-erd.mmd",
+    "docs/database-architecture-summary.md",
+    "docs/database-erd-export.md",
+    "docs/database-migration-backlog.md",
+    "docs/database-ownership.md",
+    "docs/database-structure-review.md",
+    "docs/export-cleanhome-erd.mjs",
+    "frontend/apps/staff/docs/SESSION_RENEWAL.md",
+    "frontend/apps/staff/docs/SESSION_RENEWAL_PROPOSAL.md",
+    "frontend/apps/staff/docs/STAFF_PR_PREPARATION.md",
+    "frontend/apps/staff/docs/STAFF_STAGE6_ACCEPTANCE.md",
+    "frontend/apps/staff/next-env.d.ts",
+    "qa/integration/support-ai.env.example",
+    "qa/staff/credentials.ps1",
+    "qa/staff/pr-preparation-manifest.json"
+  ],
+  "refreshEnabled": false,
+  "realRefresh": "BLOCKED_REFRESH_DISABLED",
+  "thirtyDaySessionActive": false,
+  "backendOwnerReviewRequired": true
+}
