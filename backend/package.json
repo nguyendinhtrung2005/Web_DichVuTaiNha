@@ -1,0 +1,30 @@
+{
+  "name": "cleanhome-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "check:db": "node --env-file-if-exists=.env scripts/check-database.js",
+    "check:products": "node --env-file-if-exists=.env scripts/check-products.js",
+    "start:customer": "node --env-file-if-exists=.env scripts/start-customer.js",
+    "start:auth": "node --env-file-if-exists=.env scripts/start-service.js auth",
+    "start:user": "node --env-file-if-exists=.env scripts/start-service.js user",
+    "start:catalog": "node --env-file-if-exists=.env scripts/start-service.js catalog",
+    "start:order": "node --env-file-if-exists=.env scripts/start-service.js order",
+    "start:staff": "node --env-file-if-exists=.env scripts/start-service.js staff",
+    "start:payment": "node --env-file-if-exists=.env scripts/start-service.js payment",
+    "start:review": "node --env-file-if-exists=.env scripts/start-service.js review",
+    "start:gateway": "node --env-file-if-exists=.env scripts/start-service.js gateway",
+    "test": "node --env-file-if-exists=.env --test --test-isolation=none tests/*.test.js",
+    "test:mysql": "node --env-file-if-exists=.env --test --test-isolation=none tests/customer-http.mysql.test.js",
+    "test:customer:browser": "node --env-file-if-exists=.env tests/customer-browser.mysql.mjs",
+    "test:products:mysql": "node --env-file-if-exists=.env --test --test-isolation=none tests/products-http.mysql.test.js",
+    "test:products:browser": "node --env-file-if-exists=.env tests/products-browser.mysql.mjs"
+  },
+  "dependencies": {
+    "mysql2": "3.24.6"
+  }
+}

@@ -4,7 +4,8 @@ import { useSyncExternalStore } from "react"
 import { createSeedState, estimateDuration, estimatePrice, orderCode, SEED_VERSION } from "./mock-data"
 import { canRequestCancel, findConflicts, paymentOf } from "./logic"
 import { formatDateTime } from "./format"
-import { APP_ROLE, IS_UNIFIED_APP, SITE_HOST_LABEL, SITE_URLS } from "./env"
+import { APP_ROLE, CUSTOMER_API_ENABLED, IS_UNIFIED_APP, SITE_HOST_LABEL, SITE_URLS } from "./env"
+import { customerSnapshot, customerStatus, subscribeCustomerData } from "./customer-api-store"
 import { notifyUnifiedData, readUnifiedEnvelope, subscribeUnifiedData, UNIFIED_SESSION_KEY, UNIFIED_STORAGE_KEY, withUnifiedWriteLock } from "./unified-storage"
 import type { UnifiedEnvelope } from "./unified-storage"
 import { validateMigrationState } from "./data-migration"
@@ -76,6 +77,7 @@ function refreshUnified() {
 }
 
 function load(): AppState {
+  if (CUSTOMER_API_ENABLED) throw new Error("Dữ liệu Customer được quản lý qua API.")
   if (IS_UNIFIED_APP) {
     if (dataStatus.status === "loading") refreshUnified()
     if (!state) throw new Error(dataStatus.error || "Chưa có dữ liệu. Vui lòng chọn bản nhập để bắt đầu.")
@@ -139,6 +141,7 @@ function setState(updater: (s: AppState) => AppState) {
 }
 
 function subscribe(listener: () => void) {
+  if (CUSTOMER_API_ENABLED) return subscribeCustomerData(listener)
   listeners.add(listener)
   const onStorage = (e: StorageEvent) => {
     if (IS_UNIFIED_APP && (e.key === UNIFIED_STORAGE_KEY || e.key === UNIFIED_SESSION_KEY || e.key === null)) {
@@ -171,6 +174,7 @@ export function useAppState(): AppState | null {
 }
 
 export function getStoreSnapshot(): AppState | null {
+  if (CUSTOMER_API_ENABLED) return customerSnapshot()
   if (!IS_UNIFIED_APP) return load()
   if (!commandOpen) refreshUnified()
   return state
@@ -178,6 +182,7 @@ export function getStoreSnapshot(): AppState | null {
 
 export function useDataStatus(): DataStatus {
   return useSyncExternalStore(subscribe, () => {
+    if (CUSTOMER_API_ENABLED) return customerStatus()
     if (IS_UNIFIED_APP && dataStatus.status === "loading") refreshUnified()
     if (!IS_UNIFIED_APP) load()
     return dataStatus

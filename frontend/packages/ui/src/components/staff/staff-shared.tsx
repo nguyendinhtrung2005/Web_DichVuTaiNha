@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { JobStatusBadge, OrderStatusBadge } from "@/components/shared/status-badge"
-import type { AppState, Order, Service } from "@/lib/types"
+import type { AppState, Order, Service, StaffJob } from "@/lib/types"
 
 export const JOB_FILTER_OPTIONS = [
   { value: "waiting", label: "Chờ tiếp nhận" },
@@ -69,8 +69,8 @@ export function StaffEmpty({ title, description, action }: { title: string; desc
   return <section className="rounded-2xl border border-dashed border-border bg-white px-5 py-12 text-center"><div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-blue-50 text-primary"><ClipboardListIcon aria-hidden="true" className="size-6" /></div><h2 className="m-0 text-lg font-semibold">{title}</h2>{description && <p className="mx-auto mt-3 mb-0 max-w-md text-sm leading-7 text-muted-foreground">{description}</p>}{action && <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div>}</section>
 }
 
-export function StaffError({ title = "Chưa thể tải công việc" }: { title?: string }) {
-  return <section role="alert" className="rounded-2xl border border-red-200 bg-white px-5 py-10"><h1 className="m-0 text-xl font-semibold">{title}</h1><p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">Dữ liệu chưa đọc được. Vui lòng tải lại trang hoặc liên hệ người quản lý nếu lỗi vẫn tiếp diễn.</p><Button variant="outline" onClick={() => window.location.reload()}>Tải lại trang</Button></section>
+export function StaffError({ title = "Chưa thể tải công việc", description = "Dữ liệu chưa đọc được. Vui lòng tải lại trang hoặc liên hệ người quản lý nếu lỗi vẫn tiếp diễn." }: { title?: string; description?: string }) {
+  return <section role="alert" className="rounded-2xl border border-red-200 bg-white px-5 py-10"><h1 className="m-0 text-xl font-semibold">{title}</h1><p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">{description}</p><Button variant="outline" onClick={() => window.location.reload()}>Tải lại trang</Button></section>
 }
 
 export function StaffJobBadge({ order }: { order: Order }) {
@@ -79,4 +79,12 @@ export function StaffJobBadge({ order }: { order: Order }) {
 
 export function StaffJobCard({ order, service }: { order: Order; service?: Service }) {
   return <Card className="min-w-0 rounded-2xl shadow-none ring-border [--card-spacing:--spacing(5)]"><CardContent className="flex min-w-0 flex-col gap-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="m-0 text-xs font-semibold text-muted-foreground">{order.code}</p><StaffJobBadge order={order} /></div><h3 className="m-0 break-words text-base leading-7 font-semibold">{service?.name || "Dịch vụ đã lưu"}</h3><dl className="m-0 space-y-3 text-sm"><div className="flex min-w-0 items-start gap-2.5"><CalendarDaysIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><dt className="sr-only">Lịch thực hiện</dt><dd className="m-0 min-w-0 break-words">{formatJobTime(order.scheduledAt)}</dd></div><div className="flex min-w-0 items-start gap-2.5"><UserRoundIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><dt className="sr-only">Khách hàng</dt><dd className="m-0 min-w-0 break-words">{order.contact.name}</dd></div><div className="flex min-w-0 items-start gap-2.5"><MapPinIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><dt className="sr-only">Địa chỉ</dt><dd className="m-0 min-w-0 break-words leading-6">{order.contact.address}</dd></div></dl>{order.cancelRequest?.status === "pending" && <p className="m-0 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">Có yêu cầu hủy đang chờ xử lý.</p>}<Button variant="outline" className="mt-auto w-full justify-between" aria-label={`Xem công việc ${order.code}`} render={<Link href={`/don/${order.id}`} />} nativeButton={false}>Xem chi tiết<ArrowRightIcon aria-hidden="true" /></Button></CardContent></Card>
+}
+
+export function StaffApiJobBadge({ job }: { job: StaffJob }) {
+  return job.orderStatus === "cancelled" || job.orderStatus === "completed" ? <OrderStatusBadge status={job.orderStatus} /> : <JobStatusBadge status={job.jobStatus} />
+}
+
+export function StaffApiJobCard({ job }: { job: StaffJob }) {
+  return <Card className="min-w-0 rounded-2xl shadow-none ring-border [--card-spacing:--spacing(5)]"><CardContent className="flex min-w-0 flex-col gap-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="m-0 text-xs font-semibold text-muted-foreground">{job.code}</p><StaffApiJobBadge job={job} /></div><h3 className="m-0 break-words text-base leading-7 font-semibold">{job.serviceName}</h3><dl className="m-0 space-y-3 text-sm"><div className="flex min-w-0 items-start gap-2.5"><CalendarDaysIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><dt className="sr-only">Lịch thực hiện</dt><dd className="m-0 min-w-0 break-words">{formatJobTime(job.scheduledAt)}</dd></div><div className="flex min-w-0 items-start gap-2.5"><UserRoundIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><dt className="sr-only">Khách hàng</dt><dd className="m-0 min-w-0 break-words">{job.contact.name}</dd></div><div className="flex min-w-0 items-start gap-2.5"><MapPinIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><dt className="sr-only">Địa chỉ</dt><dd className="m-0 min-w-0 break-words leading-6">{job.contact.address}</dd></div></dl>{job.cancelPending && <p className="m-0 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">Có yêu cầu hủy đang chờ xử lý.</p>}<Button variant="outline" className="mt-auto w-full justify-between" aria-label={`Xem công việc ${job.code}`} render={<Link href={`/don/${job.id}`} />} nativeButton={false}>Xem chi tiết<ArrowRightIcon aria-hidden="true" /></Button></CardContent></Card>
 }

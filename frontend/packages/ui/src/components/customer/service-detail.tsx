@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
+import { CustomerImage as Image } from "./customer-image"
 import Link from "next/link"
 import {
   ArrowLeftIcon,
@@ -19,9 +19,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ServiceCard } from "@/components/customer/service-card"
-import { CATEGORY_LABEL } from "@/lib/config"
 import { formatCurrency } from "@/lib/format"
 import type { Service } from "@/lib/types"
+import { ProductSuggestions } from "@/components/customer/product-pages"
+import { ServiceRatingSummary } from "./service-rating-summary"
+import { CLEANING_TYPE_LABEL, cleaningTypeOf, serviceGroupOf, serviceGroupLabel, serviceRequiresHouseDetails } from "@/lib/service-taxonomy"
 
 const PREPARATION = [
   {
@@ -85,12 +87,23 @@ export function ServiceDetail({
   const [failedImage, setFailedImage] = useState<string | null>(null)
   const image = service.image || "/placeholder.svg"
   const related = relatedServices
-    .filter((item) => item.id !== service.id && item.category === service.category && item.status === "active")
+    .filter((item) => item.id !== service.id && serviceGroupOf(item) === serviceGroupOf(service) && item.status === "active")
     .slice(0, 3)
   const description = service.description.split(/\n+/).map((paragraph) => paragraph.trim()).filter(Boolean)
   const isActive = service.status === "active"
+  const hasScope = service.scope.some((item) => item.trim())
   const hasIncluded = service.included.some((item) => item.trim())
   const hasExcluded = service.excluded.some((item) => item.trim())
+  const priceTitle = service.pricingModeKnown === false
+    ? "Giá tham khảo, cách tính chưa được cấu hình"
+    : service.pricingMode === "fixed" ? "Giá cố định" : service.pricingMode === "survey" ? "Giá tham khảo, cần khảo sát" : "Giá tham khảo"
+  const priceNote = service.pricingModeKnown === false
+    ? "Cách tính chưa được cung cấp; số tiền này chỉ là giá cơ sở tham khảo và cần CleanHome xác nhận."
+    : service.pricingMode === "fixed"
+      ? "Tổng giá được tính theo số lượng bạn chọn."
+      : service.pricingMode === "survey"
+        ? "Giá cuối cùng cần khảo sát và được xác nhận trước khi thực hiện."
+        : "Giá cuối cùng có thể cần xác nhận sau khi CleanHome khảo sát; số tiền trên chỉ là mức tham khảo."
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-16 sm:px-6 md:pt-8 md:pb-24">
@@ -110,12 +123,15 @@ export function ServiceDetail({
 
       <header className="mb-8 max-w-3xl md:mb-10">
         <Badge variant="secondary" className="mb-4 border-blue-100 bg-blue-50 px-3 py-1.5 text-primary">
-          {CATEGORY_LABEL[service.category]}
+          {serviceGroupLabel(service)}
         </Badge>
+        {service.categoryName && service.categoryName !== service.groupName && <p className="m-0 mb-2 text-sm text-muted-foreground">Danh mục: {service.categoryName}</p>}
+        {cleaningTypeOf(service) && <p className="m-0 mb-2 text-sm font-medium text-muted-foreground">{CLEANING_TYPE_LABEL[cleaningTypeOf(service)!]}</p>}
         <h1 className="m-0 break-words text-3xl leading-tight font-bold tracking-tight md:text-4xl">{service.name}</h1>
         <p className="m-0 mt-4 text-base leading-7 text-muted-foreground md:text-lg md:leading-8">{service.shortDesc}</p>
         <div className="mt-6 flex flex-col items-start gap-4 lg:hidden">
-          <p className="m-0 text-sm text-muted-foreground">Giá tham khảo: <span className="font-semibold text-primary">{formatCurrency(service.price)}</span> / {service.unit}</p>
+          <p className="m-0 text-sm text-muted-foreground">{priceTitle}: <span className="font-semibold text-primary">{formatCurrency(service.price)}</span> / {service.unit}</p>
+          <p className="m-0 text-sm leading-6 text-muted-foreground">{priceNote}</p>
           {isActive ? <Button size="lg" className="w-full sm:w-auto" render={<Link href={`/dat-dich-vu/${service.id}`} />} nativeButton={false}>Đặt dịch vụ ngay<ArrowRightIcon data-icon="inline-end" aria-hidden="true" /></Button> : <p role="status" className="m-0 text-sm text-muted-foreground">Dịch vụ đang tạm ngừng cung cấp.</p>}
         </div>
       </header>
@@ -145,7 +161,7 @@ export function ServiceDetail({
             </section>
           )}
 
-          {service.scope.some((item) => item.trim()) && (
+          {hasScope ? (
             <section aria-labelledby="service-scope-heading" className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 sm:p-7">
               <div className="mb-5 flex items-center gap-3">
                 <ListChecksIcon aria-hidden="true" className="size-5 shrink-0 text-primary" />
@@ -160,7 +176,7 @@ export function ServiceDetail({
                 ))}
               </ul>
             </section>
-          )}
+          ) : <p className="m-0 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Phạm vi công việc đang được cập nhật trong danh mục dịch vụ.</p>}
 
           {(hasIncluded || hasExcluded) && (
             <div className={`grid min-w-0 gap-5 ${hasIncluded && hasExcluded ? "sm:grid-cols-2" : ""}`}>
@@ -168,12 +184,14 @@ export function ServiceDetail({
               <WorkList title="Chưa bao gồm" items={service.excluded} excluded />
             </div>
           )}
+          {!hasIncluded && !hasExcluded && <p className="m-0 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Thông tin bao gồm và không bao gồm chưa được cung cấp cho dịch vụ này.</p>}
+          <ServiceRatingSummary serviceId={service.id} />
         </div>
 
         <aside aria-label="Giá và đặt dịch vụ" className="min-w-0 space-y-6 lg:sticky lg:top-28">
           <Card className="min-w-0 overflow-visible rounded-2xl bg-white shadow-lg shadow-slate-900/5 ring-blue-100 [--card-spacing:--spacing(6)]">
             <CardHeader className="gap-3">
-              <h2 className="m-0 text-sm font-medium text-muted-foreground">Giá tham khảo</h2>
+              <h2 className="m-0 text-sm font-medium text-muted-foreground">{priceTitle}</h2>
               <p className="m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="text-3xl font-bold tracking-tight text-primary tabular-nums">{formatCurrency(service.price)}</span>
                 <span className="text-sm text-muted-foreground">/ {service.unit}</span>
@@ -181,9 +199,11 @@ export function ServiceDetail({
             </CardHeader>
             <CardContent className="space-y-5">
               <p className="m-0 rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-muted-foreground">
-                Đặt tối thiểu <span className="font-semibold text-foreground">{service.minQuantity} {service.unit}</span>.
+                {service.minimumQuantityKnown === false
+                  ? <>Danh mục chưa cung cấp số lượng tối thiểu; hệ thống hiện yêu cầu ít nhất <span className="font-semibold text-foreground">1 {service.unit}</span> để gửi yêu cầu.</>
+                  : <>Đặt tối thiểu <span className="font-semibold text-foreground">{service.minQuantity} {service.unit}</span>.</>}
               </p>
-              <p className="m-0 text-sm leading-6 text-muted-foreground">Tổng giá dự kiến được tính theo số lượng bạn chọn trong bước đặt lịch.</p>
+              <p className="m-0 text-sm leading-6 text-muted-foreground">{priceNote}</p>
               {isActive ? (
                 <Button size="lg" className="w-full px-4" render={<Link href={`/dat-dich-vu/${service.id}`} />} nativeButton={false}>
                   Đặt dịch vụ ngay
@@ -209,7 +229,7 @@ export function ServiceDetail({
                   <Icon aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <h3 className="m-0 text-sm leading-6 font-medium">{title}</h3>
-                    <p className="m-0 mt-1 text-sm leading-6 text-muted-foreground">{text}</p>
+                    <p className="m-0 mt-1 text-sm leading-6 text-muted-foreground">{title === "Thông tin nhà ở" && !serviceRequiresHouseDetails(service) ? "Loại địa điểm thực hiện. Diện tích, số phòng và số tầng là thông tin bổ sung không bắt buộc." : text}</p>
                   </div>
                 </li>
               ))}
@@ -223,7 +243,7 @@ export function ServiceDetail({
           <div className="mb-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h2 id="related-services-heading" className="m-0 text-2xl leading-tight font-semibold md:text-3xl">Dịch vụ liên quan</h2>
-              <p className="m-0 mt-3 text-sm leading-6 text-muted-foreground">Khám phá thêm trong nhóm {CATEGORY_LABEL[service.category].toLowerCase()}.</p>
+              <p className="m-0 mt-3 text-sm leading-6 text-muted-foreground">Khám phá thêm trong nhóm {serviceGroupLabel(service).toLowerCase()}.</p>
             </div>
             <Button variant="outline" render={<Link href="/dich-vu" />} nativeButton={false}>
               Xem tất cả dịch vụ
@@ -235,6 +255,8 @@ export function ServiceDetail({
           </div>
         </section>
       )}
+
+      <ProductSuggestions serviceId={service.id} />
 
       <div className="mt-10">
         <Button variant="ghost" className="text-muted-foreground" render={<Link href="/dich-vu" />} nativeButton={false}>

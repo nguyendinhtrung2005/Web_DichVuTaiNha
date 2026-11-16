@@ -38,3 +38,15 @@
 - Avoid repeating project analysis in every task.
 - Do not run all services unless required.
 - Do not refactor unrelated code.
+
+## Backend Team Rules
+
+Before modifying backend, database, API contracts,
+or integration code, read and follow BACKEND_TEAM_RULES.md.
+
+Protect accepted code from ALL team members.
+Respect service ownership, approved API contracts,
+database ownership, security rules and Git workflow.
+
+Do not overwrite teammates' changes or automatically
+commit, push, merge or run destructive database commands.

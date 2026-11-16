@@ -1,5 +1,7 @@
 # HƯỚNG DẪN CHUYỂN FRONTEND CLEANHOME VÀO WEB_DICHVUTAINHA
 
+> **Tài liệu lịch sử của migration kit.** Repository đã chuyển sang Next.js; frontend Vite cũ đã được owner đồng ý gỡ ngày 07/11/2026. Các đường dẫn/script/trạng thái backend bên dưới mô tả thời điểm chuyển đổi, không phải trạng thái hiện tại. Không chạy lại quy trình chép/đổi tên thư mục hoặc mục hoàn tác bên dưới để khởi động project. Hướng dẫn hiện tại: [README](README.md), [frontend](frontend/README.md), [backend](backend/README.md).
+
 ## Nội dung
 
 - Mã nguồn `cleanhome-frontend/` là toàn bộ workspace Next.js 16 (khách hàng, nhân viên, quản trị, packages dùng chung).
