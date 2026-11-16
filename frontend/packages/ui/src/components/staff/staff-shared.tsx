@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react"
 import { AreaLink as Link } from "@/components/shared/area-routes"
-import { ArrowRightIcon, CalendarDaysIcon, ClipboardListIcon, MapPinIcon, UserRoundIcon } from "lucide-react"
+import { AlertCircleIcon, ArrowRightIcon, CalendarDaysIcon, ClipboardListIcon, MapPinIcon, UserRoundIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -58,19 +58,19 @@ export function getAssignedJobs(state: AppState, userId: string): Order[] | null
 }
 
 export function StaffPageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return <header className="mb-7 flex min-w-0 flex-col items-start gap-5 sm:mb-8 sm:flex-row sm:justify-between"><div className="min-w-0"><p className="m-0 mb-2 text-xs font-semibold tracking-[0.12em] text-primary uppercase">CleanHome / Nhân viên</p><h1 className="m-0 break-words text-2xl leading-tight font-bold tracking-tight sm:text-3xl">{title}</h1>{description && <p className="m-0 mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{description}</p>}</div>{action && <div className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto">{action}</div>}</header>
+  return <header className="staff-page-heading mb-7 flex min-w-0 flex-col items-start gap-5 sm:mb-8 sm:flex-row sm:justify-between"><div className="min-w-0"><p className="staff-eyebrow m-0 mb-2 text-xs font-semibold tracking-[0.12em] text-primary uppercase">CleanHome / Nhân viên</p><h1 className="m-0 break-words text-2xl leading-tight font-bold tracking-tight sm:text-3xl">{title}</h1>{description && <p className="m-0 mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">{description}</p>}</div>{action && <div className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto">{action}</div>}</header>
 }
 
 export function StaffLoading() {
-  return <div aria-busy="true" aria-label="Đang tải công việc" className="space-y-6"><Skeleton className="h-10 w-56" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-28 rounded-2xl" />)}</div><Skeleton className="h-72 rounded-2xl" /></div>
+  return <div role="status" aria-live="polite" aria-busy="true" aria-label="Đang tải công việc" className="staff-loading space-y-6"><span className="sr-only">Đang tải công việc, vui lòng chờ.</span><Skeleton className="h-10 w-56" /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-28 rounded-2xl" />)}</div><Skeleton className="h-72 rounded-2xl" /></div>
 }
 
 export function StaffEmpty({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return <section className="rounded-2xl border border-dashed border-border bg-white px-5 py-12 text-center"><div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-blue-50 text-primary"><ClipboardListIcon aria-hidden="true" className="size-6" /></div><h2 className="m-0 text-lg font-semibold">{title}</h2>{description && <p className="mx-auto mt-3 mb-0 max-w-md text-sm leading-7 text-muted-foreground">{description}</p>}{action && <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div>}</section>
+  return <section className="staff-empty rounded-2xl border border-dashed border-border bg-white px-5 py-12 text-center"><div className="staff-state-icon mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-blue-50 text-primary"><ClipboardListIcon aria-hidden="true" className="size-6" /></div><h2 className="m-0 text-lg font-semibold">{title}</h2>{description && <p className="mx-auto mt-3 mb-0 max-w-md text-sm leading-7 text-muted-foreground">{description}</p>}{action && <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div>}</section>
 }
 
 export function StaffError({ title = "Chưa thể tải công việc" }: { title?: string }) {
-  return <section role="alert" className="rounded-2xl border border-red-200 bg-white px-5 py-10"><h1 className="m-0 text-xl font-semibold">{title}</h1><p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">Dữ liệu chưa đọc được. Vui lòng tải lại trang hoặc liên hệ người quản lý nếu lỗi vẫn tiếp diễn.</p><Button variant="outline" onClick={() => window.location.reload()}>Tải lại trang</Button></section>
+  return <section role="alert" className="staff-error rounded-2xl border border-red-200 bg-white px-5 py-10"><div className="staff-state-icon mb-4"><AlertCircleIcon aria-hidden="true" className="size-6" /></div><h1 className="m-0 text-xl font-semibold">{title}</h1><p className="mt-3 mb-6 text-sm leading-7 text-muted-foreground">Dữ liệu chưa đọc được. Vui lòng tải lại trang hoặc liên hệ người quản lý nếu lỗi vẫn tiếp diễn.</p><Button variant="outline" onClick={() => window.location.reload()}>Tải lại trang</Button></section>
 }
 
 export function StaffJobBadge({ order }: { order: Order }) {

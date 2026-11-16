@@ -73,7 +73,7 @@ export function createStaffJobDetailHttp({ configFactory = loadStaffJobsConfig, 
       sid = sessionId(request, config.cookieName)
       auth = authFactory({ config, now })
       authStarted = true
-      const result = await auth.withAccessToken(sid, token => readDetail(config, token, assignmentId, fetchImpl))
+      const result = await auth.withAccessToken(sid, token => readDetail(config, token, assignmentId, fetchImpl), { retryOnExpiredToken: true })
       return Response.json(result, { headers })
     } catch (error) {
       const known = error instanceof AuthBffError

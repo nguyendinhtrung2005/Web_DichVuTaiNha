@@ -6,23 +6,30 @@ import { AuthBffError } from '../lib/server/auth-core.mjs'
 
 const origin = 'http://localhost:3002'
 const sid = () => randomBytes(32).toString('base64url')
-function fixture() {
-  const config = { appOrigin: origin, secureCookie: false, cookieName: 'cleanhome_staff_session' }
+function fixture({ renewable = false } = {}) {
+  const config = { appOrigin: origin, secureCookie: false, cookieName: 'cleanhome_staff_session', renewalEnabled: renewable }
   const calls = []
-  const controls = { failure: null, expiresAt: Date.now() + 60000 }
+  const controls = { failure: null, expiresAt: Date.now() + 60000, renewable, logoutResult: undefined }
+  const publicSession = () => ({ user: { id: '9109002', role: 'EMPLOYEE', status: 'ACTIVE' }, expiresAt: new Date(controls.expiresAt).toISOString(), ...(controls.renewable ? { renewable: true } : {}) })
   const service = {
     async login(input, previous) {
       calls.push({ operation: 'login', input, previous })
       if (controls.failure) throw controls.failure
-      return { sid: sid(), session: { user: { id: '9109002', role: 'EMPLOYEE', status: 'ACTIVE' }, expiresAt: new Date(controls.expiresAt).toISOString() } }
+      return { sid: sid(), session: publicSession() }
     },
     async inspect(value) {
       calls.push({ operation: 'inspect', value })
       if (controls.failure) throw controls.failure
       if (!value) throw new AuthBffError(401, 'SESSION_REQUIRED', 'Sign in required')
-      return { user: { id: '9109002', role: 'EMPLOYEE', status: 'ACTIVE' }, expiresAt: new Date(controls.expiresAt).toISOString() }
+      return publicSession()
     },
-    async logout(value) { calls.push({ operation: 'logout', value }); if (controls.failure) throw controls.failure },
+    async renew(value) {
+      calls.push({ operation: 'renew', value })
+      if (controls.failure) throw controls.failure
+      if (!value) throw new AuthBffError(401, 'SESSION_REQUIRED', 'Sign in required')
+      return { session: publicSession(), accessToken: 'not-a-browser-field', refreshToken: 'not-a-browser-field' }
+    },
+    async logout(value) { calls.push({ operation: 'logout', value }); if (controls.failure) throw controls.failure; return controls.logoutResult },
   }
   const handle = createStaffAuthHttp({ configFactory: () => config, authFactory: () => service })
   const request = (action = 'login', overrides = {}) => {
@@ -70,7 +77,7 @@ for (const [label, headers] of [
 ]) {
   test('write rejects ' + label + ' without touching a session', async () => {
     const f = fixture()
-    for (const action of ['login', 'logout']) assert.equal((await f.request(action, { headers })).status, 403)
+    for (const action of ['login', 'logout', 'renew']) assert.equal((await f.request(action, { headers })).status, 403)
     assert.equal(f.calls.length, 0)
   })
 }
@@ -193,4 +200,108 @@ test('a session already expired before cookie creation is not reported as a succ
   assert.equal(response.status, 503)
   assert.equal(response.headers.has('set-cookie'), false)
   assert.equal(f.calls.at(-1).operation, 'logout')
+})
+
+test('renewal route is explicitly disabled for the legacy configuration', async () => {
+  const f = fixture()
+  const response = await f.request('renew', { headers: { Cookie: 'cleanhome_staff_session=' + sid() } })
+  assert.equal(response.status, 503)
+  assert.equal((await response.json()).error.code, 'SESSION_RENEWAL_DISABLED')
+  assert.equal(f.calls.length, 0)
+  assert.equal(response.headers.has('set-cookie'), false)
+})
+
+test('renewal returns only the public DTO and extends the same secure opaque cookie', async () => {
+  const f = fixture({ renewable: true }), value = sid()
+  f.controls.expiresAt = Date.now() + 604800000
+  const response = await f.request('renew', { headers: { Cookie: 'cleanhome_staff_session=' + value } })
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.deepEqual(Object.keys(body), ['session'])
+  assert.equal(body.session.renewable, true)
+  assert.equal(JSON.stringify(body).includes('not-a-browser-field'), false)
+  assert.equal(JSON.stringify(body).includes(value), false)
+  assert.equal(f.calls[0].operation, 'renew')
+  assert.equal(f.calls[0].value, value)
+  const header = response.headers.get('set-cookie')
+  assert.match(header, new RegExp('^cleanhome_staff_session=' + value + '; Path=/; HttpOnly; SameSite=Lax; Max-Age='))
+  assert.ok(Number(header.match(/Max-Age=(\d+)/)[1]) <= 604800)
+  assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0')
+})
+
+test('renewable session inspection renews only its cookie; an old legacy record is not extended', async () => {
+  const f = fixture({ renewable: true }), value = sid()
+  const refreshed = await f.request('session', { headers: { Cookie: 'cleanhome_staff_session=' + value } })
+  assert.equal(refreshed.status, 200)
+  assert.ok(refreshed.headers.get('set-cookie').startsWith('cleanhome_staff_session=' + value + ';'))
+  f.controls.renewable = false
+  const legacy = await f.request('session', { headers: { Cookie: 'cleanhome_staff_session=' + value } })
+  assert.equal(legacy.status, 200)
+  assert.equal(legacy.headers.has('set-cookie'), false)
+})
+
+test('renewable inspection rejects cross-site/sibling-site keepalive while preserving direct same-origin reads', async () => {
+  for (const site of ['cross-site', 'same-site']) {
+    const f = fixture({ renewable: true })
+    const response = await f.request('session', { headers: { Origin: undefined, 'Sec-Fetch-Site': site, Cookie: 'cleanhome_staff_session=' + sid() } })
+    assert.equal(response.status, 403)
+    assert.equal(f.calls.length, 0)
+    assert.equal(response.headers.has('set-cookie'), false)
+  }
+  for (const site of ['same-origin', 'none']) {
+    const f = fixture({ renewable: true })
+    assert.equal((await f.request('session', { headers: { Origin: undefined, 'Sec-Fetch-Site': site, Cookie: 'cleanhome_staff_session=' + sid() } })).status, 200)
+  }
+})
+
+test('renewal rejects missing/foreign Origin, credential or proxy body fields and GET', async () => {
+  const f = fixture({ renewable: true })
+  for (const headers of [{ Origin: undefined }, { Origin: 'http://localhost:3001' }, { 'Sec-Fetch-Site': 'cross-site' }]) {
+    assert.equal((await f.request('renew', { headers })).status, 403)
+  }
+  for (const body of ['{"refreshToken":"not-accepted"}', '{"phone":"x","password":"x"}', '{"url":"http://internal.invalid"}']) {
+    assert.equal((await f.request('renew', { body })).status, 400)
+  }
+  assert.equal((await f.request('renew', { query: '?userId=1' })).status, 400)
+  assert.equal((await f.handle(new Request(origin + '/api/auth/renew'), 'renew')).status, 405)
+  assert.equal(f.calls.length, 0)
+})
+
+test('renewal missing/malformed cookie requires sign-in and clears only the Staff cookie', async () => {
+  for (const value of ['', 'cleanhome_staff_session=bad', 'cleanhome_staff_session=' + sid() + '; cleanhome_staff_session=' + sid()]) {
+    const f = fixture({ renewable: true })
+    const response = await f.request('renew', { headers: { Cookie: value } })
+    assert.equal(response.status, 401)
+    assert.match(response.headers.get('set-cookie'), /^cleanhome_staff_session=;.*Max-Age=0$/)
+    assert.equal(f.calls[0].value, undefined)
+  }
+})
+
+test('renewal authorization denial clears cookie while network/storage failures preserve it', async () => {
+  for (const [status, code] of [[401, 'SESSION_EXPIRED'], [403, 'ACCOUNT_LOCKED'], [503, 'AUTH_UNAVAILABLE'], [502, 'AUTH_INVALID_RESPONSE']]) {
+    const f = fixture({ renewable: true }); f.controls.failure = new AuthBffError(status, code, 'Safe message')
+    const response = await f.request('renew', { headers: { Cookie: 'cleanhome_staff_session=' + sid() } })
+    assert.equal(response.status, status)
+    assert.equal(response.headers.has('set-cookie'), status === 401 || status === 403)
+  }
+})
+
+test('renewal cannot emit an expired cookie or promote a nonrenewable record', async () => {
+  for (const expired of [true, false]) {
+    const f = fixture({ renewable: true })
+    if (expired) f.controls.expiresAt = Date.now() - 1000
+    else f.controls.renewable = false
+    const response = await f.request('renew', { headers: { Cookie: 'cleanhome_staff_session=' + sid() } })
+    assert.equal(response.status, 503)
+    assert.equal(response.headers.has('set-cookie'), false)
+  }
+})
+
+test('local logout reports pending Auth revocation without exposing queued credentials', async () => {
+  const f = fixture({ renewable: true })
+  f.controls.logoutResult = { authRevocationPending: true, refreshToken: 'never-browser', operationId: 'never-browser' }
+  const response = await f.request('logout', { headers: { Cookie: 'cleanhome_staff_session=' + sid() } })
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), { ok: true, authRevocationPending: true })
+  assert.match(response.headers.get('set-cookie'), /Max-Age=0/)
 })

@@ -1,5 +1,7 @@
 # CleanHome — Frontend Staff: đăng nhập và phiên Backend thật
 
+> Tài liệu ghi nhận Giai đoạn 1 ban đầu. Phần mô tả chưa có refresh/phiên chỉ sống theo JWT bên dưới là trạng thái lịch sử. Cơ chế mới đã được người dùng duyệt: xem [SESSION_RENEWAL.md](SESSION_RENEWAL.md) cho contract, cấu hình 7 ngày và bằng chứng runtime hiện tại.
+
 ## Phạm vi
 
 Giai đoạn 1 chỉ nối đăng nhập, kiểm tra phiên và đăng xuất của website Staff `http://localhost:3002` với Auth Service. Không nối UC9–UC12, không sửa Gateway hoặc source Backend, không ghi MySQL và không xóa localStorage cũ.

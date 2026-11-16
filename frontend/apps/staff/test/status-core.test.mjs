@@ -76,6 +76,13 @@ async function fixture(t) {
 }
 const errorCode = (code, outcome) => error => error instanceof AuthBffError && error.code === code && (outcome === undefined || error.outcome === outcome)
 
+// Existing journal fixtures predate the staffing guard; they test recovery, not new permission.
+async function priorOperation(f, actor, requestedStatus, idempotencyKey) {
+  const current = f.controls.details[actor]
+  await f.store.ensure({ userId: users[actor], assignmentId: ids[actor], orderId: current.orderId,
+    assignedAt: current.assignedAt, requestedStatus, fromStatus: requestedStatus === 'DONE' ? 'IN_PROGRESS' : 'ACCEPTED', idempotencyKey })
+}
+
 test('first legitimate transition forwards only fixed Staff PATCH and saves a confirmed receipt before returning', async t => {
   const f = await fixture(t), response = await f.service.update('A', ids.A, 'ACCEPTED', key)
   assert.equal(response.status, 200); assert.equal(response.body.operation.phase, 'confirmed')
@@ -198,7 +205,7 @@ test('ownership preflight denies cross-employee reads and writes with the same 4
   assert.equal(f.patches().length, 0)
 })
 
-test('actors sharing one booking retain separate assignment operations and backend booking snapshots', async t => {
+test('actors sharing one booking recover separate legacy operations and backend booking snapshots', async t => {
   const f = await fixture(t)
   f.controls.details.A = detail(ids.A, 'IN_PROGRESS', { orderStatus: 'in_progress', checkInAt: at })
   f.controls.details.B = detail(ids.B, 'IN_PROGRESS', { orderStatus: 'in_progress', checkInAt: at })
@@ -208,6 +215,8 @@ test('actors sharing one booking retain separate assignment operations and backe
     body.data.orderAtTransition.status = actor === 'A' ? 'IN_PROGRESS' : 'COMPLETED'
     return Response.json(body)
   }
+  await priorOperation(f, 'A', 'DONE', 'employee-a-done-key')
+  await priorOperation(f, 'B', 'DONE', 'employee-b-done-key')
   const a = await f.service.update('A', ids.A, 'DONE', 'employee-a-done-key')
   assert.equal(a.body.data.orderAtTransition.status, 'IN_PROGRESS')
   const b = await f.service.update('B', ids.B, 'DONE', 'employee-b-done-key')
@@ -225,12 +234,12 @@ test('the same key cannot be repurposed for a different transition', async t => 
   assert.equal(f.patches().length, 1)
 })
 
-test('a distinct key for an already confirmed step is refused; legitimate next step has its own key', async t => {
+test('a distinct key for a confirmed step is refused; new start is blocked before journal creation', async t => {
   const f = await fixture(t)
   await f.service.update('A', ids.A, 'ACCEPTED', key)
   await assert.rejects(f.service.update('A', ids.A, 'ACCEPTED', 'different-accepted-key'), errorCode('OPERATION_EXISTS', 'not_sent'))
-  const next = await f.service.update('A', ids.A, 'IN_PROGRESS', 'different-progress-key')
-  assert.equal(next.status, 200); assert.equal((await f.store.list(users.A, ids.A)).length, 2)
+  await assert.rejects(f.service.update('A', ids.A, 'IN_PROGRESS', 'different-progress-key'), errorCode('STAFFING_POLICY_REQUIRED', 'not_sent'))
+  assert.equal((await f.store.list(users.A, ids.A)).length, 1)
 })
 
 test('generation or order changes block stored operations instead of replacing their key', async t => {
@@ -258,6 +267,7 @@ test('pending acknowledgement can be retried after the booking completed without
   const f = await fixture(t)
   f.controls.details.A = detail(ids.A, 'IN_PROGRESS', { orderStatus: 'in_progress', checkInAt: at })
   f.controls.patch = record => { f.controls.details.A = detail(ids.A, 'DONE', { orderStatus: 'completed', checkInAt: at, checkOutAt: at }); return Response.json(result(record, 202, { checkInAt: at, checkOutAt: at }), { status: 202 }) }
+  await priorOperation(f, 'A', 'DONE', key)
   await f.service.update('A', ids.A, 'DONE', key)
   const view = await f.service.read('A', ids.A)
   assert.equal(view.operation.phase, 'pending'); assert.equal(view.canRetry, true)
@@ -280,6 +290,19 @@ test('preflight dependency failure never dispatches or creates a new mutation', 
   f.controls.getError = () => new Response('upstream down', { status: 503 })
   await assert.rejects(f.service.update('A', ids.A, 'ACCEPTED', key), errorCode('STAFF_UNAVAILABLE', 'not_sent'))
   assert.equal(f.patches().length, 0); assert.deepEqual(await f.store.list(users.A, ids.A), [])
+})
+
+test('existing Order rejection reasons become safe specific BFF errors without leaking details or inventing team policy', async t => {
+  for (const reason of ['INVALID_TRANSITION', 'BOOKING_CANCELLED', 'BOOKING_COMPLETED', 'BOOKING_NOT_CONFIRMED', 'CANCELLATION_PENDING', 'ASSIGNMENT_NOT_ACTIVE', 'STALE_ASSIGNMENT', 'IDEMPOTENCY_CONFLICT', 'OPERATION_CONFLICT']) {
+    const f = await fixture(t)
+    f.controls.patch = () => Response.json({ error: { code: 'ORDER_REJECTED', message: 'PRIVATE_UPSTREAM_MESSAGE', details: { reason, token: 'PRIVATE_UPSTREAM_TOKEN' } } }, { status: 409 })
+    await assert.rejects(f.service.update('A', ids.A, 'ACCEPTED', key), error => errorCode(reason, 'unknown')(error) && !error.message.includes('PRIVATE_') && error.operation.idempotencyKey === key)
+  }
+  for (const reason of ['UNAPPROVED_TEAM_REASON', '__proto__', null]) {
+    const f = await fixture(t)
+    f.controls.patch = () => Response.json({ error: { code: 'ORDER_REJECTED', message: 'PRIVATE_UPSTREAM_MESSAGE', details: { reason } } }, { status: 409 })
+    await assert.rejects(f.service.update('A', ids.A, 'ACCEPTED', key), error => errorCode('ORDER_REJECTED', 'unknown')(error) && !error.message.includes('PRIVATE_'))
+  }
 })
 
 test('late 202 from a concurrent same-key request cannot downgrade a confirmed receipt', async t => {
@@ -341,9 +364,10 @@ test('pending acknowledgement is never retried against cancelled work or a cance
   }
 })
 
-test('three legitimate transitions use three distinct keys and immutable per-step receipts', async t => {
+test('three legacy steps retain distinct keys and immutable per-step receipts during recovery', async t => {
   const f = await fixture(t)
   for (const [status, actionKey] of [['ACCEPTED', 'three-steps-accept'], ['IN_PROGRESS', 'three-steps-start'], ['DONE', 'three-steps-finish']]) {
+    if (status !== 'ACCEPTED') await priorOperation(f, 'A', status, actionKey)
     const response = await f.service.update('A', ids.A, status, actionKey)
     assert.equal(response.status, 200); assert.equal(response.body.operation.requestedStatus, status)
   }

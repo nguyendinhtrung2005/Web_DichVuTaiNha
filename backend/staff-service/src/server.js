@@ -7,8 +7,8 @@ let instance
 try {
   instance = runtime()
   await instance.repository.assertSchema()
-  const { config, service, authenticate, repository, pool } = instance
-  const app = createApp({ service, authenticate, repository, corsOrigins: config.corsOrigins, logger, statusUpdatesConfigured: Boolean(config.order.baseUrl && config.order.token) })
+  const { config, service, notificationService, areaService, incomeService, authenticate, repository, pool } = instance
+  const app = createApp({ service, notificationService, areaService, incomeService, authenticate, repository, corsOrigins: config.corsOrigins, logger, statusUpdatesConfigured: Boolean(config.order.baseUrl && config.order.token) })
   const server = app.listen(config.port, () => logger({ event: 'staff_service_listening', port: config.port }))
   server.headersTimeout = 15000
   server.requestTimeout = 30000

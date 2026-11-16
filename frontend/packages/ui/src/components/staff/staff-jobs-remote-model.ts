@@ -1,6 +1,7 @@
 /** UC9 uses the assignment DTO; it must never be cast to the local-store Order type. */
 export type RemoteStaffStatus = "WAITING" | "ACCEPTED" | "IN_PROGRESS" | "DONE" | "CANCELLED"
-export type StaffJobsQuery = { status: "" | RemoteStaffStatus; page: number; pageSize: number; sort: "asc" | "desc" }
+export type StaffJobsQuery = { status: "" | RemoteStaffStatus; page: number; pageSize: number; sort: "asc" | "desc"; from?: string; to?: string; serviceId?: string }
+export type StaffJobServiceOption = { id: string; name: string }
 export type RemoteStaffJob = {
   id: string
   assignmentId: string
@@ -93,13 +94,14 @@ export function parseStaffJobsPayload(value: unknown): RemoteStaffJobsPayload | 
 export function staffJobsQueryString(query: StaffJobsQuery): string {
   const params = new URLSearchParams({ page: String(query.page), pageSize: String(query.pageSize), sort: query.sort })
   if (query.status) params.set("status", query.status)
+  for (const key of ["from", "to", "serviceId"] as const) if (query[key]) params.set(key, query[key])
   return params.toString()
 }
 
 /** URL state has the same four supported filters as UC9, never an employee identity. */
 export function parseStaffJobsQuery(search: string): StaffJobsQuery | null {
   const params = new URLSearchParams(search)
-  const allowed = new Set(["status", "page", "pageSize", "sort"])
+  const allowed = new Set(["status", "page", "pageSize", "sort", "from", "to", "serviceId"])
   for (const key of params.keys()) if (!allowed.has(key) || params.getAll(key).length !== 1) return null
   const rawStatus = params.get("status")
   const status = rawStatus === "ASSIGNED" ? "WAITING" : rawStatus
@@ -108,7 +110,31 @@ export function parseStaffJobsQuery(search: string): StaffJobsQuery | null {
   if ((params.has("page") && !params.get("page")) || (params.has("pageSize") && !params.get("pageSize")) || (params.has("sort") && !params.get("sort"))
     || !/^[1-9]\d*$/.test(page) || !integer(Number(page), 1, 100_000) || !/^[1-9]\d*$/.test(pageSize) || !integer(Number(pageSize), 1, 100)
     || (sort !== "asc" && sort !== "desc")) return null
-  return { status: status as StaffJobsQuery["status"] || "", page: Number(page), pageSize: Number(pageSize), sort }
+  const result: StaffJobsQuery = { status: status as StaffJobsQuery["status"] || "", page: Number(page), pageSize: Number(pageSize), sort }
+  const from = params.get("from"), to = params.get("to"), serviceId = params.get("serviceId")
+  if (serviceId !== null) { if (!identifier(serviceId)) return null; result.serviceId = serviceId }
+  if (from !== null || to !== null) {
+    if (!validStaffJobsDateRange(from || "", to || "")) return null
+    result.from = from!; result.to = to!
+  }
+  return result
+}
+
+export function validStaffJobsDateRange(from: string, to: string): boolean {
+  const day = (value: string) => /^(19[7-9]\d|20\d\d)-\d{2}-\d{2}$/.test(value) && value >= "1971-01-01"
+    && Number.isFinite(Date.parse(value + "T00:00:00Z")) && new Date(value + "T00:00:00Z").toISOString().slice(0, 10) === value
+  return day(from) && day(to) && from <= to && (Date.parse(to) - Date.parse(from)) / 86400000 <= 365
+}
+
+export function parseStaffJobServiceOptions(value: unknown): StaffJobServiceOption[] | null {
+  if (!record(value) || !record(value.data) || !Array.isArray(value.data.services) || value.data.services.length > 500
+    || value.data.areaSupported !== false || value.data.requiredStaffCountSupported !== false) return null
+  const seen = new Set<string>(), result: StaffJobServiceOption[] = []
+  for (const item of value.data.services) {
+    if (!record(item) || !identifier(item.id) || typeof item.name !== "string" || !item.name.trim() || item.name.length > 20000 || seen.has(item.id)) return null
+    seen.add(item.id); result.push({ id: item.id, name: item.name })
+  }
+  return result
 }
 
 export function staffJobsListHref(query: StaffJobsQuery): string { return `/cong-viec?${staffJobsQueryString(query)}` }

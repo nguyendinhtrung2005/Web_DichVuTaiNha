@@ -15,8 +15,15 @@ const sid = () => randomBytes(32).toString('base64url')
 const body = () => ({ data: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }, timezone: 'Asia/Ho_Chi_Minh' })
 function fixture() {
   const config = { appOrigin: origin, secureCookie: false, cookieName: 'cleanhome_staff_session', staffUrl: 'http://127.0.0.1:4005', jobsTimeoutMs: 200 }
-  const sessionId = sid(), calls = [], controls = { authError: null, upstream: () => Response.json(body()), fetchError: null }
+  const sessionId = sid(), calls = [], controls = { accountId: '9109002', inspectError: null, authError: null, upstream: () => Response.json(body()), fetchError: null }
   const auth = {
+    async inspect(value) {
+      calls.push({ operation: 'inspect', sid: value })
+      if (controls.inspectError) throw controls.inspectError
+      if (controls.authError) throw controls.authError
+      if (value !== sessionId) throw new AuthBffError(401, 'SESSION_REQUIRED', 'Đăng nhập để tiếp tục.')
+      return { user: { id: controls.accountId, role: 'EMPLOYEE', status: 'ACTIVE' }, expiresAt: '2099-01-01T00:00:00.000Z' }
+    },
     async withAccessToken(value, callback) {
       calls.push({ operation: 'authorize', sid: value })
       if (controls.authError) throw controls.authError
@@ -296,4 +303,125 @@ test('UC9 server capability propagates a Staff failure without deleting or exten
     throw new AuthBffError(503, 'STAFF_UNAVAILABLE', 'Unit dependency unavailable')
   }), { status: 503, code: 'STAFF_UNAVAILABLE' })
   assert.deepEqual(await f.auth.inspect(f.login.sid), f.login.session)
+})
+
+
+// Account binding is a Staff BFF hint. It never replaces cookie authorization,
+// never selects a Backend employee and never travels to the Staff service.
+test('UC9 optional account hint binds the fixed GET to the inspected cookie actor and is not forwarded', async () => {
+  const f = fixture()
+  const response = await f.request({ headers: { 'X-Staff-Account-Id': f.controls.accountId, Authorization: 'Bearer untrusted-browser-value', 'X-Employee-Id': '999' } })
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), body())
+  assert.deepEqual(f.calls.map(value => value.operation), ['inspect', 'authorize', 'fetch'])
+  assert.equal(f.calls.find(value => value.operation === 'inspect').sid, f.sessionId)
+  assert.equal(f.calls.find(value => value.operation === 'authorize').sid, f.sessionId)
+  const upstream = f.calls.find(value => value.operation === 'fetch')
+  const headers = new Headers(upstream.init.headers)
+  assert.equal(headers.get('authorization'), 'Bearer unit-test-server-only-bearer')
+  assert.equal(headers.get('x-staff-account-id'), null)
+  assert.equal(headers.get('x-employee-id'), null)
+  assert.equal(headers.get('cookie'), null)
+  assert.deepEqual(Object.fromEntries(upstream.url.searchParams), { page: '1', pageSize: '20', sort: 'asc' })
+  assert.equal(response.headers.get('set-cookie'), null)
+})
+
+test('UC9 changed cookie actor returns a safe conflict without jobs, logout or cookie deletion', async () => {
+  const f = fixture()
+  const response = await f.request({ headers: { 'X-Staff-Account-Id': '9109003' } })
+  const value = await response.json()
+  assert.equal(response.status, 409)
+  assert.equal(value.error.code, 'STAFF_SESSION_CHANGED')
+  assert.equal(value.data, undefined)
+  assert.deepEqual(f.calls.map(call => call.operation), ['inspect'])
+  assert.equal(response.headers.get('set-cookie'), null)
+  assert.equal(response.headers.get('www-authenticate'), null)
+  assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0')
+  assert.equal(JSON.stringify(value).includes(f.controls.accountId), false)
+  assert.equal(JSON.stringify(value).includes('9109003'), false)
+  // A mismatch must not destroy the valid cookie; the matching current actor can retry.
+  assert.equal((await f.request({ headers: { 'X-Staff-Account-Id': f.controls.accountId } })).status, 200)
+})
+
+test('UC9 malformed account hints fail validation before auth or Backend access', async () => {
+  for (const value of ['', '0', '-1', '+1', '01', '1.0', '1e3', 'undefined', '9109002, 9109002', '9223372036854775808', '99999999999999999999']) {
+    const f = fixture()
+    const response = await f.request({ headers: { 'X-Staff-Account-Id': value } })
+    assert.equal(response.status, 400, value)
+    assert.equal((await response.json()).error.code, 'VALIDATION_ERROR', value)
+    assert.deepEqual(f.calls, [], value)
+    assert.equal(response.headers.get('set-cookie'), null, value)
+  }
+})
+
+test('UC9 account hints preserve canonical BIGINT strings without Number precision loss', async () => {
+  const f = fixture()
+  f.controls.accountId = '9223372036854775807'
+  assert.equal((await f.request({ headers: { 'X-Staff-Account-Id': f.controls.accountId } })).status, 200)
+  assert.equal((await f.request({ headers: { 'X-Staff-Account-Id': '9223372036854775806' } })).status, 409)
+})
+
+test('UC9 callers without an account hint retain the existing cookie-only behavior', async () => {
+  const f = fixture()
+  f.controls.inspectError = new Error('inspect must not be used for old callers')
+  assert.equal((await f.request()).status, 200)
+  assert.deepEqual(f.calls.map(value => value.operation), ['authorize', 'fetch'])
+})
+
+test('UC9 account hints cannot authorize missing, invalid, repeated or foreign session cookies', async () => {
+  for (const cookie of [undefined, 'cleanhome_staff_session=short', 'cleanhome_staff_session=' + sid(), 'cleanhome_staff_session=' + sid() + '; cleanhome_staff_session=' + sid()]) {
+    const f = fixture()
+    const response = await f.request({ headers: { Cookie: cookie, 'X-Staff-Account-Id': f.controls.accountId } })
+    assert.equal(response.status, 401)
+    assert.equal(f.calls.some(value => value.operation === 'authorize' || value.operation === 'fetch'), false)
+    assert.equal(f.calls.filter(value => value.operation === 'logout').length, 1)
+    assert.equal(response.headers.get('www-authenticate'), 'Session')
+    assert.match(response.headers.get('set-cookie'), /Max-Age=0/)
+  }
+})
+
+test('UC9 inspection outage with an account hint fails closed without revoking or exposing data', async () => {
+  for (const error of [new AuthBffError(503, 'AUTH_UNAVAILABLE', 'Chưa thể xác minh phiên.'), new TypeError('unit-private-inspection-detail')]) {
+    const f = fixture()
+    f.controls.inspectError = error
+    const response = await f.request({ headers: { 'X-Staff-Account-Id': f.controls.accountId } })
+    const value = await response.json()
+    assert.equal(response.status, 503)
+    assert.equal(value.data, undefined)
+    assert.equal(JSON.stringify(value).includes('unit-private-inspection-detail'), false)
+    assert.deepEqual(f.calls.map(call => call.operation), ['inspect'])
+    assert.equal(response.headers.get('set-cookie'), null)
+    assert.equal(response.headers.get('retry-after'), '5')
+  }
+})
+
+test('UC9 inspection denial with an account hint keeps accepted expiry and revocation behavior', async () => {
+  for (const [status, code] of [[401, 'SESSION_EXPIRED'], [403, 'ACCESS_DENIED']]) {
+    const f = fixture()
+    f.controls.inspectError = new AuthBffError(status, code, 'Phiên không hợp lệ.')
+    const response = await f.request({ headers: { 'X-Staff-Account-Id': f.controls.accountId } })
+    assert.equal(response.status, status)
+    assert.deepEqual(f.calls.map(call => call.operation), ['inspect', 'logout'])
+    assert.equal(f.calls.find(value => value.operation === 'logout').sid, f.sessionId)
+    assert.match(response.headers.get('set-cookie'), /Max-Age=0/)
+  }
+})
+
+test('UC9 account mismatch leaves the real encrypted unit session usable for its own actor', async t => {
+  const f = await sessionFixture(t)
+  const config = { ...f.config, appOrigin: origin, staffUrl: 'http://127.0.0.1:4005', jobsTimeoutMs: 200 }
+  let requests = 0
+  const handle = createStaffJobsHttp({ configFactory: () => config, authFactory: () => f.auth, fetchImpl: async () => { requests++; return Response.json(body()) } })
+  const request = accountId => handle(new Request(origin + '/api/staff/jobs', { headers: { Cookie: config.cookieName + '=' + f.login.sid, 'X-Staff-Account-Id': accountId } }))
+  const mismatch = await request('9109003')
+  assert.equal(mismatch.status, 409)
+  assert.equal((await mismatch.json()).error.code, 'STAFF_SESSION_CHANGED')
+  assert.equal(requests, 0)
+  assert.equal(mismatch.headers.get('set-cookie'), null)
+  assert.deepEqual(await f.auth.inspect(f.login.sid), f.login.session)
+  assert.equal((await readdir(f.config.sessionDir)).length, 1)
+  const own = await request(f.login.session.user.id)
+  assert.equal(own.status, 200)
+  assert.deepEqual(await own.json(), body())
+  assert.equal(requests, 1)
 })

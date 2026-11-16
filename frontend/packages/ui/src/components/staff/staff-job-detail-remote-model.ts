@@ -1,4 +1,6 @@
 import { parseStaffJobsPayload, parseStaffJobsQuery, staffJobsListHref, type RemoteStaffJob } from "./staff-jobs-remote-model"
+import { parseStaffTeam } from "./staff-team-contract.mjs"
+import type { StaffTeam } from "./staff-team-model"
 
 export type RemoteStaffJobDetail = Omit<RemoteStaffJob, "contact"> & {
   contact: RemoteStaffJob["contact"] & { phone: string | null; houseType: null; area: null; rooms: null; floors: null; hasPets: null }
@@ -8,6 +10,8 @@ export type RemoteStaffJobDetail = Omit<RemoteStaffJob, "contact"> & {
   historySource: "order-service-not-loaded" | "order-service-unavailable" | "order-service"
   unsupportedFields: string[]
   warnings?: { code: "ORDER_HISTORY_UNAVAILABLE"; message: string }[]
+  team?: StaffTeam | null
+  teamError?: "TEAM_READ_UNAVAILABLE"
 }
 
 function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === "object" && !Array.isArray(value) }
@@ -55,10 +59,18 @@ export function parseStaffJobDetailPayload(payload: unknown, expectedAssignmentI
       warnings.push({ code: "ORDER_HISTORY_UNAVAILABLE", message: warning.message })
     }
   }
+  let team: StaffTeam | null | undefined
+  if (source.team !== undefined) {
+    team = source.team === null ? null : parseStaffTeam(source.team, expectedAssignmentId, base.orderId) as StaffTeam | null
+    if (source.team !== null && (!team || team.members.find(member => member.isSelf)?.status !== source.databaseStatus)) return null
+  }
+  if (source.teamError !== undefined && (source.team !== null || source.teamError !== "TEAM_READ_UNAVAILABLE")) return null
   return {
     ...base, contact: { ...base.contact, phone: source.contact.phone, houseType: null, area: null, rooms: null, floors: null, hasPets: null },
     specialRequest: null, cancellationPending: source.cancellationPending, orderHistory,
     historySource: source.historySource as RemoteStaffJobDetail["historySource"], unsupportedFields: source.unsupportedFields.slice(),
+    ...(team === undefined ? {} : { team }),
+    ...(source.teamError === undefined ? {} : { teamError: "TEAM_READ_UNAVAILABLE" as const }),
     ...(warnings === undefined ? {} : { warnings }),
   }
 }

@@ -24,6 +24,7 @@ function sourceModule(relative) {
   vm.runInNewContext(output, {
     module, exports: module.exports, TextEncoder, TextDecoder, Uint8Array, URL,
     require(specifier) {
+      if (specifier === '@/components/staff/staff-route-policy') return sourceModule('staff/staff-route-policy.ts');
       if (specifier === '@/components/shared/route-policy') return sourceModule('shared/route-policy.ts');
       return localRequire(specifier);
     },

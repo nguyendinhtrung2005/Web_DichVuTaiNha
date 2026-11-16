@@ -4,13 +4,15 @@ import { HttpError } from './errors.js'
 // Cross-service tables are READ ONLY here. Only assignments is ever updated.
 const schema = {
   users: { id: 'bigint', full_name: 'varchar', phone: 'varchar', role: 'varchar', status: 'varchar' },
-  employees: { id: 'bigint', user_id: 'bigint', status: 'varchar' },
+  branches: { id: 'bigint', name: 'varchar', address_text: 'text', service_area: 'json', latitude: 'decimal', longitude: 'decimal', status: 'varchar' },
+  employees: { id: 'bigint', user_id: 'bigint', branch_id: 'bigint', status: 'varchar' },
   employee_availability: { id: 'bigint', employee_id: 'bigint', starts_at: 'timestamp', ends_at: 'timestamp', status: 'varchar' },
   assignments: { id: 'bigint', booking_id: 'bigint', employee_id: 'bigint', assigned_at: 'timestamp', check_in_at: 'timestamp', check_out_at: 'timestamp', status: 'varchar' },
   bookings: { id: 'bigint', customer_id: 'bigint', scheduled_start: 'timestamp', scheduled_end: 'timestamp', address_snapshot: 'json', status: 'varchar' },
   booking_items: { id: 'bigint', booking_id: 'bigint', service_id: 'bigint', service_name_snapshot: 'varchar', quantity: 'decimal', unit_price: 'decimal', unit_snapshot: 'varchar' },
   services: { id: 'bigint', name: 'varchar', unit: 'varchar' },
   booking_status_history: { id: 'bigint', booking_id: 'bigint', changed_by: 'bigint', status: 'varchar', note: 'text', created_at: 'timestamp' },
+  notifications: { id: 'bigint', user_id: 'bigint', booking_id: 'bigint', content: 'text', read_at: 'timestamp', created_at: 'timestamp' },
 }
 const tables = Object.keys(schema)
 const placeholders = values => values.map(() => '?').join(', ')
@@ -116,20 +118,64 @@ export class MysqlStaffRepository {
 
   async findEmployeeByUserId(userId) {
     return this.connection(async connection => {
-      const [rows] = await connection.execute(`SELECT e.id, e.user_id AS userId, e.status,
+      const [rows] = await connection.execute(`SELECT e.id, e.user_id AS userId, e.branch_id AS branchId, e.status,
         u.status AS userStatus, u.role AS userRole FROM employees e
         JOIN users u ON u.id = e.user_id WHERE e.user_id = ? LIMIT 1`, [userId])
       const row = rows[0]
-      return row ? { ...row, id: String(row.id), userId: String(row.userId) } : null
+      return row ? { ...row, id: String(row.id), userId: String(row.userId), branchId: String(row.branchId) } : null
     })
   }
 
-  async findJobs(employeeId, { status, page = 1, pageSize = 20, sort = 'asc', fromUtc, toUtc }) {
+  /** Read-only branch record; service_area is returned exactly as stored. */
+  async findBranch(branchId) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT id, name, address_text AS addressText,
+        service_area AS serviceArea, latitude, longitude, status FROM branches WHERE id = ? LIMIT 1`, [branchId])
+      const row = rows[0]
+      return row ? {
+        ...row, id: String(row.id),
+        latitude: row.latitude === null ? null : String(row.latitude),
+        longitude: row.longitude === null ? null : String(row.longitude),
+      } : null
+    })
+  }
+
+  /** Read-only availability windows overlapping the requested UTC range. */
+  async findAvailability(employeeId, { fromUtc, toUtc }) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT id, starts_at AS startsAt, ends_at AS endsAt, status
+        FROM employee_availability WHERE employee_id = ? AND ends_at > ? AND starts_at < ?
+        ORDER BY starts_at, id LIMIT 501`, [employeeId, fromUtc, toUtc])
+      return rows.map(row => ({ ...row, id: String(row.id) }))
+    })
+  }
+
+  /**
+   * Read-only assignments completed in the Vietnam month, plus scheduled rows for data-quality review.
+   * The extra row makes an over-limit period detectable so no partial total is
+   * ever returned. No booking_items join: one booking is still one assignment.
+   */
+  async findIncomeAssignments(employeeId, { fromUtc, toUtc }) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT a.id, a.booking_id AS bookingId, a.status,
+        a.check_in_at AS checkInAt, a.check_out_at AS checkOutAt,
+        b.scheduled_start AS scheduledStart, b.scheduled_end AS scheduledEnd, b.status AS bookingStatus
+        FROM assignments a JOIN bookings b ON b.id = a.booking_id
+        WHERE a.employee_id = ? AND ((a.check_out_at >= ? AND a.check_out_at < ?)
+          OR (b.scheduled_start >= ? AND b.scheduled_start < ?))
+        ORDER BY b.scheduled_start, a.id LIMIT 501`, [employeeId, fromUtc, toUtc, fromUtc, toUtc])
+      return rows.map(row => ({ ...row, id: String(row.id), bookingId: String(row.bookingId) }))
+    })
+  }
+
+  async findJobs(employeeId, { status, page = 1, pageSize = 20, sort = 'asc', fromUtc, toUtc, serviceId }) {
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100 || !['asc', 'desc'].includes(sort)) {
       throw new HttpError(400, 'INVALID_PAGINATION', 'Phân trang hoặc sắp xếp không hợp lệ.')
     }
     const where = ['a.employee_id = ?'], values = [employeeId]
     if (status) { where.push('a.status = ?'); values.push(status) }
+    // EXISTS avoids multiplying assignments when a booking has repeated service lines.
+    if (serviceId) { where.push('EXISTS (SELECT 1 FROM booking_items filtered WHERE filtered.booking_id = b.id AND filtered.service_id = ?)'); values.push(serviceId) }
     if (fromUtc || toUtc) {
       if (!fromUtc || !toUtc) throw new HttpError(400, 'INVALID_RANGE', 'Cần đủ thời điểm bắt đầu và kết thúc.')
       where.push('b.scheduled_start < ? AND b.scheduled_end > ?'); values.push(toUtc, fromUtc)
@@ -152,6 +198,31 @@ export class MysqlStaffRepository {
     return this.connection(async connection => {
       const [rows] = await connection.execute(`${jobSelect} WHERE a.employee_id = ? AND a.id = ? LIMIT 1`, [employeeId, assignmentId])
       return job(rows[0])
+    })
+  }
+
+  /** Facets cover this employee's assignments across all pages, never another employee's catalog. */
+  async findJobServices(employeeId) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT DISTINCT s.id, s.name FROM services s
+        JOIN booking_items bi ON bi.service_id = s.id
+        JOIN assignments a ON a.booking_id = bi.booking_id WHERE a.employee_id = ?
+        ORDER BY s.name, s.id LIMIT 501`, [employeeId])
+      if (rows.length > 500) throw new HttpError(503, 'JOB_FILTERS_UNAVAILABLE', 'Danh sách loại dịch vụ chưa thể tải đầy đủ.')
+      return rows.map(row => ({ id: String(row.id), name: row.name }))
+    })
+  }
+
+  /** Same-booking team projection, rechecked against the caller's own assignment. No peer personal data. */
+  async findTeamRoster(employeeId, assignmentId, bookingId) {
+    return this.connection(async connection => {
+      const [rows] = await connection.execute(`SELECT a.id, a.booking_id AS bookingId, a.employee_id AS employeeId, a.status,
+        e.status AS employeeStatus, u.status AS userStatus, u.role AS userRole
+        FROM assignments a JOIN employees e ON e.id = a.employee_id JOIN users u ON u.id = e.user_id
+        WHERE a.booking_id = ? AND EXISTS (SELECT 1 FROM assignments owned
+          WHERE owned.id = ? AND owned.employee_id = ? AND owned.booking_id = a.booking_id)
+        ORDER BY a.id LIMIT 501`, [bookingId, assignmentId, employeeId])
+      return rows.map(row => ({ ...row, id: String(row.id), bookingId: String(row.bookingId), employeeId: String(row.employeeId) }))
     })
   }
 
