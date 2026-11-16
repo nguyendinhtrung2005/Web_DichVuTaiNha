@@ -18,8 +18,7 @@ const LINK_GROUPS = [
   {
     title: "Tài khoản",
     links: [
-      { href: "/don-cua-toi", label: "Lịch dịch vụ" },
-      { href: "/don-san-pham", label: "Đơn sản phẩm" },
+      { href: "/don-cua-toi", label: "Đơn của tôi" },
       { href: "/lich-su", label: "Lịch sử dịch vụ" },
       { href: "/ho-so", label: "Hồ sơ cá nhân" },
     ],
