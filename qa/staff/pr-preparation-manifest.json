@@ -1,0 +1,2597 @@
+{
+  "schemaVersion": 1,
+  "remoteBranch": "integration/uc9-uc12",
+  "confirmedRemoteBase": "72be976d0cce009c54c2503608689b3c8987873d",
+  "sourceBranch": "feat/staff-rebuild",
+  "sourceHead": "c8dec005f87a8bad4a9bb8f763348a5b74c0f438",
+  "prBranch": "pr/staff-demo-ready-20261106",
+  "commitsCreated": 0,
+  "transferredFingerprint": "19de431a48b967693fbc0ae5fab56daa24bc7c24b84e5de922816c3110162d47",
+  "files": [
+    {
+      "path": "backend/staff-service/package.json",
+      "group": "Staff Backend",
+      "sha256": "ce5c2e95394f35175180de407ed7291f31a7c4dca5df59a19091952fbbe0f2df",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ce5c2e95394f35175180de407ed7291f31a7c4dca5df59a19091952fbbe0f2df"
+    },
+    {
+      "path": "backend/staff-service/scripts/qa-readonly-snapshot.mjs",
+      "group": "QA/test",
+      "sha256": "9f27adc7aeefe2b239ec519aab1975d5684f80aac444496f5faa08d061185f18",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9f27adc7aeefe2b239ec519aab1975d5684f80aac444496f5faa08d061185f18"
+    },
+    {
+      "path": "backend/staff-service/src/app.js",
+      "group": "Staff Backend",
+      "sha256": "961bd698ff8001c82e64b3b10dbabef301fb4e4fdc0ae186b299b9918e2ddc4d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "961bd698ff8001c82e64b3b10dbabef301fb4e4fdc0ae186b299b9918e2ddc4d"
+    },
+    {
+      "path": "backend/staff-service/src/area-service.js",
+      "group": "Staff Backend",
+      "sha256": "5b84edfd83af1dfbc7ead32b140f1a7d2ef7e4b97db26c6f2696e88b5a78b0b8",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "5b84edfd83af1dfbc7ead32b140f1a7d2ef7e4b97db26c6f2696e88b5a78b0b8"
+    },
+    {
+      "path": "backend/staff-service/src/income-configured-policy.js",
+      "group": "Staff Backend",
+      "sha256": "1a435498d2b72f66d46abfa1744c366a35a10cc1a441da74f3c515958981b301",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "1a435498d2b72f66d46abfa1744c366a35a10cc1a441da74f3c515958981b301"
+    },
+    {
+      "path": "backend/staff-service/src/income-policy.js",
+      "group": "Staff Backend",
+      "sha256": "0ba1624d79baeba47d0bf8761c098eb02db8993d16d8e57bd07f066d67b6221c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "0ba1624d79baeba47d0bf8761c098eb02db8993d16d8e57bd07f066d67b6221c"
+    },
+    {
+      "path": "backend/staff-service/src/income-service.js",
+      "group": "Staff Backend",
+      "sha256": "32adb23eb28c7b8e5b6da167b37cc3939b7934194a5ac8a52ce1620a885dc01d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "32adb23eb28c7b8e5b6da167b37cc3939b7934194a5ac8a52ce1620a885dc01d"
+    },
+    {
+      "path": "backend/staff-service/src/mapping.js",
+      "group": "Staff Backend",
+      "sha256": "ed51bae37a92c22de45fd782e6fd20746737797a38132d0081b861a32bd5e6bd",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ed51bae37a92c22de45fd782e6fd20746737797a38132d0081b861a32bd5e6bd"
+    },
+    {
+      "path": "backend/staff-service/src/notification-repository.js",
+      "group": "Staff Backend",
+      "sha256": "6929e38cc845c1f32bbbd74412a5424d19fa25361f55d43cdc38ea1daf0e923e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "6929e38cc845c1f32bbbd74412a5424d19fa25361f55d43cdc38ea1daf0e923e"
+    },
+    {
+      "path": "backend/staff-service/src/notification-service.js",
+      "group": "Staff Backend",
+      "sha256": "009c0c57a20f5a85e09e9dca135b8a531e07a2a2c20b6e37857fef35d3ec4ca9",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "009c0c57a20f5a85e09e9dca135b8a531e07a2a2c20b6e37857fef35d3ec4ca9"
+    },
+    {
+      "path": "backend/staff-service/src/repository.js",
+      "group": "Staff Backend",
+      "sha256": "a65bf7f2e00474ed1f308526be6f61c6826b9b4813716f69d6dadd5f2ff0d874",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a65bf7f2e00474ed1f308526be6f61c6826b9b4813716f69d6dadd5f2ff0d874"
+    },
+    {
+      "path": "backend/staff-service/src/runtime.js",
+      "group": "Staff Backend",
+      "sha256": "63ed45a09b159c925f7ed8709fcded593013b7f712a97999458c699ce853e134",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "63ed45a09b159c925f7ed8709fcded593013b7f712a97999458c699ce853e134"
+    },
+    {
+      "path": "backend/staff-service/src/server.js",
+      "group": "Staff Backend",
+      "sha256": "257de657a259405880deda27bd36851e18abf48fa696c79af16e956bbd3a3d2a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "257de657a259405880deda27bd36851e18abf48fa696c79af16e956bbd3a3d2a"
+    },
+    {
+      "path": "backend/staff-service/src/validation.js",
+      "group": "Staff Backend",
+      "sha256": "5fce74b21187729a44a6deb127a72f69d1fc9e3cc8d3991d850b9504310bfb7e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "5fce74b21187729a44a6deb127a72f69d1fc9e3cc8d3991d850b9504310bfb7e"
+    },
+    {
+      "path": "backend/staff-service/test/areas.test.js",
+      "group": "QA/test",
+      "sha256": "11a3ad1bd7602e297b141900037f547d069fd1378f6161a83dd7d76fc6551e77",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "11a3ad1bd7602e297b141900037f547d069fd1378f6161a83dd7d76fc6551e77"
+    },
+    {
+      "path": "backend/staff-service/test/income-configured-policy.test.js",
+      "group": "QA/test",
+      "sha256": "e4caccf88a10071d2ea475e4cd98b86a71350dee1bd1acb171464ecd07056e31",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "e4caccf88a10071d2ea475e4cd98b86a71350dee1bd1acb171464ecd07056e31"
+    },
+    {
+      "path": "backend/staff-service/test/income-policy.test.js",
+      "group": "QA/test",
+      "sha256": "a52a32e27b7267663d915edc5e3c404796cc756d3c35241bd40b71893aba9a87",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a52a32e27b7267663d915edc5e3c404796cc756d3c35241bd40b71893aba9a87"
+    },
+    {
+      "path": "backend/staff-service/test/income.test.js",
+      "group": "QA/test",
+      "sha256": "95c64fdd98b40cb25f27be374ff3cc5e86189d450ee90f6b0983d41c30d11b74",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "95c64fdd98b40cb25f27be374ff3cc5e86189d450ee90f6b0983d41c30d11b74"
+    },
+    {
+      "path": "backend/staff-service/test/notifications.test.js",
+      "group": "QA/test",
+      "sha256": "b5f1bc36f7b76397d39c2ea98f9e026522ea01026c82012968c74603507663f1",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "b5f1bc36f7b76397d39c2ea98f9e026522ea01026c82012968c74603507663f1"
+    },
+    {
+      "path": "backend/staff-service/test/repository.test.js",
+      "group": "QA/test",
+      "sha256": "a04cae5b3337dce417130dc5672c52ca240f1d80b81d23fec4e0c76640d09456",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a04cae5b3337dce417130dc5672c52ca240f1d80b81d23fec4e0c76640d09456"
+    },
+    {
+      "path": "docs/cleanhome-erd-32-tables.png",
+      "group": "Database/ERD",
+      "sha256": "eeb031430103c08789df35fc46f73fe95b1ab1d367b65e4fc10e5f86aa6ccaa1",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "eeb031430103c08789df35fc46f73fe95b1ab1d367b65e4fc10e5f86aa6ccaa1"
+    },
+    {
+      "path": "docs/cleanhome-erd-32-tables.svg",
+      "group": "Database/ERD",
+      "sha256": "547ffe441ae3964e7dcb0cfa98943721048e46c1c083e61178f92a9515cddc79",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "547ffe441ae3964e7dcb0cfa98943721048e46c1c083e61178f92a9515cddc79"
+    },
+    {
+      "path": "docs/cleanhome-erd-export.json",
+      "group": "Database/ERD",
+      "sha256": "59e6029f9287a7e619f6c02061a87e362b0ebca2b3780e81043f601aea8ade37",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "59e6029f9287a7e619f6c02061a87e362b0ebca2b3780e81043f601aea8ade37"
+    },
+    {
+      "path": "docs/cleanhome-erd.mmd",
+      "group": "Database/ERD",
+      "sha256": "0f02c70772256d14f2144bbac6a334363cc8a8e0ce07ae5e3d7dd15e1e47f207",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "0f02c70772256d14f2144bbac6a334363cc8a8e0ce07ae5e3d7dd15e1e47f207"
+    },
+    {
+      "path": "docs/database-architecture-summary.md",
+      "group": "Database/ERD",
+      "sha256": "e25ee2fe3f8c4ca4ca73a9bb5bf5358d99b10db5d4664608103a1bcf9bd00721",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "e25ee2fe3f8c4ca4ca73a9bb5bf5358d99b10db5d4664608103a1bcf9bd00721"
+    },
+    {
+      "path": "docs/database-erd-export.md",
+      "group": "Database/ERD",
+      "sha256": "203822fcc2e306cba74043e077401d2ceb07d792997f28828043427e8591e90d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "203822fcc2e306cba74043e077401d2ceb07d792997f28828043427e8591e90d"
+    },
+    {
+      "path": "docs/database-migration-backlog.md",
+      "group": "Database/ERD",
+      "sha256": "bfd3f67b76fbf7098b9f983abe1b4776b9803fa9d2d1ad3966c4a2cc0ab3863c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "bfd3f67b76fbf7098b9f983abe1b4776b9803fa9d2d1ad3966c4a2cc0ab3863c"
+    },
+    {
+      "path": "docs/database-ownership.md",
+      "group": "Database/ERD",
+      "sha256": "9336074344a6c422fc3b72a068c009e086d4cfdea0e98485b03fc0784e72ea46",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9336074344a6c422fc3b72a068c009e086d4cfdea0e98485b03fc0784e72ea46"
+    },
+    {
+      "path": "docs/database-structure-review.md",
+      "group": "Database/ERD",
+      "sha256": "dcb6e931ea729345e43e8186672d040ac6a0d67f91272e8f4567d24372ee0bcc",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "dcb6e931ea729345e43e8186672d040ac6a0d67f91272e8f4567d24372ee0bcc"
+    },
+    {
+      "path": "docs/export-cleanhome-erd.mjs",
+      "group": "Database/ERD",
+      "sha256": "192fde3132276dd43ed130a9653f02cd9d47a82eed413013c51edb924efce3bd",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "192fde3132276dd43ed130a9653f02cd9d47a82eed413013c51edb924efce3bd"
+    },
+    {
+      "path": "frontend/apps/staff/.env.example",
+      "group": "Frontend Staff",
+      "sha256": "e9743691d5f309d1a0f11ed3323bcd526bbc342cff50d5689b1b320fe1923c96",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "e9743691d5f309d1a0f11ed3323bcd526bbc342cff50d5689b1b320fe1923c96"
+    },
+    {
+      "path": "frontend/apps/staff/app/[[...slug]]/page.tsx",
+      "group": "Frontend Staff",
+      "sha256": "9dfee66ac4dfd9cec67c99232703c7ce1335cd7085b6c3895c097aa3e637971c",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "9dfee66ac4dfd9cec67c99232703c7ce1335cd7085b6c3895c097aa3e637971c"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/auth/renew/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "4ff2c9a0f2d9d6f6da2a1f9789f1a18faa62a7b3c7bc7dc6262aef0b464299c3",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "4ff2c9a0f2d9d6f6da2a1f9789f1a18faa62a7b3c7bc7dc6262aef0b464299c3"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/availability/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "73200049e155e34419e1caeca816686d3068fc5fab6d53a9d98ef50f5e4e5657",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "73200049e155e34419e1caeca816686d3068fc5fab6d53a9d98ef50f5e4e5657"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/branch/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "73200049e155e34419e1caeca816686d3068fc5fab6d53a9d98ef50f5e4e5657",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "73200049e155e34419e1caeca816686d3068fc5fab6d53a9d98ef50f5e4e5657"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/income/estimate/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "eee663bab2744d3286cec7e7c8b7b114feb868fd5fa3ddb7c89ef3f8a8ab4135",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "eee663bab2744d3286cec7e7c8b7b114feb868fd5fa3ddb7c89ef3f8a8ab4135"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/notifications/[notificationId]/read/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "990b35d226611091ceffbfaaf589057957c5d7c3b1b00de1084b32d005311685",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "990b35d226611091ceffbfaaf589057957c5d7c3b1b00de1084b32d005311685"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/notifications/read-all/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "9d40fdd24d4dfad569a3654e0e54416ee0631dde3ae822ae8f5b33852b40f5a4",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9d40fdd24d4dfad569a3654e0e54416ee0631dde3ae822ae8f5b33852b40f5a4"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/notifications/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "71b078a1aedb1e5ecde80278322fb39afd2542387948ed8ed3e7f67df7eac118",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "71b078a1aedb1e5ecde80278322fb39afd2542387948ed8ed3e7f67df7eac118"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/notifications/unread-count/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "7f1ced1387eedeeb0b1c29a602156351ea6835bb12f75eacfaaf937bdf75326c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "7f1ced1387eedeeb0b1c29a602156351ea6835bb12f75eacfaaf937bdf75326c"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/reviews/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "7b91d852277456d797fd902fc5722b3d72fa3f3abed357ca163379cd590c0cf6",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "7b91d852277456d797fd902fc5722b3d72fa3f3abed357ca163379cd590c0cf6"
+    },
+    {
+      "path": "frontend/apps/staff/app/api/staff/support/chat/route.ts",
+      "group": "Frontend Staff",
+      "sha256": "26cf0257df4106b5049a9ac537db27e950b8bbbc73bb6067bf77bd040dcc9d96",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "26cf0257df4106b5049a9ac537db27e950b8bbbc73bb6067bf77bd040dcc9d96"
+    },
+    {
+      "path": "frontend/apps/staff/app/globals.css",
+      "group": "Frontend Staff",
+      "sha256": "cb09ab198a77759201abab9f552f4afffdde6769642e368dc5269ae5daf6b416",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "cb09ab198a77759201abab9f552f4afffdde6769642e368dc5269ae5daf6b416"
+    },
+    {
+      "path": "frontend/apps/staff/app/layout.tsx",
+      "group": "Frontend Staff",
+      "sha256": "19aedbcabd977428bbba92ff64c001741efc0aa41c877c1afd6617bac22d97e3",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "19aedbcabd977428bbba92ff64c001741efc0aa41c877c1afd6617bac22d97e3"
+    },
+    {
+      "path": "frontend/apps/staff/docs/AUTH_INTEGRATION.md",
+      "group": "Staff docs",
+      "sha256": "ce87e6c5998d8535db639e37fe49d9613d8c1e760ed578968c6bd0ceb3695520",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "ce87e6c5998d8535db639e37fe49d9613d8c1e760ed578968c6bd0ceb3695520"
+    },
+    {
+      "path": "frontend/apps/staff/docs/LOGIN_FORM_STABILITY.md",
+      "group": "Staff docs",
+      "sha256": "fde28d8407db54143384f83ade1c83608ed0e1c28ec3ab56c4b6cddf9cc974c5",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "fde28d8407db54143384f83ade1c83608ed0e1c28ec3ab56c4b6cddf9cc974c5"
+    },
+    {
+      "path": "frontend/apps/staff/docs/SESSION_RENEWAL.md",
+      "group": "Staff docs",
+      "sha256": "73421a8ce0de19d224068f4a5b8e9c36bbf04735c8099e316da22c92070358d0",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "5d059649e0a9dff53bcdf1153a5fd6cba08d0fcef29dd30acda10b69be313bc5"
+    },
+    {
+      "path": "frontend/apps/staff/docs/SESSION_RENEWAL_PROPOSAL.md",
+      "group": "Staff docs",
+      "sha256": "ec02f28015a953b1fac24a413a2982fbedb2946f2dfebf5441bcda43e4b4e0d4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "2862e13cbdd6114f9004db1b943097f7545ad0872cffc25a064d2217d86f2a82"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_ACHIEVEMENTS_DEMO.md",
+      "group": "Staff docs",
+      "sha256": "70beab21968f43a30ba5866cfb40181e6ecfef567f7a0609ddb1781779e13702",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "70beab21968f43a30ba5866cfb40181e6ecfef567f7a0609ddb1781779e13702"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_AREAS_DEMO.md",
+      "group": "Staff docs",
+      "sha256": "c252b81c7e0a89e2112a0879f074779a29ed95896740e7708e7e32b76daf6fc0",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "c252b81c7e0a89e2112a0879f074779a29ed95896740e7708e7e32b76daf6fc0"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_AVAILABILITY_REQUESTS.md",
+      "group": "Staff docs",
+      "sha256": "ec7cac39927ac023e8256e040467d54b9c39ed8a2f44a45389ad899474cd6273",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ec7cac39927ac023e8256e040467d54b9c39ed8a2f44a45389ad899474cd6273"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BACKEND_CONTRACT_PROPOSALS.md",
+      "group": "Staff docs",
+      "sha256": "4c94b162cb94ba5467586a902473e6a427246ca6e60769ad8cd80f4b62b59740",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "4c94b162cb94ba5467586a902473e6a427246ca6e60769ad8cd80f4b62b59740"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BACKEND_IMPLEMENTATION_REQUESTS.md",
+      "group": "Staff docs",
+      "sha256": "0c817bb90eb8ff2c6e837a5252c62aa07e3108bf7c1b42e6be0920608d61f60e",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "0c817bb90eb8ff2c6e837a5252c62aa07e3108bf7c1b42e6be0920608d61f60e"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BACKEND_INTEGRATION_GAPS.md",
+      "group": "Staff docs",
+      "sha256": "43b29bf794a0bc7fc9f9a63e732440a0d1d6ea1a0b8f8f60ab9327e454091268",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "43b29bf794a0bc7fc9f9a63e732440a0d1d6ea1a0b8f8f60ab9327e454091268"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BUG_AUDIT.md",
+      "group": "Staff docs",
+      "sha256": "00e7354375b6de4d073ddac4be6ad8fd44ab9242c13aaaeb02a96f851d901513",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "00e7354375b6de4d073ddac4be6ad8fd44ab9242c13aaaeb02a96f851d901513"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_BUSINESS_SPEC.md",
+      "group": "Staff docs",
+      "sha256": "b04632da016611fe7efc000ab77c8b0f6f1ac5f573db63821af03980040b39c2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "52294cd4d359baa803872613f42d9109d103b6a638b91e348b02302c69124a32",
+      "preparationAdjustment": "Whitespace only: trailing spaces or redundant blank lines at EOF"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_DATA_ZERO_20261104.md",
+      "group": "Staff docs",
+      "sha256": "bc6b7dee0915b18cf6af0f4417c5f802dacce78aed2f779185d6cbca9906c908",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "bc6b7dee0915b18cf6af0f4417c5f802dacce78aed2f779185d6cbca9906c908"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_FINAL_QA_REPORT.md",
+      "group": "Staff docs",
+      "sha256": "02ecd530235abc172073c973a683789a104911d51cb6d6e324d58e32af9121f5",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "02ecd530235abc172073c973a683789a104911d51cb6d6e324d58e32af9121f5"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_GOOGLE_MAPS_SETUP.md",
+      "group": "Staff docs",
+      "sha256": "f99f6213f70aeebbad48d88842486b47280ec8c5b5114e0803838fe255c89847",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "f99f6213f70aeebbad48d88842486b47280ec8c5b5114e0803838fe255c89847"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_INCOME_ACCEPTANCE_CONTRACT_PROPOSAL.md",
+      "group": "Staff docs",
+      "sha256": "8bf0a971c8534cbc02318200b690842af4dfee660a6c8b6f235a6cd9ea3ef59a",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "8bf0a971c8534cbc02318200b690842af4dfee660a6c8b6f235a6cd9ea3ef59a"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_INCOME_DEMO.md",
+      "group": "Staff docs",
+      "sha256": "f2a1f99a456a298563f6877c921f5bb54b29e8c6b6891a597e310fac680373ff",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "f2a1f99a456a298563f6877c921f5bb54b29e8c6b6891a597e310fac680373ff"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_INCOME_POLICY_CONFIGURATION.md",
+      "group": "Staff docs",
+      "sha256": "29bd39f81f216dd3ba3ca88363008081370c279d27962f80fb65d9ba4a52a082",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "29bd39f81f216dd3ba3ca88363008081370c279d27962f80fb65d9ba4a52a082"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_MAPS_SETUP.md",
+      "group": "Staff docs",
+      "sha256": "6cb56c1d42e6f0a67fefbd96bdfb594967e355412997ac8d342d22fd7ef09171",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "6cb56c1d42e6f0a67fefbd96bdfb594967e355412997ac8d342d22fd7ef09171"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_MODULES_VALIDATION_20261105.md",
+      "group": "Staff docs",
+      "sha256": "35f2adaa544cfdd4d5c5aed0003823ee4fd57acdc6be77ab5fc54df934a9af24",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "35f2adaa544cfdd4d5c5aed0003823ee4fd57acdc6be77ab5fc54df934a9af24"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_NOTIFICATIONS_DEMO.md",
+      "group": "Staff docs",
+      "sha256": "c989b1cfd74e1b70134588748664aa1b9aec6bfd6b9de983b4fc5acc60bee9c4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "c989b1cfd74e1b70134588748664aa1b9aec6bfd6b9de983b4fc5acc60bee9c4"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PRIORITIES_20261104.md",
+      "group": "Staff docs",
+      "sha256": "588c0c648cafa83ce5c5fc64ed39796ea7d7524af40c31f2d27c7882353e43e8",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "588c0c648cafa83ce5c5fc64ed39796ea7d7524af40c31f2d27c7882353e43e8"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PROFILE_DEMO.md",
+      "group": "Staff docs",
+      "sha256": "59673bde63975b61f74c5d1ca126c40a593961104c0a48ed431a8fcc23fe42ce",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "59673bde63975b61f74c5d1ca126c40a593961104c0a48ed431a8fcc23fe42ce"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_REAL_API_INTEGRATION.md",
+      "group": "Staff docs",
+      "sha256": "825318efe08da36039d3e3ee9137d0ba8e84b68129d4e13bec9cf8d8ce0bf532",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "8a2eed253a58e6dab2886cefa414172908e89815eb6c53f1b2e7aaa3d61d1266",
+      "preparationAdjustment": "Whitespace only: trailing spaces or redundant blank lines at EOF"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_REBUILD_PLAN.md",
+      "group": "Staff docs",
+      "sha256": "2d9156bb535bc0dcaed6d92a051564dfa6a512daba3643308eec4c59829bc782",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "2d9156bb535bc0dcaed6d92a051564dfa6a512daba3643308eec4c59829bc782"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_REBUILD_PROGRESS.md",
+      "group": "Staff docs",
+      "sha256": "023b9ca5be7d4cda5d98551a4c96b0c268d95a8aeb42af37c06b074f86ca4dd4",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "023b9ca5be7d4cda5d98551a4c96b0c268d95a8aeb42af37c06b074f86ca4dd4"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_REVIEWS_INTEGRATION.md",
+      "group": "Staff docs",
+      "sha256": "262f6bad6b6dd3f4b76c22bb346c41dc45828cecabefa9a9a976a4150c59a284",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "262f6bad6b6dd3f4b76c22bb346c41dc45828cecabefa9a9a976a4150c59a284"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_SETTINGS_INTEGRATION.md",
+      "group": "Staff docs",
+      "sha256": "04048658831a674fc77dc8ca4621a12254ea28abfb8d8b6c8f9485d92462fa7c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "04048658831a674fc77dc8ca4621a12254ea28abfb8d8b6c8f9485d92462fa7c"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_STAGE6_ACCEPTANCE.md",
+      "group": "Staff docs",
+      "sha256": "5ec5841818c7f55d7bc573e3180c7aa7b4d4bb4d3cdb5b9e2c9b0212f4c27641",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ef3b03a1e055978411313cf9e44e052ed1ff3299b8742f7defd6bb67cc9c9033"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_SUPPORT_AI_CONFIGURATION.md",
+      "group": "Staff docs",
+      "sha256": "52dd2d604e0779fa6d58ae80da02c65263dbfc4200ac865185d231b70750947f",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "52dd2d604e0779fa6d58ae80da02c65263dbfc4200ac865185d231b70750947f"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_SUPPORT_DEMO.md",
+      "group": "Staff docs",
+      "sha256": "aeacf2893a8038137408d4d2c769cd27b80c7403c1561b156b71ab3134aa1ac0",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "aeacf2893a8038137408d4d2c769cd27b80c7403c1561b156b71ab3134aa1ac0"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/achievements-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "4801574781c6333d26e87f39e77712ef0b10abcf5147699e950ccb0955357dcc",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "4801574781c6333d26e87f39e77712ef0b10abcf5147699e950ccb0955357dcc"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/areas-contract.mjs",
+      "group": "Frontend Staff",
+      "sha256": "f1e5ef8037370a6b7bfc98b2807ccd6ff32c3e3367aa07febb187951a6eccf86",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "f1e5ef8037370a6b7bfc98b2807ccd6ff32c3e3367aa07febb187951a6eccf86"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/areas-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "eb8e5861c6686e488026272f7d1753bfe3a247467443e18b9932e785f69a02ab",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "eb8e5861c6686e488026272f7d1753bfe3a247467443e18b9932e785f69a02ab"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/areas-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "a7ef2e8726e32c3aa663c88c795a3d70e72cf04972fa0c077da8db8553f956a2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a7ef2e8726e32c3aa663c88c795a3d70e72cf04972fa0c077da8db8553f956a2"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/auth-core.mjs",
+      "group": "Frontend Staff",
+      "sha256": "cb47486953b7d42a56ece487d415465af015d8aee3b4d497997a1b476ad2a85b",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "cb47486953b7d42a56ece487d415465af015d8aee3b4d497997a1b476ad2a85b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/auth-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "e5160cbb248bc5b3fe2a0383a0011cd069528366cd0681ad72c6084e785f9bd5",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "e5160cbb248bc5b3fe2a0383a0011cd069528366cd0681ad72c6084e785f9bd5"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "aca3915b7903a4bd069c93a021d02e56991f9a8f9234228f7a2ef94451e34b81",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "aca3915b7903a4bd069c93a021d02e56991f9a8f9234228f7a2ef94451e34b81"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/income-contract.mjs",
+      "group": "Frontend Staff",
+      "sha256": "09f02420b4e6deaca61f2ffc7a49add1870ff69b08d91364a0ac8f2340cc39ee",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "09f02420b4e6deaca61f2ffc7a49add1870ff69b08d91364a0ac8f2340cc39ee"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/income-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "08edc6fd94a707ec5dbf2df9c912df4d392691f787df8b573ffc293564ad2beb",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "08edc6fd94a707ec5dbf2df9c912df4d392691f787df8b573ffc293564ad2beb"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/income-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "7ef5c7ee9c59c983394b82ee999933ce980139d91cfccef6de31a9916d856580",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "7ef5c7ee9c59c983394b82ee999933ce980139d91cfccef6de31a9916d856580"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/jobs-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "e81143ecf5bf2fd015d485392b3b23d9fe16b73b430df70c51ffcfa1cf93074b",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "e81143ecf5bf2fd015d485392b3b23d9fe16b73b430df70c51ffcfa1cf93074b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/maps-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "9557f89749dd496333b08ba7eaea97b6ea97a4d1980c1e034e33b50a95df611a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9557f89749dd496333b08ba7eaea97b6ea97a4d1980c1e034e33b50a95df611a"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/notifications-contract.mjs",
+      "group": "Frontend Staff",
+      "sha256": "82707e97a755834f1c48a95a0d73b8cbed297f496c420d8c11466a52358cc223",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "82707e97a755834f1c48a95a0d73b8cbed297f496c420d8c11466a52358cc223"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/notifications-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "0b4ce4087a3556dfaf5a4acf7a542f04a7c6942bd3089823109169bb1eda1ed7",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "0b4ce4087a3556dfaf5a4acf7a542f04a7c6942bd3089823109169bb1eda1ed7"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/notifications-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "6a529a28bfe6aa91f99d942ed6b908604337f28d48613f4abc828846b827fb0b",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "6a529a28bfe6aa91f99d942ed6b908604337f28d48613f4abc828846b827fb0b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/profile-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "3bc7f1c9f6df56daed58f261ab9b02d39eefd18ede32c4dc0dc6c82f51b77522",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "3bc7f1c9f6df56daed58f261ab9b02d39eefd18ede32c4dc0dc6c82f51b77522"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/reviews-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "19f10f782b82900202ed12d7b705e60250c3ecf48469a5a499a46af799439b8f",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "19f10f782b82900202ed12d7b705e60250c3ecf48469a5a499a46af799439b8f"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/settings-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "1a464450af0ff662dda9ce0c11120d75b16232efd75a47ca8ecd180ffcc33fee",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "1a464450af0ff662dda9ce0c11120d75b16232efd75a47ca8ecd180ffcc33fee"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/support-chat-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "82589a993ceb7dade70c992f52728dd17cb2a0aabf8a2818b314b05190f9cf3b",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "82589a993ceb7dade70c992f52728dd17cb2a0aabf8a2818b314b05190f9cf3b"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/support-chat-context.mjs",
+      "group": "Frontend Staff",
+      "sha256": "67d70dc1cff36a0de8467309f48884a3c50a54cc54635862a0c8063bd3de0aa0",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "67d70dc1cff36a0de8467309f48884a3c50a54cc54635862a0c8063bd3de0aa0"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/support-chat-http.mjs",
+      "group": "Frontend Staff",
+      "sha256": "5899fbecd3e8e99bb61c1746b76fc41e811afa19427f4893e1117e187188c2d2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "5899fbecd3e8e99bb61c1746b76fc41e811afa19427f4893e1117e187188c2d2"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/support-chat-provider.mjs",
+      "group": "Frontend Staff",
+      "sha256": "4cb8a1b496b73f61bd671ac888fef0580179cff886076cafb9bd6f92b7ab6da5",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "4cb8a1b496b73f61bd671ac888fef0580179cff886076cafb9bd6f92b7ab6da5"
+    },
+    {
+      "path": "frontend/apps/staff/lib/server/support-demo-config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "e9a3e8500d85ec46e26fec06e33b5b86ce76b2f8ec73312f4643192459a92937",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "e9a3e8500d85ec46e26fec06e33b5b86ce76b2f8ec73312f4643192459a92937"
+    },
+    {
+      "path": "frontend/apps/staff/next.config.mjs",
+      "group": "Frontend Staff",
+      "sha256": "98bf03731696ca0f9c35b0f9654204687edd8546b00fc49a6db024624d259fc0",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "98bf03731696ca0f9c35b0f9654204687edd8546b00fc49a6db024624d259fc0"
+    },
+    {
+      "path": "frontend/apps/staff/package.json",
+      "group": "Frontend Staff",
+      "sha256": "dde2c6ffde4f81ae258db3f171b8bfe1ce01a48e174b52f21f474ad16c703010",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "dde2c6ffde4f81ae258db3f171b8bfe1ce01a48e174b52f21f474ad16c703010"
+    },
+    {
+      "path": "frontend/apps/staff/test/achievements-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "9de7ba99690c834eaf3ca92a4fae6f203479ace4e837336bd113753907f039cb",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "9de7ba99690c834eaf3ca92a4fae6f203479ace4e837336bd113753907f039cb"
+    },
+    {
+      "path": "frontend/apps/staff/test/achievements-demo-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "39406e725da92738e739d45af073a54bd3773fe8adfdc2adc6b8b38622d94b99",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "39406e725da92738e739d45af073a54bd3773fe8adfdc2adc6b8b38622d94b99"
+    },
+    {
+      "path": "frontend/apps/staff/test/achievements-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "a0eb1574c2dffaddbc144212304ed03b3fc9851aff51c7f683ef89d1a84a7871",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "a0eb1574c2dffaddbc144212304ed03b3fc9851aff51c7f683ef89d1a84a7871"
+    },
+    {
+      "path": "frontend/apps/staff/test/areas-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "737c689b157bdca434eea3ce6f344b10f5cd999ea2632e7fdcf6cd5fe620d106",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "737c689b157bdca434eea3ce6f344b10f5cd999ea2632e7fdcf6cd5fe620d106"
+    },
+    {
+      "path": "frontend/apps/staff/test/areas-demo-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "2f13b45de26d3cce4f84959836b93e46ccec56b2e81624bd2ec30e7419d694c1",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "21a0ffb5d3474b8ed42adb598c84836b4158682ce22ce5e392ef091a47ea0101",
+      "preparationAdjustment": "Whitespace only: trailing spaces or redundant blank lines at EOF"
+    },
+    {
+      "path": "frontend/apps/staff/test/areas-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "d4fdec8e84000d7c256abfcbc7bb2170f32ba8554d105a6280bd6250879bb9e6",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "d4fdec8e84000d7c256abfcbc7bb2170f32ba8554d105a6280bd6250879bb9e6"
+    },
+    {
+      "path": "frontend/apps/staff/test/areas-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "b82c2c2563fad6070c32a3c1b3900fd4b1d79581762cc30711b173881726e3b0",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "b82c2c2563fad6070c32a3c1b3900fd4b1d79581762cc30711b173881726e3b0"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-core-renewal.test.mjs",
+      "group": "QA/test",
+      "sha256": "91bb12938cc8c8d27b4f84a7b152ecdf6f3835375af6cbb610bf748f0ebddab7",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "91bb12938cc8c8d27b4f84a7b152ecdf6f3835375af6cbb610bf748f0ebddab7"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-form-browser.integration.mjs",
+      "group": "QA/test",
+      "sha256": "2071d5b7bfe3ddae1417514617d7a57503e6a1046dc7deae61a22d9e30c64180",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "2071d5b7bfe3ddae1417514617d7a57503e6a1046dc7deae61a22d9e30c64180"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "400d24a15d99522abcdc607e9bcb89233a51737da4cae48260aa81c46d24b8e6",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "400d24a15d99522abcdc607e9bcb89233a51737da4cae48260aa81c46d24b8e6"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-session-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "ffe788dcc41e65613837ffb08f403179f74dabe8a8191f7f9aa57386f4df2c6e",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "ffe788dcc41e65613837ffb08f403179f74dabe8a8191f7f9aa57386f4df2c6e"
+    },
+    {
+      "path": "frontend/apps/staff/test/auth-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "de81e4f96df1d4bf89f46ff9ff5b814ce48629a72acb128ac2b55f121637743a",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "de81e4f96df1d4bf89f46ff9ff5b814ce48629a72acb128ac2b55f121637743a"
+    },
+    {
+      "path": "frontend/apps/staff/test/availability-interactions.test.mjs",
+      "group": "QA/test",
+      "sha256": "e097d7af23f0902bfccd527a9a935e23d15506c535751cdab489facec8930f49",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "e097d7af23f0902bfccd527a9a935e23d15506c535751cdab489facec8930f49"
+    },
+    {
+      "path": "frontend/apps/staff/test/dashboard-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "839110c0493f210f0b0791e53d72ac098e4ba1fe0b59f5f0f9339a8994f2b4e9",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "839110c0493f210f0b0791e53d72ac098e4ba1fe0b59f5f0f9339a8994f2b4e9"
+    },
+    {
+      "path": "frontend/apps/staff/test/display-preferences.test.mjs",
+      "group": "QA/test",
+      "sha256": "7d814e7feb33faf081b7e6090742c6b0343a43808159f59f969adaa2514676e7",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "7d814e7feb33faf081b7e6090742c6b0343a43808159f59f969adaa2514676e7"
+    },
+    {
+      "path": "frontend/apps/staff/test/history-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "91f2f15fcfc81a619fb63f448d8ffa47aec84162f1717b26b29c782de910b6f4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "91f2f15fcfc81a619fb63f448d8ffa47aec84162f1717b26b29c782de910b6f4"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "30047af8f2d622be6fb20bb598f544ab0a4173ad6c63ef3e3bb40968904ff8a9",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "30047af8f2d622be6fb20bb598f544ab0a4173ad6c63ef3e3bb40968904ff8a9"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "f6d3182a135421ecb577783f9a6b552cbb90e696df86268027f50dfc7a2eef3c",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "f6d3182a135421ecb577783f9a6b552cbb90e696df86268027f50dfc7a2eef3c"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-history.test.mjs",
+      "group": "QA/test",
+      "sha256": "e52cdcbec31409ca8e49c46cad0ae47dd3965ad8d987a05328ec5b7176c0fd4e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "e52cdcbec31409ca8e49c46cad0ae47dd3965ad8d987a05328ec5b7176c0fd4e"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "7e5c28902c00d61a57f970c9aaa003c19229269d527d8f1d6e50d2e44434a135",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "7e5c28902c00d61a57f970c9aaa003c19229269d527d8f1d6e50d2e44434a135"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-isolation.test.mjs",
+      "group": "QA/test",
+      "sha256": "11efa4ccde5beb2598181adc4a3b2b273630a058ceaa6e2e01ecda9a4795dbc8",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "11efa4ccde5beb2598181adc4a3b2b273630a058ceaa6e2e01ecda9a4795dbc8"
+    },
+    {
+      "path": "frontend/apps/staff/test/income-remote-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "006238ff1752c0cfd0b7d6310aafcd8a8a34c441efaacdf98ce09b4bbcea5472",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "006238ff1752c0cfd0b7d6310aafcd8a8a34c441efaacdf98ce09b4bbcea5472"
+    },
+    {
+      "path": "frontend/apps/staff/test/jobs-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "f518ebe29dc496b4764859dab3875ba8af191427e9fae422d4c3bfbd73f5ce6a",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "f518ebe29dc496b4764859dab3875ba8af191427e9fae422d4c3bfbd73f5ce6a"
+    },
+    {
+      "path": "frontend/apps/staff/test/jobs-revalidation.test.mjs",
+      "group": "QA/test",
+      "sha256": "dfc707ac690b8ebc9f4e4912f7da6149ccfc65d24fbc3bd86fc09b2f4d5d2863",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "dfc707ac690b8ebc9f4e4912f7da6149ccfc65d24fbc3bd86fc09b2f4d5d2863"
+    },
+    {
+      "path": "frontend/apps/staff/test/maps-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "d1caaf641526e3c62a0c3a047ce098c1913b4fe1b4ac93f79f292b14ea6d7699",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d1caaf641526e3c62a0c3a047ce098c1913b4fe1b4ac93f79f292b14ea6d7699"
+    },
+    {
+      "path": "frontend/apps/staff/test/maps.test.mjs",
+      "group": "QA/test",
+      "sha256": "56bec75f6ae704e930fc353bdc95594a8563e3f9f7139adebd05ea70872d1f88",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "56bec75f6ae704e930fc353bdc95594a8563e3f9f7139adebd05ea70872d1f88"
+    },
+    {
+      "path": "frontend/apps/staff/test/notifications-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "5667b9a802c3c65078a57ec158ff2f6c0f87f46a4c9a5fee0ed1b2434c216d7b",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "5667b9a802c3c65078a57ec158ff2f6c0f87f46a4c9a5fee0ed1b2434c216d7b"
+    },
+    {
+      "path": "frontend/apps/staff/test/notifications-demo-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "030079861b6dda22b7443b169fe4c500f7e617e9ce6786c49c6412ebd1e324a4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "030079861b6dda22b7443b169fe4c500f7e617e9ce6786c49c6412ebd1e324a4"
+    },
+    {
+      "path": "frontend/apps/staff/test/notifications-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "52af2834f2373fbdd7cf87bddd529eca433be0a24c28d4f04d1e851a9e2ede34",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "d61e46b111cf7615506f80c4419dfd1588a139c4d898ff14e467cb7d11292f12",
+      "preparationAdjustment": "Whitespace only: trailing spaces or redundant blank lines at EOF"
+    },
+    {
+      "path": "frontend/apps/staff/test/notifications-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "039f7819930da1a1d2cee2e6a7ac96625e68750130da05668759b68d0b77a0a8",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "039f7819930da1a1d2cee2e6a7ac96625e68750130da05668759b68d0b77a0a8"
+    },
+    {
+      "path": "frontend/apps/staff/test/performance-model.test.mjs",
+      "group": "QA/test",
+      "sha256": "337b4afb29cdcb99166ac30ed11ac5372193508615e15dc61cf6c8ad3973e95c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "337b4afb29cdcb99166ac30ed11ac5372193508615e15dc61cf6c8ad3973e95c"
+    },
+    {
+      "path": "frontend/apps/staff/test/profile-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "09db405403b5a4a5414168fbc8008ed0fdf4bb76a903b1c59739caa7b70fbfe4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "09db405403b5a4a5414168fbc8008ed0fdf4bb76a903b1c59739caa7b70fbfe4"
+    },
+    {
+      "path": "frontend/apps/staff/test/profile-demo-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "24b9fec65322212fbb5975f35ef4b15b2325780fca61c8417d1cb2bd75d76083",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "24b9fec65322212fbb5975f35ef4b15b2325780fca61c8417d1cb2bd75d76083"
+    },
+    {
+      "path": "frontend/apps/staff/test/profile-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "3dbd128630cf9642f792efa5f7b153d23f378e0dcadef98c46c62ce6fffa9aa4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "3dbd128630cf9642f792efa5f7b153d23f378e0dcadef98c46c62ce6fffa9aa4"
+    },
+    {
+      "path": "frontend/apps/staff/test/profile-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "ec543a363fe8897b106757296531d99b23fe6f28d269d6022043ccdeee006426",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "ec543a363fe8897b106757296531d99b23fe6f28d269d6022043ccdeee006426"
+    },
+    {
+      "path": "frontend/apps/staff/test/reviews-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "0891efc33d4b241e3a30c234fe186d08a40ac268fc62796105c93ff96b6ba113",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "0891efc33d4b241e3a30c234fe186d08a40ac268fc62796105c93ff96b6ba113"
+    },
+    {
+      "path": "frontend/apps/staff/test/reviews-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "ad50b61e56a15e55bc38016b81d4c9b750a4f03a62f255ab870472a79424a491",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ad50b61e56a15e55bc38016b81d4c9b750a4f03a62f255ab870472a79424a491"
+    },
+    {
+      "path": "frontend/apps/staff/test/settings-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "17dd84b7073f3c70b32bcdeebe82b727c1af32c74160688edb61645d339135b4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "17dd84b7073f3c70b32bcdeebe82b727c1af32c74160688edb61645d339135b4"
+    },
+    {
+      "path": "frontend/apps/staff/test/settings-demo-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "df1f5b468d15fbf0a16296858d67779f06930cf14c0a3cb8b1394628a1ff39b5",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "df1f5b468d15fbf0a16296858d67779f06930cf14c0a3cb8b1394628a1ff39b5"
+    },
+    {
+      "path": "frontend/apps/staff/test/settings-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "b34608ceebfd16dc0de6bf34dadcd62d71d1d16a5106dfb5b55a7ef7139c2d97",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "b34608ceebfd16dc0de6bf34dadcd62d71d1d16a5106dfb5b55a7ef7139c2d97"
+    },
+    {
+      "path": "frontend/apps/staff/test/settings-local-view.test.mjs",
+      "group": "QA/test",
+      "sha256": "d41cb96381570d1c2cb0db924466220a24152747c6456f84c0e499f8ff9bcb65",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d41cb96381570d1c2cb0db924466220a24152747c6456f84c0e499f8ff9bcb65"
+    },
+    {
+      "path": "frontend/apps/staff/test/staff-local-runtime.test.mjs",
+      "group": "QA/test",
+      "sha256": "9ec161710b0b928802a17569476bced3f8231a47269c992f84a7f7fb2243e8c2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9ec161710b0b928802a17569476bced3f8231a47269c992f84a7f7fb2243e8c2"
+    },
+    {
+      "path": "frontend/apps/staff/test/staff-modules.browser.mjs",
+      "group": "QA/test",
+      "sha256": "3751b8ca9a4f66f9aa3c009a7713414b853e5a4a7663f02f42561491411c2cb1",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "3751b8ca9a4f66f9aa3c009a7713414b853e5a4a7663f02f42561491411c2cb1"
+    },
+    {
+      "path": "frontend/apps/staff/test/staff-navigation.browser.mjs",
+      "group": "QA/test",
+      "sha256": "ad15855a793cfec13b72b63333bf6e5279f5e827ebb5f8b976bd23fa48a17e2a",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "ad15855a793cfec13b72b63333bf6e5279f5e827ebb5f8b976bd23fa48a17e2a"
+    },
+    {
+      "path": "frontend/apps/staff/test/staff-navigation.test.mjs",
+      "group": "QA/test",
+      "sha256": "13989b2cb8ec12a0630cd8be7f6e5825287eb1300da94b77a5c4ef67be24b64a",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "13989b2cb8ec12a0630cd8be7f6e5825287eb1300da94b77a5c4ef67be24b64a"
+    },
+    {
+      "path": "frontend/apps/staff/test/staff-priorities.test.mjs",
+      "group": "QA/test",
+      "sha256": "195552d7f24540bab3419f6ad8140fb03d33f604f8c9699e0bfd8463a0c9323f",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "195552d7f24540bab3419f6ad8140fb03d33f604f8c9699e0bfd8463a0c9323f"
+    },
+    {
+      "path": "frontend/apps/staff/test/staff-real-readonly.browser.mjs",
+      "group": "QA/test",
+      "sha256": "6ea26e0badab387f04ca2c747487e11a1e7bc527ed3cafcc322f8b103d4ffd54",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "6ea26e0badab387f04ca2c747487e11a1e7bc527ed3cafcc322f8b103d4ffd54"
+    },
+    {
+      "path": "frontend/apps/staff/test/support-chat-http.test.mjs",
+      "group": "QA/test",
+      "sha256": "8a557c0d4cf8bbd53472014443ac6d82d39603c535b45e44cbf5f242e57000f2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "8a557c0d4cf8bbd53472014443ac6d82d39603c535b45e44cbf5f242e57000f2"
+    },
+    {
+      "path": "frontend/apps/staff/test/support-conversation.test.mjs",
+      "group": "QA/test",
+      "sha256": "9d065b690fdf98ee32c1b765fe1362d879a72554912b78b67d660d0144d7bc3e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9d065b690fdf98ee32c1b765fe1362d879a72554912b78b67d660d0144d7bc3e"
+    },
+    {
+      "path": "frontend/apps/staff/test/support-demo-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "f40ac83f8661e556fb2e564eed838bd58d21d48962604a5e37c29781617f3a39",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "f40ac83f8661e556fb2e564eed838bd58d21d48962604a5e37c29781617f3a39"
+    },
+    {
+      "path": "frontend/apps/staff/test/support-demo-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "6c47910f7a6c7bca077fbf9c0b11c43496ad5f29b8d0fd988ec85e66cc2f644e",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "6c47910f7a6c7bca077fbf9c0b11c43496ad5f29b8d0fd988ec85e66cc2f644e"
+    },
+    {
+      "path": "frontend/apps/staff/test/support-demo.test.mjs",
+      "group": "QA/test",
+      "sha256": "7bf74eb1ab1f252fbafc633cab3bb4fd96ef39868de43e29529e831a1dcf3a1f",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "7bf74eb1ab1f252fbafc633cab3bb4fd96ef39868de43e29529e831a1dcf3a1f"
+    },
+    {
+      "path": "frontend/apps/staff/test/support-search.test.mjs",
+      "group": "QA/test",
+      "sha256": "325a74efbabba19f30b812297ec067c9491af3faaae56a0926c28e7131ff238c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "325a74efbabba19f30b812297ec067c9491af3faaae56a0926c28e7131ff238c"
+    },
+    {
+      "path": "frontend/apps/staff/test/work-statistics-ui.test.mjs",
+      "group": "QA/test",
+      "sha256": "2af60277b0d885e70fbb8ad011082befba5d7c9f636d1a6eefda314f82b0a7c6",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "2af60277b0d885e70fbb8ad011082befba5d7c9f636d1a6eefda314f82b0a7c6"
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "group": "Frontend Staff",
+      "sha256": "1315469844a95a0d7415607cee018942093bc5429bc8e87036be156d941f51c8",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "1315469844a95a0d7415607cee018942093bc5429bc8e87036be156d941f51c8"
+    },
+    {
+      "path": "frontend/packages/ui/package.json",
+      "group": "Frontend Staff",
+      "sha256": "7202d408825340070d80e166750039e0c0f49bcfc3167eaab3f83791c709ba62",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "7202d408825340070d80e166750039e0c0f49bcfc3167eaab3f83791c709ba62"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-account-settings.tsx",
+      "group": "Frontend Staff",
+      "sha256": "658053ec7760cdadbb67946eb4ddcb296ce8652cdafffdeced167d2194c9d720",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "658053ec7760cdadbb67946eb4ddcb296ce8652cdafffdeced167d2194c9d720"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-achievements-demo-adapter.ts",
+      "group": "Frontend Staff",
+      "sha256": "845c965ba2d5c6513994816a922f021b74b6445fc087a7811b372c5cb367afd2",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "845c965ba2d5c6513994816a922f021b74b6445fc087a7811b372c5cb367afd2"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-achievements-demo-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "bc6a923c719cb08522ee51a8c3f9919cac88b97e0578c5c66837b67c3a4bd97b",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "bc6a923c719cb08522ee51a8c3f9919cac88b97e0578c5c66837b67c3a4bd97b"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-achievements.tsx",
+      "group": "Frontend Staff",
+      "sha256": "abe717eb2055acad85455d995c7036255baff58446fb394d5a6704657334b494",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "abe717eb2055acad85455d995c7036255baff58446fb394d5a6704657334b494"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-app-providers.tsx",
+      "group": "Frontend Staff",
+      "sha256": "d8335127d77e4c4146c511ef24b393874b6f8a19d248c1794f52c18017a3be4c",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d8335127d77e4c4146c511ef24b393874b6f8a19d248c1794f52c18017a3be4c"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-areas-demo-adapter.ts",
+      "group": "Frontend Staff",
+      "sha256": "4f43661ebdcd8c5468c3768f027f151a1a8ef89a7e82a48283dd9ae14eda7861",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "4f43661ebdcd8c5468c3768f027f151a1a8ef89a7e82a48283dd9ae14eda7861"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-areas-demo-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "7d24978f3db4f46f395bc254772081cd69becf0a25085ad3392e9e10303439ba",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "7d24978f3db4f46f395bc254772081cd69becf0a25085ad3392e9e10303439ba"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-areas-remote-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "16fa210bde9fa36621fa99979c5768c2ee694b5ee69f930a3eb9d0663364995b",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "16fa210bde9fa36621fa99979c5768c2ee694b5ee69f930a3eb9d0663364995b"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-areas-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "82ee7c534a522cdf6592751ba240bb36a830c08fe31a27e91b32259f28b15624",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "82ee7c534a522cdf6592751ba240bb36a830c08fe31a27e91b32259f28b15624"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-areas.tsx",
+      "group": "Frontend Staff",
+      "sha256": "c351a584d9e5dcf52f9e64c75c58829420d1097c8cb0ae5c9a43f408073b3b36",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "c351a584d9e5dcf52f9e64c75c58829420d1097c8cb0ae5c9a43f408073b3b36"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-auth-portal.tsx",
+      "group": "Frontend Staff",
+      "sha256": "f336af93e3eba866f560abc7d31ac0c7ea9e21818661a8db3781c442f437f0bb",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "f336af93e3eba866f560abc7d31ac0c7ea9e21818661a8db3781c442f437f0bb"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-auth-session.tsx",
+      "group": "Frontend Staff",
+      "sha256": "9a545527598b0645f723484852f699ed381c422e59450e1d6767f3dba3ff327f",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "9a545527598b0645f723484852f699ed381c422e59450e1d6767f3dba3ff327f"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-availability-interactions.tsx",
+      "group": "Frontend Staff",
+      "sha256": "d164b80be70021952b8ea2ce0b77e92fe3c670d93c3c580c8f8c9a596573b4f2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d164b80be70021952b8ea2ce0b77e92fe3c670d93c3c580c8f8c9a596573b4f2"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-availability-request-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "b87bc64b98ec030663688836b8e7b237e6fa8df191986ebe2939de5126219f85",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "b87bc64b98ec030663688836b8e7b237e6fa8df191986ebe2939de5126219f85"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-bottom-nav.tsx",
+      "group": "Frontend Staff",
+      "sha256": "495a2a2738340310996468759318238449ee26bd35e3b6dca8ee6100e658c295",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "495a2a2738340310996468759318238449ee26bd35e3b6dca8ee6100e658c295"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-branch-map.tsx",
+      "group": "Frontend Staff",
+      "sha256": "ce97ba26ce91d575a2464bc6ffd7978409aeba12fc87497f4008c759ff5eadb8",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ce97ba26ce91d575a2464bc6ffd7978409aeba12fc87497f4008c759ff5eadb8"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-dashboard-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "dd7093513c47507efa1aae8360fa28744a630e02a3199b121f470465c9f1d6e4",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "dd7093513c47507efa1aae8360fa28744a630e02a3199b121f470465c9f1d6e4"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-dashboard-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "8019341403d6ced863b293e7d82c53e196e40e1e91defd7c77c86ff8bb852bc6",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "8019341403d6ced863b293e7d82c53e196e40e1e91defd7c77c86ff8bb852bc6"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-display-preferences.tsx",
+      "group": "Frontend Staff",
+      "sha256": "b6416eeb07ec9837eab67ed85d21230c69db6fdaa5e6df47e2659c390b2b7da1",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "b6416eeb07ec9837eab67ed85d21230c69db6fdaa5e6df47e2659c390b2b7da1"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-history-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "ee0f17886b6fd4ab4e2432fa9e7ef79221f558f4a7d96401dc937966639b3623",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "ee0f17886b6fd4ab4e2432fa9e7ef79221f558f4a7d96401dc937966639b3623"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-history-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "57c6ee4fddf336a4ccc926c994bd4c92b06e4781b8efbe39461d6850d48a620d",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "57c6ee4fddf336a4ccc926c994bd4c92b06e4781b8efbe39461d6850d48a620d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-demo.ts",
+      "group": "Frontend Staff",
+      "sha256": "51271ecfa4bfcee5777c443e077e9b9ce183efcf2f8151c6a8bd314eceac68a3",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "51271ecfa4bfcee5777c443e077e9b9ce183efcf2f8151c6a8bd314eceac68a3"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-history.ts",
+      "group": "Frontend Staff",
+      "sha256": "77f623544f3d506809e1bcb29ec7fa9af4a8baf3a9989fe864413ff54617c9f3",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "77f623544f3d506809e1bcb29ec7fa9af4a8baf3a9989fe864413ff54617c9f3"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-insights-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "9f2a8cead41997dc61cb30a9c898cfd56aed1c62e90a3dc095653b8039957649",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9f2a8cead41997dc61cb30a9c898cfd56aed1c62e90a3dc095653b8039957649"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-insights.tsx",
+      "group": "Frontend Staff",
+      "sha256": "063ac95b1eb6be7c98898013226d0c3fb8713fb5ee2c8a36973cb2b7ae100394",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "063ac95b1eb6be7c98898013226d0c3fb8713fb5ee2c8a36973cb2b7ae100394"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "9bf4e5d07485b9a9aa849134008e0b751477eede1e7c0db8db5735ef3c4d7bfb",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "9bf4e5d07485b9a9aa849134008e0b751477eede1e7c0db8db5735ef3c4d7bfb"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-policy-v2.mjs",
+      "group": "Frontend Staff",
+      "sha256": "05da22d8199eb8b79a5bfc0680a076ea8dca4e65c01a1fd90411c73135d15ea0",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "05da22d8199eb8b79a5bfc0680a076ea8dca4e65c01a1fd90411c73135d15ea0"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-remote-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "18541776cd31350262f1d7d43a66b20d38dcbb3eedbb38ca257a6d79f35a5eea",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "18541776cd31350262f1d7d43a66b20d38dcbb3eedbb38ca257a6d79f35a5eea"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "bb1d673f36c85a5602cb6c53b6b715b3fbf1aeee3b2275b24130a4510b76bbeb",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "bb1d673f36c85a5602cb6c53b6b715b3fbf1aeee3b2275b24130a4510b76bbeb"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-income.tsx",
+      "group": "Frontend Staff",
+      "sha256": "b3a1e3c7e1c19f854e24290529ab1b000f44aa0a627abd84e5f2c3b94e139e56",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "b3a1e3c7e1c19f854e24290529ab1b000f44aa0a627abd84e5f2c3b94e139e56"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-detail-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "b71825ab639ccaf0e258ef2e67fa50e087644caaea9ee402c86c0902e99acf1a",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "b71825ab639ccaf0e258ef2e67fa50e087644caaea9ee402c86c0902e99acf1a"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-job-status.tsx",
+      "group": "Frontend Staff",
+      "sha256": "77a9e8053a3f32c7ad86e3582ccdd9b67cf5766420b5d3ca8bb507a10bc3de77",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "77a9e8053a3f32c7ad86e3582ccdd9b67cf5766420b5d3ca8bb507a10bc3de77"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-jobs-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "391031f1ad85fd674eb3db74860382539cd9d966d67a2e594b7c3218a9b03c1d",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "391031f1ad85fd674eb3db74860382539cd9d966d67a2e594b7c3218a9b03c1d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-jobs-revalidation.ts",
+      "group": "Frontend Staff",
+      "sha256": "b101032487e3f289c991361dc706a02decafff3212eebb6ce25fd68a9bfa4d83",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "b101032487e3f289c991361dc706a02decafff3212eebb6ce25fd68a9bfa4d83"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-layout.tsx",
+      "group": "Frontend Staff",
+      "sha256": "c2815cb3b9e5e0603dcd90939d20b9ec6bb785f318faed8d067cfae3f527c98c",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "c2815cb3b9e5e0603dcd90939d20b9ec6bb785f318faed8d067cfae3f527c98c"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-login-route.ts",
+      "group": "Frontend Staff",
+      "sha256": "24b053976b9ac0636a7fef669c724aa5ed6600484f6af0e44f7bbc690991c010",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "24b053976b9ac0636a7fef669c724aa5ed6600484f6af0e44f7bbc690991c010"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-login.tsx",
+      "group": "Frontend Staff",
+      "sha256": "7ae8f54e442ab430f8bac4027a4d618d2d086df7061cb4e498a41a5ebbf35d21",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "7ae8f54e442ab430f8bac4027a4d618d2d086df7061cb4e498a41a5ebbf35d21"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-maps-loader.ts",
+      "group": "Frontend Staff",
+      "sha256": "54d53d27261e59b89959257ae1d8bdd4a4e098cf9c36f86a89306abd1407b21d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "54d53d27261e59b89959257ae1d8bdd4a4e098cf9c36f86a89306abd1407b21d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-maps-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "5bc09a3efcfff7b17764faa634248afab353ede24690104dc4659105a80d7fd0",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "5bc09a3efcfff7b17764faa634248afab353ede24690104dc4659105a80d7fd0"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-navigation.ts",
+      "group": "Frontend Staff",
+      "sha256": "4c7cf8985a2e23c119789171ea90b46574f1c5a8e7239dec73bca13247ce21c9",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "4c7cf8985a2e23c119789171ea90b46574f1c5a8e7239dec73bca13247ce21c9"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notification-view-preferences.ts",
+      "group": "Frontend Staff",
+      "sha256": "4093faac7f27e23e1482d7110e0f3010736fe93c2ed92ba94bf5f2ba27b4fe75",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "4093faac7f27e23e1482d7110e0f3010736fe93c2ed92ba94bf5f2ba27b4fe75"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-demo-adapter.ts",
+      "group": "Frontend Staff",
+      "sha256": "320690ad349093d9e225a54be14e6aa5430b09a970370e2f1594f34f8223c44d",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "320690ad349093d9e225a54be14e6aa5430b09a970370e2f1594f34f8223c44d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-demo-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "e2cf517a74a3bea9b01c72ab0f7ec66bf78eb83ea5c3d7de9401dc00f67f83f7",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "e2cf517a74a3bea9b01c72ab0f7ec66bf78eb83ea5c3d7de9401dc00f67f83f7"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-demo.tsx",
+      "group": "Frontend Staff",
+      "sha256": "c890a9208256f9000ec21f9cbc87f0c3e35482c2359d806133bea5843c3dd9be",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "c890a9208256f9000ec21f9cbc87f0c3e35482c2359d806133bea5843c3dd9be"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-remote-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "b171c13d9ac4e10844dfdb5d68463609b291613bf119fb113dafb4ccd4919e8e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "b171c13d9ac4e10844dfdb5d68463609b291613bf119fb113dafb4ccd4919e8e"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "aa7026d816f4da97b1a03e72c57ce3f18a7c406c1b5dc7d236d77c3210f2ef19",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "aa7026d816f4da97b1a03e72c57ce3f18a7c406c1b5dc7d236d77c3210f2ef19"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications-unavailable.tsx",
+      "group": "Frontend Staff",
+      "sha256": "d452e749218ed75bea8a780fc3c5c3b6d77dd8c8620ec89dbda6cf9d9053c707",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "d452e749218ed75bea8a780fc3c5c3b6d77dd8c8620ec89dbda6cf9d9053c707"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-notifications.tsx",
+      "group": "Frontend Staff",
+      "sha256": "a14749acb0fff52050a254fa724eaa24af0e94d6749a3ce37941b2d14e81045a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a14749acb0fff52050a254fa724eaa24af0e94d6749a3ce37941b2d14e81045a"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-performance-breakdown.tsx",
+      "group": "Frontend Staff",
+      "sha256": "d33f29055be340f0c1b24fdfd6b126033e90dc84c715aaf60f88486dc1f83372",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d33f29055be340f0c1b24fdfd6b126033e90dc84c715aaf60f88486dc1f83372"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-performance-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "59f041307d69aec3ced8f9a508027d0a4fccd8b50e2e5cbe5ff3c9213f4edc3a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "59f041307d69aec3ced8f9a508027d0a4fccd8b50e2e5cbe5ff3c9213f4edc3a"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-performance-remote-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "b08fe23863a6464ac1126262550529e10bf93d2d2d599d628b884df47f3639ff",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "b08fe23863a6464ac1126262550529e10bf93d2d2d599d628b884df47f3639ff"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-performance-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "bf8f497d97e9ecb4b96c4820aef1958080f52cc1ccb8e1b1f382b493d7c1065d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "bf8f497d97e9ecb4b96c4820aef1958080f52cc1ccb8e1b1f382b493d7c1065d"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-profile-demo-adapter.ts",
+      "group": "Frontend Staff",
+      "sha256": "27a3087aa90468b92a59ec40cdd2dad35420ee1253db59116de8fc4e634630bc",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "27a3087aa90468b92a59ec40cdd2dad35420ee1253db59116de8fc4e634630bc"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-profile-demo-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "607d6799aa3d4ac03f3f5ac32e8c928a0592ef7f3e9ebcc3d282c35671befa76",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "607d6799aa3d4ac03f3f5ac32e8c928a0592ef7f3e9ebcc3d282c35671befa76"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-profile-demo.tsx",
+      "group": "Frontend Staff",
+      "sha256": "b702662bc0be544401660c40486841344fe4948e5fa54921000050c4f615acca",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "b702662bc0be544401660c40486841344fe4948e5fa54921000050c4f615acca"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-profile-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "7e4d14e4697f5f927a2ab098b3240edc5f5ff0d9a5fb4239e7e1f3028f444aca",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "7e4d14e4697f5f927a2ab098b3240edc5f5ff0d9a5fb4239e7e1f3028f444aca"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-reviews-contract.mjs",
+      "group": "Frontend Staff",
+      "sha256": "07c81f6e0f9e78aaf3898bc57b6113e6253b793a4b3e76e98efaaa37858e14ee",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "07c81f6e0f9e78aaf3898bc57b6113e6253b793a4b3e76e98efaaa37858e14ee"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-reviews-remote-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "1898eaab108c1a487d9b5c8b41b56c61036cfc7e2e522d5e05ddcef08f686089",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "1898eaab108c1a487d9b5c8b41b56c61036cfc7e2e522d5e05ddcef08f686089"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-reviews-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "88436b4973e8cf71ed483dcbaa3797670535342284daca7487b2c2dc2a10e2bd",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "88436b4973e8cf71ed483dcbaa3797670535342284daca7487b2c2dc2a10e2bd"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-route-policy.ts",
+      "group": "Frontend Staff",
+      "sha256": "f2573cfe0a33436a705670ff4f1468a8f26345c7665b356ccd759557138915ff",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "f2573cfe0a33436a705670ff4f1468a8f26345c7665b356ccd759557138915ff"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-schedule-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "10f8d3257c9ceeb77a1f32731adb69aa9c30ff6ef73e1c78f7a2a4e15ea5b487",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "10f8d3257c9ceeb77a1f32731adb69aa9c30ff6ef73e1c78f7a2a4e15ea5b487"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-settings-demo-adapter.ts",
+      "group": "Frontend Staff",
+      "sha256": "538282d48af7895d40d9092d60d5f7f932a734cb31cf76e4298cae21005e2be3",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "538282d48af7895d40d9092d60d5f7f932a734cb31cf76e4298cae21005e2be3"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-settings-demo-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "aafbefdf74e878b77dc8e52569362016dcc64fb2c9b467769b22fd80279281c1",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "aafbefdf74e878b77dc8e52569362016dcc64fb2c9b467769b22fd80279281c1"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-settings.tsx",
+      "group": "Frontend Staff",
+      "sha256": "ab7a2c77cb5cc19f089d4abb990feca287df227b7b87b0290664204bd743b906",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "ab7a2c77cb5cc19f089d4abb990feca287df227b7b87b0290664204bd743b906"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-shared.tsx",
+      "group": "Frontend Staff",
+      "sha256": "47984ddaa3c49504e69546b780d61ab5c156c3c359f887ce28853682b1686ef6",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "47984ddaa3c49504e69546b780d61ab5c156c3c359f887ce28853682b1686ef6"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-assistant.tsx",
+      "group": "Frontend Staff",
+      "sha256": "b5202d588ef0ce63a5a5f33977dedf24ed4de3e0839c9844405b0d4fe4b31aa3",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "b5202d588ef0ce63a5a5f33977dedf24ed4de3e0839c9844405b0d4fe4b31aa3"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-chat.tsx",
+      "group": "Frontend Staff",
+      "sha256": "d775190d162534fafaf2fafe9ebf13bb07ed31c23f73ade4fb14f7cb2290f736",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d775190d162534fafaf2fafe9ebf13bb07ed31c23f73ade4fb14f7cb2290f736"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-conversation.mjs",
+      "group": "Frontend Staff",
+      "sha256": "861b9e03f2df047359dc51cce1988b8b05d20962b4e40b84a1b1d5fcfeb06813",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "861b9e03f2df047359dc51cce1988b8b05d20962b4e40b84a1b1d5fcfeb06813"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-demo-adapter.ts",
+      "group": "Frontend Staff",
+      "sha256": "73e5da428849b7cda73a61005107872cc388c22840639abad9fc9e1cee7cb288",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "73e5da428849b7cda73a61005107872cc388c22840639abad9fc9e1cee7cb288"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-demo-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "ab5d0fe5132e6c4e7362e3f8e2f08ceee58747f699ddd0a6fb6ffcd03d2341a8",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "ab5d0fe5132e6c4e7362e3f8e2f08ceee58747f699ddd0a6fb6ffcd03d2341a8"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-knowledge.tsx",
+      "group": "Frontend Staff",
+      "sha256": "3136ac9e5257fc12b6d0db409c12783d1ec3acd618f8187d4c30956655f54af0",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "3136ac9e5257fc12b6d0db409c12783d1ec3acd618f8187d4c30956655f54af0"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-questions.mjs",
+      "group": "Frontend Staff",
+      "sha256": "6439d0304a4e1a1ed740ff9bcd33ea49d214c3d9067cf6faf35fda1f837eeb3f",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "6439d0304a4e1a1ed740ff9bcd33ea49d214c3d9067cf6faf35fda1f837eeb3f"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-search.ts",
+      "group": "Frontend Staff",
+      "sha256": "a5da7053098e60e5a57d6a1e8cff646ba74dd1268fe6320a473f8eebfacab35a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a5da7053098e60e5a57d6a1e8cff646ba74dd1268fe6320a473f8eebfacab35a"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-widget-context.tsx",
+      "group": "Frontend Staff",
+      "sha256": "c38b50d7cac6a90f355c09c5edb65abb1795a3141f5a9d6bca8e593aca6f3fcc",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "c38b50d7cac6a90f355c09c5edb65abb1795a3141f5a9d6bca8e593aca6f3fcc"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support-widget.tsx",
+      "group": "Frontend Staff",
+      "sha256": "5cb4eb522c5bfec5dd7a57f7296d1ae44006f32991639383a8f05424a8d19086",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "5cb4eb522c5bfec5dd7a57f7296d1ae44006f32991639383a8f05424a8d19086"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-support.tsx",
+      "group": "Frontend Staff",
+      "sha256": "f146ddc1013a728b63edd192ca111fc01e36ca184dc86e5f61015dfb99da9d12",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "f146ddc1013a728b63edd192ca111fc01e36ca184dc86e5f61015dfb99da9d12"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-work-statistics-model.ts",
+      "group": "Frontend Staff",
+      "sha256": "24200199570a8268f3483758c3ec1f9067c698a2c3014399ac471109a6aa4dda",
+      "fromCommitted": true,
+      "fromWip": true,
+      "preparedSha256": "24200199570a8268f3483758c3ec1f9067c698a2c3014399ac471109a6aa4dda"
+    },
+    {
+      "path": "frontend/packages/ui/src/components/staff/staff-work-statistics-remote.tsx",
+      "group": "Frontend Staff",
+      "sha256": "405f71b6b174a33744b0a6ad92eeface65d2550dda024d68a23b47bb6450a94e",
+      "fromCommitted": true,
+      "fromWip": false,
+      "preparedSha256": "405f71b6b174a33744b0a6ad92eeface65d2550dda024d68a23b47bb6450a94e"
+    },
+    {
+      "path": "qa/staff/.gitignore",
+      "group": "QA/test",
+      "sha256": "4198b961d86885b64af06c0a6da09eae19443d6cbe1034b5066b63f766c1abd5",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "9b14a6bd2881bb229748adad0e3be9de1d31a24542e39c4befc541bc4298e41f",
+      "preparationAdjustment": "Prevent local QA credentials/env/key/HAR/dump/artifacts outside .private from entering Git"
+    },
+    {
+      "path": "qa/staff/README.md",
+      "group": "QA/test",
+      "sha256": "2d6f7679740f9d4e806dae08c3fb2ebf6eabc0154508553c4a4f0a92dcff88f8",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "2d6f7679740f9d4e806dae08c3fb2ebf6eabc0154508553c4a4f0a92dcff88f8"
+    },
+    {
+      "path": "qa/staff/availability.browser.mjs",
+      "group": "QA/test",
+      "sha256": "91cb3c5bda1d2c7fbcb11a2ca4c21769c18a490e9f3d0f0a7a567e5c6f71b198",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "91cb3c5bda1d2c7fbcb11a2ca4c21769c18a490e9f3d0f0a7a567e5c6f71b198"
+    },
+    {
+      "path": "qa/staff/browser.mjs",
+      "group": "QA/test",
+      "sha256": "2a87a50fc953b69cc38562980e537ddf02775338ac56ca9a514f9ee8dc0d5b96",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "2a87a50fc953b69cc38562980e537ddf02775338ac56ca9a514f9ee8dc0d5b96"
+    },
+    {
+      "path": "qa/staff/common.mjs",
+      "group": "QA/test",
+      "sha256": "55c17084a6e7cec18ccc0438c1486f20aa73c723cd9cbe1ae16f2d7f86918741",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "55c17084a6e7cec18ccc0438c1486f20aa73c723cd9cbe1ae16f2d7f86918741"
+    },
+    {
+      "path": "qa/staff/config.example.json",
+      "group": "QA/test",
+      "sha256": "a71cc74a919f8d819a05d36297d9c1b8d019e0c36c87ccf06865c9f977af1644",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a71cc74a919f8d819a05d36297d9c1b8d019e0c36c87ccf06865c9f977af1644"
+    },
+    {
+      "path": "qa/staff/credentials.ps1",
+      "group": "QA/test",
+      "sha256": "0411f35cf3b92ebbdfe2b45966fdf28d9d846720132de50055db143c5155dfba",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "0411f35cf3b92ebbdfe2b45966fdf28d9d846720132de50055db143c5155dfba"
+    },
+    {
+      "path": "qa/staff/dependencies.mjs",
+      "group": "QA/test",
+      "sha256": "8a59a8d17bd75b16f3c7a9bfa0bff8996f00d187377e6382531b027709a9732d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "8a59a8d17bd75b16f3c7a9bfa0bff8996f00d187377e6382531b027709a9732d"
+    },
+    {
+      "path": "qa/staff/frontend-config.mjs",
+      "group": "QA/test",
+      "sha256": "e7e00d5006740dc15b5d5d91ee5709c826cf1549d8c5a25a7d833635cf311c64",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "e7e00d5006740dc15b5d5d91ee5709c826cf1549d8c5a25a7d833635cf311c64"
+    },
+    {
+      "path": "qa/staff/frontend-config.test.mjs",
+      "group": "QA/test",
+      "sha256": "313d797c776d79150297961c4bd9319e7a73f4d21190c853b84b6b21346d0adb",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "313d797c776d79150297961c4bd9319e7a73f4d21190c853b84b6b21346d0adb"
+    },
+    {
+      "path": "qa/staff/income-chart.browser.mjs",
+      "group": "QA/test",
+      "sha256": "4785f84afeeb0964cb81458c752b8b279e5451aa5ae11a9b0bb7dc2d0cee64b4",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "4785f84afeeb0964cb81458c752b8b279e5451aa5ae11a9b0bb7dc2d0cee64b4"
+    },
+    {
+      "path": "qa/staff/maps-isolation.mjs",
+      "group": "QA/test",
+      "sha256": "1f958ae137db37a0ef4e6e9601426eba414dca345cbc388273c6288fca74223e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "1f958ae137db37a0ef4e6e9601426eba414dca345cbc388273c6288fca74223e"
+    },
+    {
+      "path": "qa/staff/maps.browser.mjs",
+      "group": "QA/test",
+      "sha256": "352b971dbe6dd7b7ba8c5f1f617c02aec3b2f5b9a28cee380b7ba3a7b609e173",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "352b971dbe6dd7b7ba8c5f1f617c02aec3b2f5b9a28cee380b7ba3a7b609e173"
+    },
+    {
+      "path": "qa/staff/refresh-frontend.ps1",
+      "group": "QA/test",
+      "sha256": "103c7fc5a71ccbef6b4286cc45d493964f3d5d34b293dfac2e14977e4aab6f9f",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "103c7fc5a71ccbef6b4286cc45d493964f3d5d34b293dfac2e14977e4aab6f9f"
+    },
+    {
+      "path": "qa/staff/runtime.mjs",
+      "group": "QA/test",
+      "sha256": "a4099055fdf3daf022b4cedcef32cead911dcf54c6b4dcefd849e7c45e4f1595",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "a4099055fdf3daf022b4cedcef32cead911dcf54c6b4dcefd849e7c45e4f1595"
+    },
+    {
+      "path": "qa/staff/schema.sql",
+      "group": "QA/test",
+      "sha256": "c72b4fee437645ea4253057c724bf94327db5e9c74fe9acbd55d90912422711e",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "c72b4fee437645ea4253057c724bf94327db5e9c74fe9acbd55d90912422711e"
+    },
+    {
+      "path": "qa/staff/seed.mjs",
+      "group": "QA/test",
+      "sha256": "ed0510b1e2fdd21d7605f80ab4ab382a86c26430d9c4baf308ef8155d409fd7a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ed0510b1e2fdd21d7605f80ab4ab382a86c26430d9c4baf308ef8155d409fd7a"
+    },
+    {
+      "path": "qa/staff/seed.test.mjs",
+      "group": "QA/test",
+      "sha256": "81a55bc77148565bcc6901691b9e88eb8cf3a1aaae8c2b97368553d3f8ceb9fc",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "81a55bc77148565bcc6901691b9e88eb8cf3a1aaae8c2b97368553d3f8ceb9fc"
+    },
+    {
+      "path": "qa/staff/service.mjs",
+      "group": "QA/test",
+      "sha256": "19b4b840559456392c6075464741c8459f45a2b384ccc71cb53315f5c825e868",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "19b4b840559456392c6075464741c8459f45a2b384ccc71cb53315f5c825e868"
+    },
+    {
+      "path": "qa/staff/settings.browser.mjs",
+      "group": "QA/test",
+      "sha256": "ae99ce777ce25d1ea2610e32003aea8d30e15f18fbf04314d25284baa4724e79",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ae99ce777ce25d1ea2610e32003aea8d30e15f18fbf04314d25284baa4724e79"
+    },
+    {
+      "path": "qa/staff/stage4.browser.mjs",
+      "group": "QA/test",
+      "sha256": "118dc4fc6d94883ff7ba3a87f5a8431cf497c7a452ac171fdf16d2599053b7c7",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "118dc4fc6d94883ff7ba3a87f5a8431cf497c7a452ac171fdf16d2599053b7c7"
+    },
+    {
+      "path": "qa/staff/start.ps1",
+      "group": "QA/test",
+      "sha256": "e81e48eacc18199c2c5546ad8c96eed31f68b241caced8731fdcb31eb9cce299",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "e81e48eacc18199c2c5546ad8c96eed31f68b241caced8731fdcb31eb9cce299"
+    },
+    {
+      "path": "qa/staff/status.ps1",
+      "group": "QA/test",
+      "sha256": "948365229042686332ea19a33d9710bd88331759e79acc4c81b0a3d936a58f73",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "948365229042686332ea19a33d9710bd88331759e79acc4c81b0a3d936a58f73"
+    },
+    {
+      "path": "qa/staff/stop.ps1",
+      "group": "QA/test",
+      "sha256": "065d2aec8a477970a4dc05410e36262e7319060ea02c6f714e9e2cf3211caf10",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "065d2aec8a477970a4dc05410e36262e7319060ea02c6f714e9e2cf3211caf10"
+    },
+    {
+      "path": "qa/staff/support-live.browser.mjs",
+      "group": "QA/test",
+      "sha256": "d33516f85f23c91b35a6240b2538fa238a6f058a965e228febaa3921eb5294d2",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "d33516f85f23c91b35a6240b2538fa238a6f058a965e228febaa3921eb5294d2"
+    },
+    {
+      "path": "qa/staff/support.browser.mjs",
+      "group": "QA/test",
+      "sha256": "ea58c129894237ecc69b0c2eace4277877d70029f9bd4a17373a8544c7705e75",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "ea58c129894237ecc69b0c2eace4277877d70029f9bd4a17373a8544c7705e75"
+    },
+    {
+      "path": "qa/staff/test.mjs",
+      "group": "QA/test",
+      "sha256": "967333148a98d0fdf2c3abb999542503a59422a0dd16a04bf0312a154fa4029d",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "967333148a98d0fdf2c3abb999542503a59422a0dd16a04bf0312a154fa4029d"
+    },
+    {
+      "path": "qa/staff/test.ps1",
+      "group": "QA/test",
+      "sha256": "022d8897c5de9fbc10fe982b110693703674ba1bc2234af93259011b4d9b78aa",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "022d8897c5de9fbc10fe982b110693703674ba1bc2234af93259011b4d9b78aa"
+    },
+    {
+      "path": "qa/staff/ui-polish.browser.mjs",
+      "group": "QA/test",
+      "sha256": "575f0c5c971df4884bb04a61802274c5a8ee965e413b6889dfab386554f49d4a",
+      "fromCommitted": false,
+      "fromWip": true,
+      "preparedSha256": "575f0c5c971df4884bb04a61802274c5a8ee965e413b6889dfab386554f49d4a"
+    }
+  ],
+  "excluded": [
+    "backend/auth-service/.env.example",
+    "backend/auth-service/README.md",
+    "backend/auth-service/docs/auth-contract.md",
+    "backend/auth-service/docs/refresh-integration.md",
+    "backend/auth-service/package.json",
+    "backend/auth-service/scripts/init-refresh.js",
+    "backend/auth-service/src/app.js",
+    "backend/auth-service/src/config.js",
+    "backend/auth-service/src/refresh-store.js",
+    "backend/auth-service/src/runtime.js",
+    "backend/auth-service/src/service.js",
+    "backend/auth-service/test/refresh.test.js",
+    "frontend/apps/staff/next-env.d.ts"
+  ],
+  "privateExclusions": [
+    "qa/staff/.private/**",
+    "**/.auth-data/**",
+    "**/secrets/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "actual credentials/env/session/database/log/build artifacts"
+  ],
+  "verification": {
+    "webpack": "PASS",
+    "typecheck": "PASS",
+    "method": "Public snapshot of this PR worktree with existing dependencies; 2 GiB Node heap / 2 workers via private QA config; source config and installed dependencies unchanged",
+    "providerCalls": 0,
+    "databaseAccessed": false,
+    "fullUnitSuite": "NOT_RUN: no business logic changes relative to accepted Staff source",
+    "runtimeQaOnNewBranch": "NOT_RUN: source QA results do not automatically qualify this branch",
+    "stage7c": {
+      "conclusion": "READY_TO_COMMIT",
+      "unitResults": [
+        {
+          "suite": "frontend-unit",
+          "status": "PASS",
+          "tests": 765,
+          "pass": 765,
+          "fail": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "staff-backend-unit",
+          "status": "PASS",
+          "tests": 148,
+          "pass": 148,
+          "fail": 0,
+          "skipped": 0
+        },
+        {
+          "suite": "qa-regression",
+          "status": "PASS",
+          "tests": 5,
+          "pass": 5,
+          "fail": 0,
+          "skipped": 0
+        }
+      ],
+      "realQaSmoke": {
+        "status": "NOT_RUN",
+        "reason": "No dedicated PR runtime-config or credentials; none copied/generated"
+      },
+      "apiBffDoubles": "MOCK_PASS",
+      "buildTypecheck": "Prior 7B PASS retained; public application inputs unchanged; not rerun",
+      "plannedFiles": 265,
+      "staffBackendOwnerReviewRequiredBeforeMerge": true,
+      "commitsCreated": 0
+    }
+  },
+  "metadataFiles": [
+    {
+      "path": "qa/staff/pr-preparation-manifest.json",
+      "integrity": "Self inventory; deliberately no self-referential hash"
+    },
+    {
+      "path": "frontend/apps/staff/docs/STAFF_PR_PREPARATION.md",
+      "sha256": "b214ee752a8a97d036cf4788db8996b5797e593e8968c17d224d4df609e6b331"
+    }
+  ],
+  "expectedChangedFileCount": 265,
+  "commitPlan": [
+    {
+      "id": "01",
+      "title": "Staff Backend: areas, notifications and income",
+      "scope": "Staff Backend",
+      "ownerReview": "Staff Backend owner",
+      "files": [
+        "backend/staff-service/package.json",
+        "backend/staff-service/src/app.js",
+        "backend/staff-service/src/area-service.js",
+        "backend/staff-service/src/income-configured-policy.js",
+        "backend/staff-service/src/income-policy.js",
+        "backend/staff-service/src/income-service.js",
+        "backend/staff-service/src/mapping.js",
+        "backend/staff-service/src/notification-repository.js",
+        "backend/staff-service/src/notification-service.js",
+        "backend/staff-service/src/repository.js",
+        "backend/staff-service/src/runtime.js",
+        "backend/staff-service/src/server.js",
+        "backend/staff-service/src/validation.js",
+        "backend/staff-service/test/areas.test.js",
+        "backend/staff-service/test/income-configured-policy.test.js",
+        "backend/staff-service/test/income-policy.test.js",
+        "backend/staff-service/test/income.test.js",
+        "backend/staff-service/test/notifications.test.js",
+        "backend/staff-service/test/repository.test.js"
+      ],
+      "titleVietnamese": "Staff Backend: khu vực, thông báo và thu nhập",
+      "count": 19,
+      "dependsOn": []
+    },
+    {
+      "id": "02",
+      "title": "Staff session and shared frontend foundations",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/lib/server/auth-core.mjs",
+        "frontend/apps/staff/lib/server/config.mjs",
+        "frontend/apps/staff/lib/server/jobs-http.mjs",
+        "frontend/apps/staff/test/auth-core-renewal.test.mjs",
+        "frontend/apps/staff/test/display-preferences.test.mjs",
+        "frontend/apps/staff/test/jobs-http.test.mjs",
+        "frontend/apps/staff/test/staff-navigation.test.mjs",
+        "frontend/packages/ui/src/components/staff/staff-auth-session.tsx",
+        "frontend/packages/ui/src/components/staff/staff-bottom-nav.tsx",
+        "frontend/packages/ui/src/components/staff/staff-display-preferences.tsx",
+        "frontend/packages/ui/src/components/staff/staff-login-route.ts",
+        "frontend/packages/ui/src/components/staff/staff-login.tsx",
+        "frontend/packages/ui/src/components/staff/staff-navigation.ts",
+        "frontend/packages/ui/src/components/staff/staff-route-policy.ts",
+        "frontend/packages/ui/src/components/staff/staff-shared.tsx"
+      ],
+      "titleVietnamese": "Nền tảng phiên và component Staff dùng chung",
+      "count": 15,
+      "dependsOn": []
+    },
+    {
+      "id": "03",
+      "title": "Areas, availability details and Leaflet maps",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/app/api/staff/availability/route.ts",
+        "frontend/apps/staff/app/api/staff/branch/route.ts",
+        "frontend/apps/staff/docs/STAFF_AREAS_DEMO.md",
+        "frontend/apps/staff/docs/STAFF_AVAILABILITY_REQUESTS.md",
+        "frontend/apps/staff/docs/STAFF_GOOGLE_MAPS_SETUP.md",
+        "frontend/apps/staff/docs/STAFF_MAPS_SETUP.md",
+        "frontend/apps/staff/lib/server/areas-contract.mjs",
+        "frontend/apps/staff/lib/server/areas-demo-config.mjs",
+        "frontend/apps/staff/lib/server/areas-http.mjs",
+        "frontend/apps/staff/lib/server/maps-config.mjs",
+        "frontend/apps/staff/test/areas-demo-config.test.mjs",
+        "frontend/apps/staff/test/areas-demo-ui.test.mjs",
+        "frontend/apps/staff/test/areas-demo.test.mjs",
+        "frontend/apps/staff/test/areas-http.test.mjs",
+        "frontend/apps/staff/test/availability-interactions.test.mjs",
+        "frontend/apps/staff/test/maps-config.test.mjs",
+        "frontend/apps/staff/test/maps.test.mjs",
+        "frontend/package-lock.json",
+        "frontend/packages/ui/package.json",
+        "frontend/packages/ui/src/components/staff/staff-areas-demo-adapter.ts",
+        "frontend/packages/ui/src/components/staff/staff-areas-demo-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-areas-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-areas-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-areas.tsx",
+        "frontend/packages/ui/src/components/staff/staff-availability-interactions.tsx",
+        "frontend/packages/ui/src/components/staff/staff-availability-request-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-branch-map.tsx",
+        "frontend/packages/ui/src/components/staff/staff-maps-loader.ts",
+        "frontend/packages/ui/src/components/staff/staff-maps-model.ts"
+      ],
+      "titleVietnamese": "Khu vực, chi tiết ca và Leaflet",
+      "count": 29,
+      "dependsOn": [
+        "02"
+      ]
+    },
+    {
+      "id": "04",
+      "title": "Staff notifications and local preferences",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/app/api/staff/notifications/[notificationId]/read/route.ts",
+        "frontend/apps/staff/app/api/staff/notifications/read-all/route.ts",
+        "frontend/apps/staff/app/api/staff/notifications/route.ts",
+        "frontend/apps/staff/app/api/staff/notifications/unread-count/route.ts",
+        "frontend/apps/staff/docs/STAFF_NOTIFICATIONS_DEMO.md",
+        "frontend/apps/staff/lib/server/notifications-contract.mjs",
+        "frontend/apps/staff/lib/server/notifications-demo-config.mjs",
+        "frontend/apps/staff/lib/server/notifications-http.mjs",
+        "frontend/apps/staff/test/notifications-demo-config.test.mjs",
+        "frontend/apps/staff/test/notifications-demo-ui.test.mjs",
+        "frontend/apps/staff/test/notifications-demo.test.mjs",
+        "frontend/apps/staff/test/notifications-http.test.mjs",
+        "frontend/packages/ui/src/components/staff/staff-notification-view-preferences.ts",
+        "frontend/packages/ui/src/components/staff/staff-notifications-demo-adapter.ts",
+        "frontend/packages/ui/src/components/staff/staff-notifications-demo-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-notifications-demo.tsx",
+        "frontend/packages/ui/src/components/staff/staff-notifications-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-notifications-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-notifications-unavailable.tsx",
+        "frontend/packages/ui/src/components/staff/staff-notifications.tsx"
+      ],
+      "titleVietnamese": "Thông báo và tùy chọn hiển thị",
+      "count": 20,
+      "dependsOn": [
+        "02"
+      ]
+    },
+    {
+      "id": "05",
+      "title": "Estimated income and income charts",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/app/api/staff/income/estimate/route.ts",
+        "frontend/apps/staff/docs/STAFF_INCOME_ACCEPTANCE_CONTRACT_PROPOSAL.md",
+        "frontend/apps/staff/docs/STAFF_INCOME_DEMO.md",
+        "frontend/apps/staff/docs/STAFF_INCOME_POLICY_CONFIGURATION.md",
+        "frontend/apps/staff/lib/server/income-contract.mjs",
+        "frontend/apps/staff/lib/server/income-demo-config.mjs",
+        "frontend/apps/staff/lib/server/income-http.mjs",
+        "frontend/apps/staff/test/income-demo-config.test.mjs",
+        "frontend/apps/staff/test/income-demo.test.mjs",
+        "frontend/apps/staff/test/income-history.test.mjs",
+        "frontend/apps/staff/test/income-http.test.mjs",
+        "frontend/apps/staff/test/income-isolation.test.mjs",
+        "frontend/apps/staff/test/income-remote-ui.test.mjs",
+        "frontend/packages/ui/src/components/staff/staff-income-demo.ts",
+        "frontend/packages/ui/src/components/staff/staff-income-history.ts",
+        "frontend/packages/ui/src/components/staff/staff-income-insights-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-income-insights.tsx",
+        "frontend/packages/ui/src/components/staff/staff-income-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-income-policy-v2.mjs",
+        "frontend/packages/ui/src/components/staff/staff-income-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-income-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-income.tsx"
+      ],
+      "titleVietnamese": "Tiền công dự kiến và biểu đồ thu nhập",
+      "count": 22,
+      "dependsOn": [
+        "02"
+      ]
+    },
+    {
+      "id": "06",
+      "title": "Operational achievements and review fallback",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/app/api/staff/reviews/route.ts",
+        "frontend/apps/staff/docs/STAFF_ACHIEVEMENTS_DEMO.md",
+        "frontend/apps/staff/docs/STAFF_REVIEWS_INTEGRATION.md",
+        "frontend/apps/staff/lib/server/achievements-demo-config.mjs",
+        "frontend/apps/staff/lib/server/reviews-http.mjs",
+        "frontend/apps/staff/test/achievements-demo-config.test.mjs",
+        "frontend/apps/staff/test/achievements-demo-ui.test.mjs",
+        "frontend/apps/staff/test/achievements-demo.test.mjs",
+        "frontend/apps/staff/test/performance-model.test.mjs",
+        "frontend/apps/staff/test/reviews-http.test.mjs",
+        "frontend/apps/staff/test/reviews-ui.test.mjs",
+        "frontend/apps/staff/test/work-statistics-ui.test.mjs",
+        "frontend/packages/ui/src/components/staff/staff-achievements-demo-adapter.ts",
+        "frontend/packages/ui/src/components/staff/staff-achievements-demo-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-achievements.tsx",
+        "frontend/packages/ui/src/components/staff/staff-performance-breakdown.tsx",
+        "frontend/packages/ui/src/components/staff/staff-performance-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-performance-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-performance-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-reviews-contract.mjs",
+        "frontend/packages/ui/src/components/staff/staff-reviews-remote-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-reviews-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-work-statistics-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-work-statistics-remote.tsx"
+      ],
+      "titleVietnamese": "Thành tích vận hành và trạng thái đánh giá",
+      "count": 24,
+      "dependsOn": [
+        "02"
+      ]
+    },
+    {
+      "id": "07",
+      "title": "Support chatbot, context and BFF protection",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/app/api/staff/support/chat/route.ts",
+        "frontend/apps/staff/docs/STAFF_SUPPORT_AI_CONFIGURATION.md",
+        "frontend/apps/staff/docs/STAFF_SUPPORT_DEMO.md",
+        "frontend/apps/staff/lib/server/auth-http.mjs",
+        "frontend/apps/staff/lib/server/support-chat-config.mjs",
+        "frontend/apps/staff/lib/server/support-chat-context.mjs",
+        "frontend/apps/staff/lib/server/support-chat-http.mjs",
+        "frontend/apps/staff/lib/server/support-chat-provider.mjs",
+        "frontend/apps/staff/lib/server/support-demo-config.mjs",
+        "frontend/apps/staff/test/auth-http.test.mjs",
+        "frontend/apps/staff/test/support-chat-http.test.mjs",
+        "frontend/apps/staff/test/support-conversation.test.mjs",
+        "frontend/apps/staff/test/support-demo-config.test.mjs",
+        "frontend/apps/staff/test/support-demo-ui.test.mjs",
+        "frontend/apps/staff/test/support-demo.test.mjs",
+        "frontend/apps/staff/test/support-search.test.mjs",
+        "frontend/packages/ui/src/components/staff/staff-support-assistant.tsx",
+        "frontend/packages/ui/src/components/staff/staff-support-chat.tsx",
+        "frontend/packages/ui/src/components/staff/staff-support-conversation.mjs",
+        "frontend/packages/ui/src/components/staff/staff-support-demo-adapter.ts",
+        "frontend/packages/ui/src/components/staff/staff-support-demo-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-support-knowledge.tsx",
+        "frontend/packages/ui/src/components/staff/staff-support-questions.mjs",
+        "frontend/packages/ui/src/components/staff/staff-support-search.ts",
+        "frontend/packages/ui/src/components/staff/staff-support-widget-context.tsx",
+        "frontend/packages/ui/src/components/staff/staff-support-widget.tsx",
+        "frontend/packages/ui/src/components/staff/staff-support.tsx"
+      ],
+      "titleVietnamese": "Chatbot, hội thoại và bảo vệ BFF",
+      "count": 27,
+      "dependsOn": [
+        "02"
+      ]
+    },
+    {
+      "id": "08",
+      "title": "Staff routes, shell, account and settings integration",
+      "scope": "Frontend Staff",
+      "files": [
+        "frontend/apps/staff/.env.example",
+        "frontend/apps/staff/app/[[...slug]]/page.tsx",
+        "frontend/apps/staff/app/api/auth/renew/route.ts",
+        "frontend/apps/staff/app/globals.css",
+        "frontend/apps/staff/app/layout.tsx",
+        "frontend/apps/staff/docs/AUTH_INTEGRATION.md",
+        "frontend/apps/staff/docs/LOGIN_FORM_STABILITY.md",
+        "frontend/apps/staff/docs/SESSION_RENEWAL.md",
+        "frontend/apps/staff/docs/SESSION_RENEWAL_PROPOSAL.md",
+        "frontend/apps/staff/docs/STAFF_PROFILE_DEMO.md",
+        "frontend/apps/staff/docs/STAFF_SETTINGS_INTEGRATION.md",
+        "frontend/apps/staff/lib/server/profile-demo-config.mjs",
+        "frontend/apps/staff/lib/server/settings-demo-config.mjs",
+        "frontend/apps/staff/next.config.mjs",
+        "frontend/apps/staff/package.json",
+        "frontend/apps/staff/test/auth-form-browser.integration.mjs",
+        "frontend/apps/staff/test/auth-session-ui.test.mjs",
+        "frontend/apps/staff/test/auth-ui.test.mjs",
+        "frontend/apps/staff/test/dashboard-ui.test.mjs",
+        "frontend/apps/staff/test/history-ui.test.mjs",
+        "frontend/apps/staff/test/jobs-revalidation.test.mjs",
+        "frontend/apps/staff/test/profile-demo-config.test.mjs",
+        "frontend/apps/staff/test/profile-demo-ui.test.mjs",
+        "frontend/apps/staff/test/profile-demo.test.mjs",
+        "frontend/apps/staff/test/profile-ui.test.mjs",
+        "frontend/apps/staff/test/settings-demo-config.test.mjs",
+        "frontend/apps/staff/test/settings-demo-ui.test.mjs",
+        "frontend/apps/staff/test/settings-demo.test.mjs",
+        "frontend/apps/staff/test/settings-local-view.test.mjs",
+        "frontend/apps/staff/test/staff-local-runtime.test.mjs",
+        "frontend/apps/staff/test/staff-navigation.browser.mjs",
+        "frontend/packages/ui/src/components/staff/staff-account-settings.tsx",
+        "frontend/packages/ui/src/components/staff/staff-app-providers.tsx",
+        "frontend/packages/ui/src/components/staff/staff-auth-portal.tsx",
+        "frontend/packages/ui/src/components/staff/staff-dashboard-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-dashboard-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-history-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-history-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-job-detail-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-job-status.tsx",
+        "frontend/packages/ui/src/components/staff/staff-jobs-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-jobs-revalidation.ts",
+        "frontend/packages/ui/src/components/staff/staff-layout.tsx",
+        "frontend/packages/ui/src/components/staff/staff-profile-demo-adapter.ts",
+        "frontend/packages/ui/src/components/staff/staff-profile-demo-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-profile-demo.tsx",
+        "frontend/packages/ui/src/components/staff/staff-profile-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-schedule-remote.tsx",
+        "frontend/packages/ui/src/components/staff/staff-settings-demo-adapter.ts",
+        "frontend/packages/ui/src/components/staff/staff-settings-demo-model.ts",
+        "frontend/packages/ui/src/components/staff/staff-settings.tsx"
+      ],
+      "titleVietnamese": "Tích hợp route, giao diện, hồ sơ và cài đặt Staff",
+      "count": 51,
+      "dependsOn": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07"
+      ]
+    },
+    {
+      "id": "09",
+      "title": "Isolated QA tooling and Staff handoff documentation",
+      "scope": "QA/test and Staff docs",
+      "files": [
+        "backend/staff-service/scripts/qa-readonly-snapshot.mjs",
+        "frontend/apps/staff/docs/STAFF_BACKEND_CONTRACT_PROPOSALS.md",
+        "frontend/apps/staff/docs/STAFF_BACKEND_IMPLEMENTATION_REQUESTS.md",
+        "frontend/apps/staff/docs/STAFF_BACKEND_INTEGRATION_GAPS.md",
+        "frontend/apps/staff/docs/STAFF_BUG_AUDIT.md",
+        "frontend/apps/staff/docs/STAFF_BUSINESS_SPEC.md",
+        "frontend/apps/staff/docs/STAFF_DATA_ZERO_20261104.md",
+        "frontend/apps/staff/docs/STAFF_FINAL_QA_REPORT.md",
+        "frontend/apps/staff/docs/STAFF_MODULES_VALIDATION_20261105.md",
+        "frontend/apps/staff/docs/STAFF_PRIORITIES_20261104.md",
+        "frontend/apps/staff/docs/STAFF_PR_PREPARATION.md",
+        "frontend/apps/staff/docs/STAFF_REAL_API_INTEGRATION.md",
+        "frontend/apps/staff/docs/STAFF_REBUILD_PLAN.md",
+        "frontend/apps/staff/docs/STAFF_REBUILD_PROGRESS.md",
+        "frontend/apps/staff/docs/STAFF_STAGE6_ACCEPTANCE.md",
+        "frontend/apps/staff/test/staff-modules.browser.mjs",
+        "frontend/apps/staff/test/staff-priorities.test.mjs",
+        "frontend/apps/staff/test/staff-real-readonly.browser.mjs",
+        "qa/staff/.gitignore",
+        "qa/staff/README.md",
+        "qa/staff/availability.browser.mjs",
+        "qa/staff/browser.mjs",
+        "qa/staff/common.mjs",
+        "qa/staff/config.example.json",
+        "qa/staff/credentials.ps1",
+        "qa/staff/dependencies.mjs",
+        "qa/staff/frontend-config.mjs",
+        "qa/staff/frontend-config.test.mjs",
+        "qa/staff/income-chart.browser.mjs",
+        "qa/staff/maps-isolation.mjs",
+        "qa/staff/maps.browser.mjs",
+        "qa/staff/pr-preparation-manifest.json",
+        "qa/staff/refresh-frontend.ps1",
+        "qa/staff/runtime.mjs",
+        "qa/staff/schema.sql",
+        "qa/staff/seed.mjs",
+        "qa/staff/seed.test.mjs",
+        "qa/staff/service.mjs",
+        "qa/staff/settings.browser.mjs",
+        "qa/staff/stage4.browser.mjs",
+        "qa/staff/start.ps1",
+        "qa/staff/status.ps1",
+        "qa/staff/stop.ps1",
+        "qa/staff/support-live.browser.mjs",
+        "qa/staff/support.browser.mjs",
+        "qa/staff/test.mjs",
+        "qa/staff/test.ps1",
+        "qa/staff/ui-polish.browser.mjs"
+      ],
+      "titleVietnamese": "QA cô lập và tài liệu bàn giao Staff",
+      "count": 48,
+      "dependsOn": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08"
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Database architecture and ERD handoff",
+      "scope": "Database/ERD docs; separate PR",
+      "files": [
+        "docs/cleanhome-erd-32-tables.png",
+        "docs/cleanhome-erd-32-tables.svg",
+        "docs/cleanhome-erd-export.json",
+        "docs/cleanhome-erd.mmd",
+        "docs/database-architecture-summary.md",
+        "docs/database-erd-export.md",
+        "docs/database-migration-backlog.md",
+        "docs/database-ownership.md",
+        "docs/database-structure-review.md",
+        "docs/export-cleanhome-erd.mjs"
+      ],
+      "titleVietnamese": "Tài liệu kiến trúc Database và ERD",
+      "count": 10,
+      "dependsOn": []
+    }
+  ]
+}

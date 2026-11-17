@@ -1,0 +1,12 @@
+backend/order-service/scripts/uc12-qa-data.mjs
+backend/order-service/test/uc12-qa-data.test.mjs
+frontend/apps/staff/docs/UC12_E2E_QA_REPORT.md
+frontend/apps/staff/docs/UC12_INTEGRATION.md
+frontend/apps/staff/scripts/uc12-qa/backup.mjs
+frontend/apps/staff/scripts/uc12-qa/browser.mjs
+frontend/apps/staff/scripts/uc12-qa/regression.mjs
+frontend/apps/staff/scripts/uc12-qa/relay.mjs
+frontend/apps/staff/scripts/uc12-qa/run.mjs
+frontend/apps/staff/scripts/uc12-qa/runtime.mjs
+frontend/apps/staff/test/status-qa-relay.test.mjs
+frontend/apps/staff/test/uc12-qa-backup.test.mjs

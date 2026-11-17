@@ -1,3 +1,4 @@
+import { createApp as createStaffApp } from "./app.staff.js";
 import { createHttpApp, HttpError, reply } from '../../shared/http.js';
 import { enumValue, id, invalid, number, object, pagination, phone, text } from '../../shared/validation.js';
 import { createAuthenticator, createInternalClient } from '../../shared/service-client.js';
@@ -229,7 +230,7 @@ export async function reconcileProductPurchase({ order, repository, request, ope
   }
 }
 
-export function createApp({ repository, config }) {
+function createPortalApp({ repository, config }) {
   const request = createInternalClient(config, 'order');
   const authenticate = createAuthenticator(config, 'order');
   const enrich = async (order, { forceAssignment = false } = {}) => {
@@ -367,4 +368,12 @@ export function createApp({ repository, config }) {
         reply(await get(id(url.searchParams.get('customerId'), 'customerId'), id(params.id))) },
     ],
   });
+}
+
+// Runtime selection is fixed by trusted bootstrap arguments, never by request input.
+export function createApp(options) {
+  if (!options || typeof options !== "object") throw new TypeError("Application options required");
+  if (Object.hasOwn(options, "service")) return createStaffApp(options);
+  if (Object.hasOwn(options, "repository") && Object.hasOwn(options, "config")) return createPortalApp(options);
+  throw new TypeError("Unsupported application bootstrap contract");
 }

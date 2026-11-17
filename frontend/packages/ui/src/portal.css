@@ -1206,3 +1206,60 @@ body {
     scroll-behavior:auto!important;
   }
 }
+
+/* Login-only styles keep the three portals on the same CleanHome scale. */
+.ch-auth-heading {
+  margin:0;
+  font-size:clamp(28px,calc(1rem + 2.2vw),40px);
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:-.025em;
+  text-wrap:balance;
+  overflow-wrap:break-word;
+}
+.ch-login-form { gap:20px; }
+.ch-login-form .ch-field {
+  gap:8px;
+  font-size:14px;
+  font-weight:600;
+  line-height:1.5;
+}
+.ch-login-form .ch-field input:not([type="checkbox"]) {
+  min-height:48px;
+  min-width:0;
+  max-width:100%;
+  border:1px solid #cbd5e1;
+  border-radius:12px;
+  padding:12px 14px;
+  font-family:inherit;
+  font-size:14px;
+  font-weight:400;
+  line-height:1.5;
+}
+.ch-login-form .ch-field input:focus-visible {
+  border-color:var(--ch-blue);
+  outline:3px solid #2563eb24;
+  outline-offset:0;
+}
+.ch-login-form .ch-field input[aria-invalid="true"] { border-color:var(--ch-danger); }
+.ch-login-form .ch-login-submit {
+  width:100%;
+  min-height:48px;
+  height:auto;
+  align-self:stretch;
+  gap:8px;
+  border-radius:12px;
+  padding:12px 20px;
+  background:var(--ch-blue);
+  color:white;
+  font-family:inherit;
+  font-size:14px;
+  font-weight:600;
+  line-height:1.5;
+  white-space:normal;
+  transition:background-color .18s ease,box-shadow .18s ease;
+}
+.ch-login-form .ch-login-submit:hover:not(:disabled) { background:var(--ch-blue-hover); }
+.ch-login-form .ch-login-submit:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
+.ch-login-form .ch-login-submit:disabled { opacity:.55; cursor:not-allowed; }
+@media(prefers-reduced-motion:reduce) { .ch-login-form .ch-login-submit { transition:none; } }

@@ -1,0 +1,21 @@
+.private/
+.env
+*.log
+
+# Local QA secrets or artifacts accidentally placed outside .private.
+*.env
+.env.*
+/credentials*.json
+/runtime-config*.json
+/owned-processes*.json
+*.pem
+*.key
+*.token
+*.har
+*dump*.sql
+*backup*.sql
+/reports/
+/logs/
+/sessions/
+/mysql/
+/screenshots/

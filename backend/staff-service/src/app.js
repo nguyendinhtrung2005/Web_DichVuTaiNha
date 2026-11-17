@@ -1,3 +1,4 @@
+import { createApp as createStaffApp } from "./app.staff.js";
 import { createHttpApp, HttpError, reply } from '../../shared/http.js';
 import { id, enumValue, object, text } from '../../shared/validation.js';
 import { createAuthenticator, createInternalClient } from '../../shared/service-client.js';
@@ -5,7 +6,7 @@ import { createAuthenticator, createInternalClient } from '../../shared/service-
 const nextStatuses = ['accepted', 'in_progress', 'done'];
 const operationIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export function createApp({ repository, config }) {
+function createPortalApp({ repository, config }) {
   const authenticate = createAuthenticator(config, 'staff');
   const request = createInternalClient(config, 'staff');
   return createHttpApp({ name: 'staff', config, authenticate, routes: [
@@ -52,4 +53,12 @@ export function createApp({ repository, config }) {
       return assignment;
     } },
   ] });
+}
+
+// Runtime selection is fixed by trusted bootstrap arguments, never by request input.
+export function createApp(options) {
+  if (!options || typeof options !== "object") throw new TypeError("Application options required");
+  if (Object.hasOwn(options, "service")) return createStaffApp(options);
+  if (Object.hasOwn(options, "repository") && Object.hasOwn(options, "config")) return createPortalApp(options);
+  throw new TypeError("Unsupported application bootstrap contract");
 }
