@@ -1,4 +1,5 @@
 {
   "name": "home-service-api-gateway",
-  "private": true
+  "private": true,
+  "type": "module"
 }

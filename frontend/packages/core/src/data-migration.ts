@@ -39,6 +39,9 @@ export function validateMigrationState(value: unknown, options: { references?: b
         && optionalText(record.avatar) && optionalText(record.position)
       if (key === 'services') valid = ['slug', 'name', 'shortDesc', 'description', 'unit', 'quantityLabel', 'image'].every(field => text(record[field])) && required(record.slug)
         && member(record.category, ['dinh-ky', 'chuyen-sau', 'noi-that', 'thiet-bi']) && member(record.status, ['active', 'inactive'])
+        && (record.group === undefined || member(record.group, ['ve-sinh', 'cham-soc', 'bao-duong']))
+        && (record.cleaningType === undefined || member(record.cleaningType, ['phong-tro', 'nha-gia-dinh', 'khac']))
+        && (record.pricingMode === undefined || member(record.pricingMode, ['fixed', 'reference', 'survey']))
         && ['scope', 'included', 'excluded'].every(field => strings(record[field]))
         && ['price', 'minQuantity', 'defaultQuantity', 'minutesPerUnit', 'baseMinutes'].every(field => number(record[field]))
       if (key === 'orders') {
@@ -48,7 +51,7 @@ export function validateMigrationState(value: unknown, options: { references?: b
           && ['quantity', 'durationMinutes', 'price'].every(field => number(record[field])) && date(record.scheduledAt) && date(record.createdAt)
           && member(record.status, ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled']) && optionalText(record.staffId)
           && (record.jobStatus === undefined || member(record.jobStatus, ['waiting', 'accepted', 'in_progress', 'done']))
-          && object(contact) && ['name', 'phone', 'address'].every(field => text(contact[field])) && member(contact.houseType, ['can-ho', 'nha-pho', 'biet-thu', 'van-phong'])
+          && object(contact) && ['name', 'phone', 'address'].every(field => text(contact[field])) && member(contact.houseType, ['phong-tro', 'can-ho', 'nha-pho', 'biet-thu', 'van-phong'])
           && typeof contact.hasPets === 'boolean' && ['area', 'rooms', 'floors'].every(field => contact[field] === undefined || number(contact[field]))
           && Array.isArray(record.history) && record.history.every(entry => object(entry) && date(entry.at) && text(entry.label) && text(entry.by) && optionalText(entry.note))
           && Array.isArray(record.staffNotes) && record.staffNotes.every(entry => object(entry) && date(entry.at) && text(entry.text) && required(entry.staffId))

@@ -107,3 +107,5 @@ export class MysqlAuthRepository {
     })
   }
 }
+
+export { createRepository } from "./repository.portal.js";

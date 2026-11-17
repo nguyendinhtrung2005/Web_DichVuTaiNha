@@ -1,62 +1,111 @@
-import express from 'express'
-import cors from 'cors'
-import { createHash, randomUUID } from 'node:crypto'
-import { AuthError, loginInput } from './service.js'
+import { createApp as createStaffApp } from "./app.staff.js";
+export { createLoginGuard } from "./app.staff.js";
+import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { createHttpApp, HttpError, reply } from '../../shared/http.js';
+import { object, text, phone, email } from '../../shared/validation.js';
+import { hashPassword, verifyPassword, validatePassword } from '../../shared/passwords.js';
+import { createSigningKeys, issueToken, verifyToken, readSessionCookie, sessionCookie } from '../../shared/auth-tokens.js';
+import { userDto } from '../../shared/user-dto.js';
 
-export function createLoginGuard({ now = Date.now, windowMs = 60000, ipLimit = 30, phoneLimit = 10, concurrency = 2 } = {}) {
-  const counts = new Map()
-  let active = 0
-  return function guard(req, res, next) {
-    const time = now()
-    for (const [key, item] of counts) if (item.until <= time) counts.delete(key)
-    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim().slice(0, 20) : ''
-    const keys = [['ip:' + req.ip, ipLimit], ['phone:' + createHash('sha256').update(phone).digest('hex'), phoneLimit]]
-    if (active >= concurrency || counts.size >= 10000 || keys.some(([key, limit]) => (counts.get(key)?.count || 0) >= limit)) {
-      res.setHeader('Retry-After', '60')
-      return next(new AuthError(429, 'LOGIN_RATE_LIMITED', 'Vui lòng thử đăng nhập lại sau.'))
+function createPortalApp({ repository, config }) {
+  const keys = createSigningKeys(config);
+  const roleNames = { CUSTOMER: 'customer', EMPLOYEE: 'staff', ADMIN: 'admin' };
+  const sessions = new Map(), attempts = new Map();
+  const dummy = hashPassword(randomBytes(32).toString('hex'));
+  const denied = () => new HttpError(401, 'INVALID_CREDENTIALS', 'Số điện thoại/email hoặc mật khẩu không đúng.');
+  function rateLimit(req, identifier = '') {
+    const now = Date.now(), windowMs = 15 * 60 * 1000;
+    for (const [key, value] of attempts) if (value.until <= now) attempts.delete(key);
+    const keysToCheck = [
+      ['ip:' + req.socket.remoteAddress, 100],
+      ['account:' + createHash('sha256').update(identifier).digest('hex'), 15],
+    ];
+    for (const [key, limit] of keysToCheck) {
+      const entry = attempts.get(key) || { count: 0, until: now + windowMs };
+      if (entry.count >= limit) throw new HttpError(429, 'TOO_MANY_ATTEMPTS', 'Có quá nhiều lần thử. Vui lòng thử lại sau.');
+      entry.count += 1; attempts.set(key, entry);
     }
-    for (const [key] of keys) { const item = counts.get(key) || { count: 0, until: time + windowMs }; item.count++; counts.set(key, item) }
-    active++
-    let released = false
-    const release = () => { if (!released) { released = true; active-- } }
-    // Hold the slot until hashing finishes, even if the client disconnects.
-    req.releaseLogin = release
-    next()
   }
+  function openSession(user, res) {
+    const now = Math.floor(Date.now() / 1000);
+    for (const [sid, session] of sessions) if (session.expires <= now) sessions.delete(sid);
+    if (sessions.size >= 10000) throw new HttpError(503, 'SESSION_CAPACITY', 'Chưa thể tạo phiên mới. Vui lòng thử lại.');
+    const sid = randomUUID();
+    sessions.set(sid, { userId: String(user.id), role: user.role, expires: now + config.sessionTtl });
+    res.setHeader('Set-Cookie', sessionCookie(config, issueToken(keys, config, user.id, sid, now, user.role)));
+    return userDto(user);
+  }
+  async function inspect(token, expectedRole) {
+    const claims = verifyToken(token, keys.jwks, config, ['CUSTOMER', 'EMPLOYEE', 'ADMIN']);
+    const session = sessions.get(claims.sid);
+    if (!session || session.userId !== claims.sub || session.role !== claims.role || session.expires <= Date.now() / 1000) throw new HttpError(401, 'UNAUTHENTICATED', 'Phiên đã hết hạn. Vui lòng đăng nhập lại.');
+    const user = await repository.findById(claims.sub);
+    if (!user || user.status !== 'ACTIVE' || !roleNames[user.role] || user.role !== claims.role) {
+      sessions.delete(claims.sid);
+      throw new HttpError(401, 'UNAUTHENTICATED', 'Tài khoản không còn quyền truy cập.');
+    }
+    const allowed = expectedRole === 'customer' ? user.role === 'CUSTOMER'
+      : expectedRole === 'staff' ? user.role === 'EMPLOYEE'
+        : expectedRole === 'admin' ? user.role === 'ADMIN'
+          : expectedRole === 'portal' ? ['EMPLOYEE', 'ADMIN'].includes(user.role)
+            : false;
+    if (expectedRole && !allowed) throw new HttpError(403, 'ROLE_FORBIDDEN', 'Tài khoản không có quyền truy cập khu vực này.');
+    return { sub: claims.sub, role: user.role, user: userDto(user) };
+  }
+  return createHttpApp({ name: 'auth', config, authenticate: async (req, expectedRole) => inspect(readSessionCookie(req, config.cookieName), expectedRole), routes: [
+    { method: 'GET', path: '/api/v1/auth/jwks', handler: () => keys.jwks },
+    { method: 'POST', path: '/internal/v1/introspect', auth: 'internal', callers: ['user', 'catalog', 'order', 'staff', 'payment', 'review', 'gateway'], handler: async ({ body }) => {
+      object(body, ['token']); return inspect(text(body.token, 'token', 1, 8192));
+    } },
+    { method: 'POST', path: '/api/v1/auth/register', origins: ['customer'], handler: async ({ req, res, body }) => {
+      object(body, ['name', 'phone', 'password'], ['email']);
+      const name = text(body.name, 'name', 2, 100);
+      if (!/\p{L}/u.test(name) || /\p{Cc}/u.test(name)) throw new HttpError(400, 'INVALID_INPUT', 'Họ tên không hợp lệ.');
+      const normalizedPhone = phone(body.phone), normalizedEmail = email(body.email);
+      const password = validatePassword(body.password);
+      rateLimit(req, normalizedPhone);
+      const user = await repository.create({ name, phone: normalizedPhone, email: normalizedEmail, passwordHash: await hashPassword(password) });
+      return reply(openSession(user, res), 201);
+    } },
+    { method: 'POST', path: '/api/v1/auth/login', origins: ['customer'], handler: async ({ req, res, body }) => {
+      object(body, ['identifier', 'password']);
+      const raw = text(body.identifier, 'identifier', 1, 254);
+      const identifier = raw.includes('@') ? email(raw) : phone(raw);
+      const password = validatePassword(body.password, 1);
+      rateLimit(req, identifier);
+      const user = await repository.findByIdentifier(identifier);
+      const matches = await verifyPassword(password, user?.password_hash || await dummy);
+      if (!matches || !user || user.status !== 'ACTIVE' || user.role !== 'CUSTOMER') throw denied();
+      return openSession(user, res);
+    } },
+    { method: 'POST', path: '/api/v1/portal-auth/login', origins: ['staff', 'admin'], handler: async ({ req, res, body }) => {
+      object(body, ['identifier', 'password', 'role']);
+      const expectedRole = body.role === 'staff' ? 'EMPLOYEE' : body.role === 'admin' ? 'ADMIN' : null;
+      if (!expectedRole) throw denied();
+      const raw = text(body.identifier, 'identifier', 1, 254);
+      const identifier = raw.includes('@') ? email(raw) : phone(raw);
+      const password = validatePassword(body.password, 1);
+      rateLimit(req, identifier);
+      const user = await repository.findByIdentifier(identifier);
+      const matches = await verifyPassword(password, user?.password_hash || await dummy);
+      if (!matches || !user || user.status !== 'ACTIVE' || user.role !== expectedRole) throw denied();
+      return openSession(user, res);
+    } },
+    { method: 'GET', path: '/api/v1/auth/session', auth: 'customer', handler: ({ principal }) => principal.user },
+    { method: 'GET', path: '/api/v1/portal-auth/session', auth: 'portal', handler: ({ principal }) => principal.user },
+    { method: 'POST', path: '/api/v1/auth/logout', handler: ({ req, res, body }) => {
+      object(body, []);
+      try { const claims = verifyToken(readSessionCookie(req, config.cookieName), keys.jwks, config); sessions.delete(claims.sid); } catch (error) { if (!(error instanceof HttpError)) throw error; }
+      res.setHeader('Set-Cookie', sessionCookie(config, '', 0));
+      return { loggedOut: true };
+    } },
+  ] });
 }
-export function createApp({ service, repository, issuer, corsOrigins = [], loginGuard = createLoginGuard(), logger = () => {} }) {
-  const app = express()
-  app.disable('x-powered-by')
-  app.use((req, res, next) => {
-    req.requestId = randomUUID(); res.setHeader('X-Request-Id', req.requestId)
-    res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.on('finish', () => logger({ event: 'auth_request', method: req.method, path: req.path, status: res.statusCode, requestId: req.requestId }))
-    next()
-  })
-  app.use(cors({ origin(origin, done) { done(origin && !corsOrigins.includes(origin) ? new AuthError(403, 'ORIGIN_DENIED', 'Origin không được phép.') : null, true) }, methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Authorization', 'Content-Type'], exposedHeaders: ['X-Request-Id'], maxAge: 600 }))
-  app.use(express.json({ limit: '8kb', strict: true }))
-  app.get('/health/live', (_req, res) => res.json({ status: 'ok', service: 'auth-service' }))
-  app.get('/health/ready', async (_req, res) => { await repository.assertSchema(); res.json({ status: 'ready', service: 'auth-service' }) })
-  app.get('/.well-known/jwks.json', (_req, res) => { res.setHeader('Cache-Control', 'public, max-age=300'); res.json(issuer.jwks) })
-  app.post('/api/v1/auth/login', loginGuard, async (req, res) => {
-    try { res.json(await service.login(loginInput(req.body))) }
-    finally { req.releaseLogin?.() }
-  })
-  app.get('/api/v1/auth/introspect', async (req, res) => {
-    const header = req.headers.authorization
-    const token = typeof header === 'string' && header.length <= 8192 && /^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i.exec(header)?.[1]
-    if (!token) throw new AuthError(401, 'UNAUTHENTICATED', 'Access token không hợp lệ hoặc đã hết hạn.')
-    res.json(await service.introspect(token))
-  })
-  app.use((_req, _res, next) => next(new AuthError(404, 'NOT_FOUND', 'Không tìm thấy API.')))
-  app.use((error, req, res, next) => {
-    if (res.headersSent) return next(error)
-    const known = error instanceof AuthError
-    const status = known ? error.status : error.type === 'entity.parse.failed' ? 400 : error.type === 'entity.too.large' ? 413 : ['DB_UNAVAILABLE', 'DATABASE_SCHEMA_INCOMPATIBLE'].includes(error.code) ? 503 : 500
-    const code = known ? error.code : status === 400 ? 'INVALID_JSON' : status === 413 ? 'BODY_TOO_LARGE' : status === 503 ? 'DATABASE_UNAVAILABLE' : 'INTERNAL_ERROR'
-    if (status === 401) res.setHeader('WWW-Authenticate', 'Bearer')
-    if (status === 503) res.setHeader('Retry-After', '5')
-    res.status(status).json({ error: { code, message: known ? error.message : status === 400 ? 'JSON không hợp lệ.' : status === 413 ? 'Dữ liệu vượt giới hạn.' : 'Chưa thể xử lý yêu cầu.' }, requestId: req.requestId })
-  })
-  return app
+
+// Runtime selection is fixed by trusted bootstrap arguments, never by request input.
+export function createApp(options) {
+  if (!options || typeof options !== "object") throw new TypeError("Application options required");
+  if (Object.hasOwn(options, "service")) return createStaffApp(options);
+  if (Object.hasOwn(options, "repository") && Object.hasOwn(options, "config")) return createPortalApp(options);
+  throw new TypeError("Unsupported application bootstrap contract");
 }

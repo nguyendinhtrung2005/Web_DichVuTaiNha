@@ -19,3 +19,8 @@ export function createPool(config) {
     charset: 'utf8mb4',
   })
 }
+
+import { createMysqlPool } from "../../shared/mysql-pool.js";
+import { createLazyPool } from "../../shared/lazy-pool.js";
+// Preserve the main pool export without initializing DB_* configuration in Staff imports.
+export const pool = createLazyPool(createMysqlPool);

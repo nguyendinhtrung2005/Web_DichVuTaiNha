@@ -1,4 +1,5 @@
 {
   "name": "home-service-service-service",
-  "private": true
+  "private": true,
+  "type": "module"
 }

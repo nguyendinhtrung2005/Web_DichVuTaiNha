@@ -1,5 +1,7 @@
 "use client"
 
+import { StaffPortalLogin } from "./staff-portal-login"
+
 import { useLayoutEffect, useRef, useState, type FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowRightIcon, CalendarDaysIcon, ClipboardListIcon, LoaderCircleIcon, LockKeyholeIcon, ShieldCheckIcon } from "lucide-react"
@@ -12,7 +14,7 @@ import { staffLoginReturnTo } from "./staff-login-route"
 import { useStaffAuth } from "./staff-auth-session"
 import { validateStaffLogin, type StaffLoginErrors } from "./staff-login-validation"
 
-export function StaffLogin() {
+function StaffBffLogin() {
   const router = useRouter()
   const params = useSearchParams()
   const auth = useStaffAuth()
@@ -82,4 +84,10 @@ export function StaffLogin() {
     </aside>
     <CardContent className="staff-login-panel min-w-0 p-6 sm:p-8 lg:p-10"><div className="staff-login-lock"><LockKeyholeIcon aria-hidden="true" className="size-5" /></div><p className="m-0 mb-3 text-xs font-semibold tracking-wider text-primary uppercase">CleanHome / Nhân viên</p><h1 className="ch-auth-heading staff-login-title m-0 tracking-tight">Đăng nhập nhân viên</h1><p className="m-0 mt-4 mb-7 text-sm leading-7 text-muted-foreground">Chào mừng bạn trở lại. Đăng nhập để bắt đầu công việc hôm nay.</p>{auth?.error && !submitError && <p role="status" className="staff-notice m-0 mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-950">{auth.error}</p>}<form ref={form} method="post" autoComplete="on" noValidate onSubmit={submit} aria-busy={busy} className="ch-login-form flex flex-col gap-5"><fieldset disabled={busy} className="m-0 min-w-0 space-y-5 border-0 p-0"><legend className="sr-only">Thông tin đăng nhập</legend><Field label="Số điện thoại" error={errors.phone}><Input id="staff-login-phone" name="phone" type="tel" autoComplete="username" autoCapitalize="none" spellCheck={false} required maxLength={20} defaultValue="" onChange={() => change("phone")} className="min-h-12 rounded-xl" /></Field><Field label="Mật khẩu" error={errors.password}><PasswordField key={"staff-login-password-" + attempt} id="staff-login-password" name="password" autoComplete="current-password" required disabled={busy} defaultValue="" onChange={() => change("password")} /></Field></fieldset>{submitError && <div ref={alert} tabIndex={-1} role="alert" className="staff-notice rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-7 text-destructive">{submitError}</div>}<Button type="submit" disabled={busy} className="ch-login-submit w-full">{busy ? <><LoaderCircleIcon aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Đang đăng nhập...</> : <>Đăng nhập<ArrowRightIcon aria-hidden="true" /></>}</Button><p className="sr-only" role="status">{busy ? "Đang đăng nhập" : ""}</p></form><p className="staff-login-help m-0 mt-6 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-6 text-muted-foreground">Nếu chưa có tài khoản hoặc không thể đăng nhập, vui lòng liên hệ người quản lý.</p></CardContent>
   </Card>
+}
+
+// Provider presence selects the host application; an unavailable BFF never falls back.
+export function StaffLogin() {
+  const auth = useStaffAuth()
+  return auth === null ? <StaffPortalLogin /> : <StaffBffLogin />
 }

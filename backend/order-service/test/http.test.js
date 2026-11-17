@@ -250,7 +250,12 @@ test('ACK verifies Staff commit timestamps and remains idempotent after later st
   const f = await fixture(t)
   f.repository.state.assignments[0].status = 'ACCEPTED'
   const op = operation({ fromStatus: 'ACCEPTED', toStatus: 'IN_PROGRESS' })
-  const ack = await f.client.applyAssignmentTransition(op)
+  // Staff must remain fail-closed; this fixture tests Order ACK below that boundary.
+  await assert.rejects(f.client.applyAssignmentTransition(op), error => error.code === 'STAFFING_POLICY_REQUIRED')
+  assert.equal(f.repository.state.history.length, 0)
+  const applied = await f.put(op)
+  assert.equal(applied.status, 200)
+  const ack = applied.body
   f.repository.state.assignments[0].status = 'IN_PROGRESS'
   f.repository.state.assignments[0].checkInAt = '2026-01-01T00:00:00.000Z'
   await assert.rejects(f.client.ackAssignmentTransition(op), error => error.details?.reason === 'STALE_ASSIGNMENT')

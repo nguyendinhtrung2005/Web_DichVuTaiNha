@@ -1,6 +1,7 @@
 "use client"
 
-import { Component, type ReactNode } from "react"
+import { Component, useEffect, type ReactNode } from "react"
+import { refreshCustomerService } from '@/lib/customer-api-store'
 import Link from "next/link"
 import { ArrowLeftIcon, RefreshCwIcon, SearchXIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ class ServiceErrorBoundary extends Component<{ children: ReactNode }, { failed: 
 
 function ServiceContent({ slug }: { slug?: string }) {
   const { s } = useData()
+  useEffect(() => { if (slug) void refreshCustomerService(slug) }, [slug])
   if (!s) return <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6" role="status"><PageSkeleton /></div>
   if (!Array.isArray(s.services)) return <ServiceMessage error />
   if (!slug) return <ServiceCatalog services={s.services} />

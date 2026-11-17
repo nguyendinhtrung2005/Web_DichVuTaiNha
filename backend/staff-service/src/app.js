@@ -1,67 +1,64 @@
-import express from 'express'
-import cors from 'cors'
-import { randomUUID } from 'node:crypto'
-import { HttpError } from './errors.js'
-import { availabilityQuery, incomeQuery, listQuery, notificationQuery, positiveId, transitionInput } from './validation.js'
+import { createApp as createStaffApp } from "./app.staff.js";
+import { createHttpApp, HttpError, reply } from '../../shared/http.js';
+import { id, enumValue, object, text } from '../../shared/validation.js';
+import { createAuthenticator, createInternalClient } from '../../shared/service-client.js';
 
-export function createApp({ service, notificationService, areaService, incomeService, authenticate, repository, corsOrigins = ['http://localhost:3002'], logger = () => {}, statusUpdatesConfigured = false }) {
-  const app = express()
-  app.disable('x-powered-by')
-  app.set('query parser', 'simple')
-  app.use((req, res, next) => {
-    req.requestId = randomUUID()
-    res.setHeader('X-Request-Id', req.requestId)
-    res.setHeader('Cache-Control', 'no-store')
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    const started = performance.now()
-    res.on('finish', () => logger({ event: 'http_request', requestId: req.requestId, method: req.method, path: req.path, status: res.statusCode, durationMs: Math.round(performance.now() - started) }))
-    next()
-  })
-  app.use(cors({
-    origin(origin, done) { done(origin && !corsOrigins.includes(origin) ? new HttpError(403, 'ORIGIN_DENIED', 'Origin không được cho phép.') : null, true) },
-    credentials: true, methods: ['GET', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
-    exposedHeaders: ['X-Request-Id'], maxAge: 600,
-  }))
-  app.use(express.json({ limit: '16kb', strict: true }))
-  app.get('/health/live', (req, res) => res.json({ status: 'ok', service: 'staff-service' }))
-  app.get('/health/ready', async (req, res) => {
-    await repository.assertSchema()
-    res.status(statusUpdatesConfigured ? 200 : 503).json({ status: statusUpdatesConfigured ? 'ready' : 'dependency-missing', capabilities: { mysqlReads: true, orderStatusSynchronizationConfigured: statusUpdatesConfigured } })
-  })
-  const router = express.Router()
-  router.use(authenticate)
-  router.get('/jobs', async (req, res) => res.json(await service.list(req.actor, listQuery(req.query))))
-  router.get('/job-filters', async (req, res) => {
-    if (Object.keys(req.query).length) throw new HttpError(400, 'VALIDATION_ERROR', 'Bộ lọc dịch vụ không nhận danh tính hoặc tham số từ trình duyệt.')
-    res.json(await service.filters(req.actor))
-  })
-  router.get('/schedule', async (req, res) => res.json(await service.list(req.actor, listQuery(req.query, true))))
-  router.get('/jobs/:assignmentId', async (req, res) => res.json(await service.detail(req.actor, positiveId(req.params.assignmentId))))
-  router.get('/notifications', async (req, res) => res.json(await notificationService.list(req.actor, notificationQuery(req.query))))
-  router.get('/notifications/unread-count', async (req, res) => res.json(await notificationService.unreadCount(req.actor)))
-  router.patch('/notifications/read-all', async (req, res) => res.json(await notificationService.markAllRead(req.actor)))
-  router.patch('/notifications/:notificationId/read', async (req, res) => res.json(await notificationService.markRead(req.actor, positiveId(req.params.notificationId))))
-  router.get('/branch', async (req, res) => res.json(await areaService.branch(req.actor)))
-  router.get('/availability', async (req, res) => res.json(await areaService.availability(req.actor, availabilityQuery(req.query))))
-  router.get('/income/estimate', async (req, res) => res.json(await incomeService.estimate(req.actor, incomeQuery(req.query))))
-  router.patch('/jobs/:assignmentId/status', async (req, res) => {
-    const input = transitionInput(req.body, req.get('Idempotency-Key'))
-    const result = await service.advance(req.actor, positiveId(req.params.assignmentId), input)
-    res.status(result.httpStatus).json(result.body)
-  })
-  app.use('/api/v1/staff/me', router)
-  app.use((req, res, next) => next(new HttpError(404, 'NOT_FOUND', 'Không tìm thấy API.')))
-  app.use((error, req, res, next) => {
-    if (res.headersSent) return next(error)
-    const known = error instanceof HttpError
-    const invalidJson = error.type === 'entity.parse.failed'
-    const tooLarge = error.type === 'entity.too.large'
-    const status = known ? error.status : invalidJson ? 400 : tooLarge ? 413 : 500
-    const code = known ? error.code : invalidJson ? 'INVALID_JSON' : tooLarge ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR'
-    if (status === 401) res.setHeader('WWW-Authenticate', 'Bearer')
-    if (status === 503) res.setHeader('Retry-After', '5')
-    res.status(status).json({ error: { code, message: known ? error.message : invalidJson ? 'JSON không hợp lệ.' : tooLarge ? 'Body vượt giới hạn.' : 'Chưa thể xử lý yêu cầu.', ...(known && error.details !== undefined ? { details: error.details } : {}) }, requestId: req.requestId })
-  })
-  return app
+const nextStatuses = ['accepted', 'in_progress', 'done'];
+const operationIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function createPortalApp({ repository, config }) {
+  const authenticate = createAuthenticator(config, 'staff');
+  const request = createInternalClient(config, 'staff');
+  return createHttpApp({ name: 'staff', config, authenticate, routes: [
+    { method: 'GET', path: '/api/v1/staff/jobs', auth: 'staff', handler: ({ principal, url }) =>
+      request('order', `/internal/v1/staff/users/${id(principal.sub)}/jobs${url.search}`) },
+    { method: 'GET', path: '/api/v1/staff/jobs/:id', auth: 'staff', handler: ({ principal, params }) =>
+      request('order', `/internal/v1/staff/users/${id(principal.sub)}/jobs/${id(params.id)}`) },
+    { method: 'POST', path: '/api/v1/staff/jobs/:id/transitions', auth: 'staff', handler: async ({ principal, params, body }) => {
+      object(body, ['operationId', 'nextStatus']);
+      const bookingId = id(params.id);
+      const operationId = text(body.operationId, 'operationId', 36, 36).toLowerCase();
+      if (!operationIdPattern.test(operationId)) throw new HttpError(400, 'INVALID_INPUT', 'Mã thao tác không hợp lệ.');
+      const nextStatus = enumValue(body.nextStatus, 'nextStatus', nextStatuses);
+      const operation = await repository.prepareTransition(principal.sub, bookingId, operationId, nextStatus);
+      if (operation.phase === 'COMPLETED') return reply(await repository.completeTransition(operationId));
+      try {
+        await request('order', `/internal/v1/staff/users/${id(principal.sub)}/jobs/${bookingId}/transitions`, {
+          method: 'POST',
+          body: {
+            operationId, assignmentId: operation.assignmentId, employeeId: operation.employeeId,
+            nextStatus,
+          },
+        });
+        return reply(await repository.completeTransition(operationId));
+      } catch (error) {
+        if (error instanceof HttpError && error.status < 500) await repository.failTransition(operationId);
+        throw error;
+      }
+    } },
+    { method: 'GET', path: '/internal/v1/branches/:id', auth: 'internal', callers: ['order'], handler: async ({ params }) => {
+      const branch = await repository.branch(id(params.id));
+      if (!branch) throw new HttpError(404, 'BRANCH_NOT_FOUND', 'Chi nhánh chưa được cấu hình.');
+      return branch;
+    } },
+    { method: 'GET', path: '/internal/v1/bookings/:id/assignment', auth: 'internal', callers: ['order'], handler: ({ params }) => repository.assignment(id(params.id)) },
+    { method: 'GET', path: '/internal/v1/users/:id/employee', auth: 'internal', callers: ['order'], handler: async ({ params }) => {
+      const employee = await repository.employee(id(params.id));
+      if (!employee) throw new HttpError(404, 'STAFF_ACCOUNT_NOT_FOUND', 'Không tìm thấy hồ sơ nhân viên đang hoạt động.');
+      return employee;
+    } },
+    { method: 'GET', path: '/internal/v1/users/:userId/bookings/:bookingId/assignment', auth: 'internal', callers: ['order'], handler: async ({ params }) => {
+      const assignment = await repository.assignmentForUser(id(params.userId), id(params.bookingId));
+      if (!assignment) throw new HttpError(404, 'STAFF_ASSIGNMENT_NOT_FOUND', 'Không tìm thấy công việc được phân công.');
+      return assignment;
+    } },
+  ] });
+}
+
+// Runtime selection is fixed by trusted bootstrap arguments, never by request input.
+export function createApp(options) {
+  if (!options || typeof options !== "object") throw new TypeError("Application options required");
+  if (Object.hasOwn(options, "service")) return createStaffApp(options);
+  if (Object.hasOwn(options, "repository") && Object.hasOwn(options, "config")) return createPortalApp(options);
+  throw new TypeError("Unsupported application bootstrap contract");
 }

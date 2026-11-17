@@ -277,3 +277,5 @@ export class MysqlStaffRepository {
     })
   }
 }
+
+export { createRepository } from "./repository.portal.js";

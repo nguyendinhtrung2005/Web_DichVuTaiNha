@@ -10,6 +10,9 @@ export function validAreaPath(role: Role, path: string[]): boolean {
   if (route === "don") return path.length === 2
   if (role === "customer") {
     if (["dich-vu", "dat-dich-vu"].includes(route)) return path.length <= 2
+    if (route === "san-pham") return path.length <= 2
+    if (["gio-hang", "thanh-toan-san-pham"].includes(route)) return path.length === 1
+    if (route === "don-san-pham") return path.length <= 2
     return ["don-cua-toi", "lich-su"].includes(route) && path.length === 1
   }
   if (role === "staff") return ["cong-viec", "lich-lam-viec"].includes(route) && path.length === 1

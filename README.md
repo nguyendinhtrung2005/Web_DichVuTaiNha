@@ -1,35 +1,53 @@
-# Web_DichVuTaiNha
+# CleanHome — Web_DichVuTaiNha
 
-Ứng dụng dịch vụ tại nhà với một frontend React dùng chung cho khách hàng, nhân viên và quản trị viên. Frontend sử dụng giao diện CleanHome làm điểm xuất phát, giữ lại phong cách hình ảnh và luồng đặt lịch, đồng thời mở rộng danh mục sang sửa chữa, lắp đặt và điện lạnh.
+Website dịch vụ tại nhà gồm ba app Next.js/React/TypeScript trong một frontend workspace. Customer dùng Node.js services và MySQL qua API Gateway; Staff/Admin giữ demo riêng trên trình duyệt.
 
-## Chạy frontend
+## Cấu trúc hiện tại
 
-Yêu cầu Node.js 18 trở lên. Từ thư mục `frontend`, chạy:
+- `frontend/apps/customer`: Customer, cổng 3001.
+- `frontend/apps/staff`: Staff, cổng 3002.
+- `frontend/apps/admin`: Admin, cổng 3003.
+- `frontend/packages`: mã nguồn dùng chung; cần giữ cùng workspace khi build.
+- `backend`: Gateway và Auth/User/Catalog/Order/Staff/Payment/Review services.
+- `databases`: schema tham khảo và migration có phiên bản, không tự chạy khi start.
 
-```bash
-npm install
-npm run dev
+Frontend Vite cũ đã được gỡ theo xác nhận owner ngày 07/11/2026. Hướng dẫn migration kit chỉ còn là lịch sử, không phải quy trình chạy hiện tại. `docker-compose.yml` đang là placeholder `services: {}`, chưa phải cấu hình triển khai.
+
+## Chạy local
+
+Yêu cầu Node.js 22.9+ và MySQL 8.0+. Cài dependency từ root nếu máy chưa có:
+
+```powershell
+npm.cmd --prefix frontend ci
+npm.cmd --prefix backend ci
 ```
 
-Mở địa chỉ được Vite in ra trong terminal (mặc định `http://localhost:5173`).
+Cấu hình riêng theo [backend README](backend/README.md) và [frontend README](frontend/README.md). Dùng `backend/.env` và `frontend/apps/customer/.env.local`; file mẫu không chứa credential thật. Không import lại schema hoặc seed lên database đang có dữ liệu. Migration phải được owner duyệt cho đúng môi trường.
 
-### Tài khoản demo
+Mở hai terminal tại root:
 
-| Vai trò | Email | Mật khẩu |
-| --- | --- | --- |
-| Khách hàng | `lan.nguyen@example.vn` | `KhachHang123` |
-| Nhân viên | `hung.tran@cleanhome.vn` | `NhanVien123` |
-| Quản trị viên | `admin@cleanhome.vn` | `QuanTri123` |
+```powershell
+npm.cmd --prefix backend run start:customer
+```
 
-Có thể đăng ký tài khoản khách hàng demo mới. Phiên đăng nhập và các đơn demo được giữ trong Local Storage của trình duyệt.
+```powershell
+npm.cmd --prefix frontend run dev:customer
+```
 
-## Phạm vi hiện tại
+Truy cập http://localhost:3001. Gateway local dùng http://localhost:4000/api/v1; giữ cùng hostname với frontend và đúng CUSTOMER_ORIGIN. Launcher backend mở các service cần thiết; không chạy thêm instance trùng cổng.
 
-- Một ứng dụng responsive, điều hướng theo vai trò qua `/user`, `/staff` và `/admin`; các route vai trò được chặn nếu chưa đăng nhập hoặc sai vai trò.
-- Khách hàng có thể duyệt dịch vụ theo 4 nhóm: vệ sinh phòng trọ, vệ sinh nhà ở, chăm sóc, bảo dưỡng; gửi yêu cầu đặt lịch và theo dõi đơn demo.
-- Có gian hàng sản phẩm theo các nhóm dịch vụ; khách hàng demo có thể chọn số lượng, gửi đơn mua và xem trạng thái. Admin có thể quản lý danh mục/tồn kho và xử lý đơn sản phẩm.
-- Nhân viên có thể xem công việc mẫu, nhận đơn đang chờ, cập nhật trạng thái thực hiện và xem lịch.
-- Quản trị viên có các màn hình tổng quan, đơn hàng, danh mục dịch vụ, tài khoản mẫu, thanh toán, đánh giá và báo cáo.
-- Dịch vụ mẫu gồm dọn dẹp, sửa chữa điện nước/điện gia dụng, lắp đặt và chăm sóc thiết bị điện lạnh.
+Staff/Admin có thể chạy riêng bằng `npm.cmd --prefix frontend run dev:staff` và `npm.cmd --prefix frontend run dev:admin`. Tài khoản demo và giới hạn xem trong frontend README.
 
-**Lưu ý:** các luồng nghiệp vụ và số liệu hiện chỉ là bản demo phía trình duyệt. Đơn sản phẩm không kết nối thanh toán/vận chuyển thật; thay đổi tồn kho và đơn được lưu cục bộ. `docker-compose.yml`, backend và các module `frontend/src/services` chưa được kết nối/triển khai; đăng nhập, phân quyền và thanh toán hiện không phải cơ chế bảo mật hay giao dịch thật. Cần tích hợp API và kiểm tra quyền ở backend trước khi đưa vào sử dụng thực tế.
+## Chức năng và giới hạn
+
+Customer đăng ký/đăng nhập SĐT hoặc email qua API, phiên cookie HttpOnly; xem/tìm dịch vụ, đặt lịch, quản lý/lọc lịch sử, gửi yêu cầu hủy chờ duyệt, thanh toán mô phỏng, đánh giá và xem điểm chung. Sản phẩm có giỏ và đơn mua riêng, không cần lịch dịch vụ hoặc tự mua kèm.
+
+Staff/Admin demo không tự đồng bộ với dữ liệu Customer MySQL. Chưa có payment/shipping thật; Auth local lưu registry phiên trong RAM. Không dùng trạng thái demo làm bằng chứng tích hợp backend hai vai trò.
+
+## Kiểm thử và tài liệu
+
+- Frontend: `npm.cmd --prefix frontend run test:commerce`, `npm.cmd --prefix frontend run typecheck`, `npm.cmd --prefix frontend run build:customer`.
+- Backend: `npm.cmd --prefix backend test`; các test MySQL mặc định SKIP nếu chưa bật ALLOW_CUSTOMER_DB_TEST và chưa được duyệt fixture/target.
+- [Contract Customer](backend/docs/customer-api-contract.md), [Dịch vụ/Sản phẩm](backend/docs/services-products-contract.md).
+- [Kiểm chứng 8 Use Case](backend/docs/customer-use-case-verification.md), [dọn dẹp và tối ưu](frontend/docs/PROJECT_CLEANUP.md).
+- Đọc [AGENTS.md](AGENTS.md) và [quy tắc nhóm](BACKEND_TEAM_RULES.md) trước khi sửa. Không commit `.env`, private keys, tokens hoặc database dump chứa dữ liệu cá nhân.
